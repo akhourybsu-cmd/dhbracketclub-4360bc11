@@ -5,7 +5,7 @@
 // Pending/non-active campaigns render a status banner instead of
 // the play surface.
 
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
