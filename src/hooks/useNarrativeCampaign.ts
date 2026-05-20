@@ -143,7 +143,13 @@ export function useNarrativeCampaign(campaignId: string | undefined): UseNarrati
   useEffect(() => { campaignRef.current = campaign; }, [campaign]);
 
   const refresh = useCallback(async () => {
-    if (!campaignId || !user) return;
+    // Early-return for missing prereqs MUST clear loading. Otherwise
+    // the initial useState(true) leaves the detail page stuck on the
+    // skeleton if the auth context briefly returns user=null during
+    // route transitions or on first paint — `data.loading &&
+    // !data.campaign` would never go false because refresh exits
+    // before reaching setLoading(false).
+    if (!campaignId || !user) { setLoading(false); return; }
     setLoading(true);
     setError(null);
     const sb = supabase as any;

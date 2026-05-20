@@ -60,7 +60,11 @@ export function useNarrativeCampaigns(): UseNarrativeCampaignsResult {
   const refreshRef = useRef<() => Promise<void>>();
 
   const refresh = useCallback(async () => {
-    if (!user || !club?.id) return;
+    // Same defensive pattern as useNarrativeCampaign: initial loading
+    // is `true`, so an early-return without clearing loading leaves
+    // the list page stuck on the skeleton if user/club briefly
+    // resolve to null during context hydration.
+    if (!user || !club?.id) { setLoading(false); return; }
     setLoading(true);
     setError(null);
     try {

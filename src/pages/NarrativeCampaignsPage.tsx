@@ -23,7 +23,7 @@ import { FlamingoBrandBadge } from '@/components/narrative/flamingo/FlamingoStat
 import type { Campaign } from '@/lib/narrative/types';
 
 export default function NarrativeCampaignsPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { club, isClubAdmin } = useClub();
   const { campaigns, loading } = useNarrativeCampaigns();
   const navigate = useNavigate();
@@ -96,8 +96,10 @@ export default function NarrativeCampaignsPage() {
         </button>
       </motion.div>
 
-      {/* Loading */}
-      {loading && campaigns.length === 0 && (
+      {/* Loading — show skeleton while EITHER auth or data is hydrating.
+          Prevents the empty-state flash when auth resolves a moment
+          before the data fetch completes. */}
+      {(authLoading || loading) && campaigns.length === 0 && (
         <div className="space-y-2 mb-4">
           {[1, 2, 3].map(i => (
             <div key={i} className="h-[88px] rounded-2xl skeleton-shimmer" />
@@ -105,8 +107,8 @@ export default function NarrativeCampaignsPage() {
         </div>
       )}
 
-      {/* Empty */}
-      {!loading && campaigns.length === 0 && (
+      {/* Empty — only after both auth + data have settled. */}
+      {!authLoading && !loading && campaigns.length === 0 && (
         <div className="glass-card text-center p-6 mb-4">
           <div className="w-12 h-12 rounded-2xl mx-auto mb-3 flex items-center justify-center bg-primary/10">
             <ScrollText className="w-6 h-6 text-primary/80" />

@@ -54,7 +54,7 @@ type DetailTarget =
 export default function NarrativeCampaignDetailPage() {
   const { campaignId } = useParams<{ campaignId: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { submitForApproval } = useNarrativeCampaigns();
   const data = useNarrativeCampaign(campaignId);
   const [tab, setTab] = useState<Tab>('story');
@@ -91,7 +91,13 @@ export default function NarrativeCampaignDetailPage() {
   const publicClues    = useMemo(() => data.clues.filter(c => c.visibility === 'public' || data.isGm),  [data.clues, data.isGm]);
   const publicFactions = useMemo(() => data.factions.filter(f => f.visibility === 'public' || data.isGm), [data.factions, data.isGm]);
 
-  if (data.loading && !data.campaign) {
+  // Skeleton conditions:
+  //   1. Auth context is still hydrating (authLoading=true) — we can't
+  //      yet know if the user is signed in.
+  //   2. Data hook is hydrating AND we don't have a campaign yet.
+  // Either keeps the skeleton up. Once both resolve, we either render
+  // the campaign or fall through to the "Campaign not found" state.
+  if (authLoading || (data.loading && !data.campaign)) {
     // Layout-matching skeleton — same chrome shapes as the real page so
     // there's no jank when content swaps in. Each block uses the
     // skeleton-shimmer animation defined in index.css.
