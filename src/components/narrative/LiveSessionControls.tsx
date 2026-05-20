@@ -45,15 +45,19 @@ export function LiveSessionControls({ campaign, currentScene, onChanged, compact
 
   const start = useCallback(async () => {
     setBusy(true);
-    const now = new Date().toISOString();
-    // Use crypto for a stable session id we can later track sessions by.
-    const sessionId = (typeof crypto !== 'undefined' && 'randomUUID' in crypto)
-      ? crypto.randomUUID()
-      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    const { error } = await (supabase as any).from('narrative_campaigns')
-      .update({ live_session_id: sessionId, live_started_at: now })
-      .eq('id', campaign.id);
-    if (!error) {
+    try {
+      const now = new Date().toISOString();
+      // Use crypto for a stable session id we can later track sessions by.
+      const sessionId = (typeof crypto !== 'undefined' && 'randomUUID' in crypto)
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const { error } = await (supabase as any).from('narrative_campaigns')
+        .update({ live_session_id: sessionId, live_started_at: now })
+        .eq('id', campaign.id);
+      if (error) {
+        toast.error(`Couldn't start: ${error.message}`);
+        return;
+      }
       const { data: claims } = await supabase.auth.getUser();
       await (supabase as any).from('narrative_messages').insert({
         campaign_id: campaign.id,
@@ -66,19 +70,25 @@ export function LiveSessionControls({ campaign, currentScene, onChanged, compact
       });
       toast.success('Live session started.');
       onChanged?.();
-    } else {
-      toast.error(`Couldn't start: ${error.message}`);
+    } catch (e) {
+      toast.error(`Couldn't start: ${(e as Error).message ?? 'unknown error'}`);
+    } finally {
+      // Always clear so the Start button never sticks in loading.
+      setBusy(false);
     }
-    setBusy(false);
   }, [campaign.id, currentScene?.id, onChanged]);
 
   const end = useCallback(async () => {
     setBusy(true);
-    const startedAt = campaign.live_started_at;
-    const { error } = await (supabase as any).from('narrative_campaigns')
-      .update({ live_session_id: null, live_started_at: null })
-      .eq('id', campaign.id);
-    if (!error) {
+    try {
+      const startedAt = campaign.live_started_at;
+      const { error } = await (supabase as any).from('narrative_campaigns')
+        .update({ live_session_id: null, live_started_at: null })
+        .eq('id', campaign.id);
+      if (error) {
+        toast.error(`Couldn't end: ${error.message}`);
+        return;
+      }
       const { data: claims } = await supabase.auth.getUser();
       await (supabase as any).from('narrative_messages').insert({
         campaign_id: campaign.id,
@@ -93,10 +103,11 @@ export function LiveSessionControls({ campaign, currentScene, onChanged, compact
       onChanged?.();
       // Offer to summarize the session.
       setSummarizeOpen(true);
-    } else {
-      toast.error(`Couldn't end: ${error.message}`);
+    } catch (e) {
+      toast.error(`Couldn't end: ${(e as Error).message ?? 'unknown error'}`);
+    } finally {
+      setBusy(false);
     }
-    setBusy(false);
   }, [campaign.id, campaign.live_started_at, currentScene?.id, onChanged]);
 
   const duration = isLive ? formatDuration(campaign.live_started_at!) : null;

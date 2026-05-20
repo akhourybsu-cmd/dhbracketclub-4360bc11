@@ -310,17 +310,28 @@ function SceneTab({ campaign, currentScene, onCreateScene, onEndScene, onEditSce
   const submit = async () => {
     if (!title.trim()) { toast.error('Give the scene a title.'); return; }
     setBusy(true);
-    await onCreateScene({
-      title: title.trim(),
-      location: location.trim() || undefined,
-      objective: objective.trim() || undefined,
-      stakes: stakes.trim() || undefined,
-      public_notes: publicNotes.trim() || undefined,
-      gm_notes: gmNotes.trim() || undefined,
-    });
-    setBusy(false);
-    setTitle(''); setLocation(''); setObjective(''); setStakes(''); setPublicNotes(''); setGmNotes('');
-    toast.success('Scene started.');
+    try {
+      const result = await onCreateScene({
+        title: title.trim(),
+        location: location.trim() || undefined,
+        objective: objective.trim() || undefined,
+        stakes: stakes.trim() || undefined,
+        public_notes: publicNotes.trim() || undefined,
+        gm_notes: gmNotes.trim() || undefined,
+      });
+      if (result) {
+        setTitle(''); setLocation(''); setObjective(''); setStakes(''); setPublicNotes(''); setGmNotes('');
+        toast.success('Scene started.');
+      } else {
+        toast.error("Couldn't start the scene. Make sure the campaign is active and you're the GM.");
+      }
+    } catch (e) {
+      toast.error(`Couldn't start scene: ${(e as Error).message ?? 'unknown error'}`);
+    } finally {
+      // Always clear — fixes the permanent-loading bug where a thrown
+      // error from the mutator left this button disabled forever.
+      setBusy(false);
+    }
   };
 
   return (
@@ -433,9 +444,24 @@ function SimpleCreate({ label, onCreate, placeholder, descPlaceholder, gmOnly = 
   const submit = async () => {
     if (!name.trim()) return;
     setBusy(true);
-    await onCreate({ name: name.trim(), description: desc.trim() || undefined, visibility: hidden ? 'gm_only' : 'public' });
-    setBusy(false);
-    setName(''); setDesc('');
+    try {
+      const result = await onCreate({ name: name.trim(), description: desc.trim() || undefined, visibility: hidden ? 'gm_only' : 'public' });
+      // Mutators return null on RLS failure / DB error — only clear
+      // the form when the insert actually persisted. Otherwise the
+      // user's input is preserved so they can retry without retyping.
+      if (result) {
+        setName(''); setDesc('');
+      } else {
+        toast.error(`Couldn't add the ${label}. You may not have permission, or the campaign isn't active yet.`);
+      }
+    } catch (e) {
+      toast.error(`Couldn't add: ${(e as Error).message ?? 'unknown error'}`);
+    } finally {
+      // ALWAYS clear busy — even if the await above rejects. Closes
+      // the "permanent loading state" bug where a thrown error left
+      // the Add button disabled forever.
+      setBusy(false);
+    }
   };
   return (
     <div className="rounded-xl bg-muted/25 border border-border/40 p-3 space-y-2">
@@ -735,9 +761,18 @@ function ClocksTab({ campaign, clocks, onCreateClock, onAdvanceClock, onEdit }: 
             disabled={busy || !name.trim()}
             onClick={async () => {
               setBusy(true);
-              await onCreateClock({ name: name.trim(), max_value: maxVal, clock_type: clockType, visibility: hidden ? 'gm_only' : 'public' });
-              setBusy(false);
-              setName(''); setMaxVal(6); setHidden(false);
+              try {
+                const result = await onCreateClock({ name: name.trim(), max_value: maxVal, clock_type: clockType, visibility: hidden ? 'gm_only' : 'public' });
+                if (result) {
+                  setName(''); setMaxVal(6); setHidden(false);
+                } else {
+                  toast.error("Couldn't add the clock. Check that the campaign is active.");
+                }
+              } catch (e) {
+                toast.error(`Couldn't add clock: ${(e as Error).message ?? 'unknown error'}`);
+              } finally {
+                setBusy(false);
+              }
             }}
             className="h-9 px-3 rounded-md text-[11px] font-extrabold active:scale-95 disabled:opacity-50"
             style={flamingo ? {

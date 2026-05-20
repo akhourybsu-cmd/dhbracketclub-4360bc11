@@ -107,39 +107,46 @@ export function CharacterCreationSheet({ open, onClose, templateKey, onCreate }:
       return;
     }
     setSubmitting(true);
-    // Thread the result through so silent persistence failures (RLS
-    // rejection because the player isn't a campaign member yet,
-    // network errors, etc.) surface as a real error toast instead of
-    // a misleading "Character created" success.
-    const result = await onCreate({
-      name: name.trim(),
-      pronouns: pronouns.trim() || null,
-      archetype: archetype.trim() || null,
-      backstory: backstory.trim() || null,
-      personality: personality.trim() || null,
-      goal: goal.trim() || null,
-      flaw: flaw.trim() || null,
-      signature_move: signatureMove.trim() || null,
-      stat_grit: stats.grit,
-      stat_charm: stats.charm,
-      stat_cunning: stats.cunning,
-      stat_chaos: stats.chaos,
-      stat_focus: stats.focus,
-      inventory: [],
-      conditions: [],
-      notes_public: null,
-      notes_private: null,
-      avatar_url: null,
-    });
-    setSubmitting(false);
-    if (!result) {
-      toast.error(
-        "Couldn't save your character. If you were invited recently, make sure you've accepted the invite first.",
-      );
-      return;
+    try {
+      // Thread the result through so silent persistence failures (RLS
+      // rejection because the player isn't a campaign member yet,
+      // network errors, etc.) surface as a real error toast instead
+      // of a misleading "Character created" success.
+      const result = await onCreate({
+        name: name.trim(),
+        pronouns: pronouns.trim() || null,
+        archetype: archetype.trim() || null,
+        backstory: backstory.trim() || null,
+        personality: personality.trim() || null,
+        goal: goal.trim() || null,
+        flaw: flaw.trim() || null,
+        signature_move: signatureMove.trim() || null,
+        stat_grit: stats.grit,
+        stat_charm: stats.charm,
+        stat_cunning: stats.cunning,
+        stat_chaos: stats.chaos,
+        stat_focus: stats.focus,
+        inventory: [],
+        conditions: [],
+        notes_public: null,
+        notes_private: null,
+        avatar_url: null,
+      });
+      if (!result) {
+        toast.error(
+          "Couldn't save your character. If you were invited recently, make sure you've accepted the invite first.",
+        );
+        return;
+      }
+      toast.success('Character created.');
+      onClose();
+    } catch (e) {
+      toast.error(`Couldn't save character: ${(e as Error).message ?? 'unknown error'}`);
+    } finally {
+      // Always clear submitting so the form button never sticks in a
+      // permanent loading state if the await above throws.
+      setSubmitting(false);
     }
-    toast.success('Character created.');
-    onClose();
   };
 
   if (!open || typeof document === 'undefined') return null;

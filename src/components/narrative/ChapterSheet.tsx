@@ -70,73 +70,88 @@ export function ChapterSheet({ open, onClose, campaign, onChanged }: Props) {
     if (!editing) return;
     if (!title.trim()) { toast.error('Give the chapter a title.'); return; }
     setBusy(true);
-    if (editing.id) {
-      const { error } = await (supabase as any).from('narrative_chapters')
-        .update({ title: title.trim(), description: description.trim() || null })
-        .eq('id', editing.id);
-      if (error) { toast.error(error.message); setBusy(false); return; }
-    } else {
-      const { error } = await (supabase as any).from('narrative_chapters').insert({
-        campaign_id: campaign.id,
-        title: title.trim(),
-        description: description.trim() || null,
-        status: 'upcoming',
-        position: editing.position,
-      });
-      if (error) { toast.error(error.message); setBusy(false); return; }
+    try {
+      if (editing.id) {
+        const { error } = await (supabase as any).from('narrative_chapters')
+          .update({ title: title.trim(), description: description.trim() || null })
+          .eq('id', editing.id);
+        if (error) { toast.error(error.message); return; }
+      } else {
+        const { error } = await (supabase as any).from('narrative_chapters').insert({
+          campaign_id: campaign.id,
+          title: title.trim(),
+          description: description.trim() || null,
+          status: 'upcoming',
+          position: editing.position,
+        });
+        if (error) { toast.error(error.message); return; }
+      }
+      toast.success('Saved.');
+      cancel();
+      await refresh();
+      onChanged?.();
+    } catch (e) {
+      toast.error(`Save failed: ${(e as Error).message ?? 'unknown error'}`);
+    } finally {
+      setBusy(false);
     }
-    setBusy(false);
-    toast.success('Saved.');
-    cancel();
-    await refresh();
-    onChanged?.();
   };
 
   const makeCurrent = async (c: Chapter) => {
     setBusy(true);
-    // Mark any previously active chapter as completed.
-    const { error: closeErr } = await (supabase as any).from('narrative_chapters')
-      .update({ status: 'completed' })
-      .eq('campaign_id', campaign.id)
-      .eq('status', 'active');
-    if (closeErr) toast.warning(`Couldn't close previous chapter: ${closeErr.message}`);
+    try {
+      // Mark any previously active chapter as completed.
+      const { error: closeErr } = await (supabase as any).from('narrative_chapters')
+        .update({ status: 'completed' })
+        .eq('campaign_id', campaign.id)
+        .eq('status', 'active');
+      if (closeErr) toast.warning(`Couldn't close previous chapter: ${closeErr.message}`);
 
-    const { error } = await (supabase as any).from('narrative_chapters')
-      .update({ status: 'active' })
-      .eq('id', c.id);
-    if (error) { toast.error(error.message); setBusy(false); return; }
+      const { error } = await (supabase as any).from('narrative_chapters')
+        .update({ status: 'active' })
+        .eq('id', c.id);
+      if (error) { toast.error(error.message); return; }
 
-    await (supabase as any).from('narrative_campaigns')
-      .update({ current_chapter_id: c.id })
-      .eq('id', campaign.id);
+      await (supabase as any).from('narrative_campaigns')
+        .update({ current_chapter_id: c.id })
+        .eq('id', campaign.id);
 
-    // Post a chapter_transition message into the chat.
-    const { data: claims } = await supabase.auth.getUser();
-    await (supabase as any).from('narrative_messages').insert({
-      campaign_id: campaign.id,
-      sender_id: claims.user?.id ?? null,
-      message_type: 'chapter_transition',
-      body: c.title,
-      visibility: 'public',
-      metadata: { chapter_id: c.id, description: c.description },
-    });
+      // Post a chapter_transition message into the chat.
+      const { data: claims } = await supabase.auth.getUser();
+      await (supabase as any).from('narrative_messages').insert({
+        campaign_id: campaign.id,
+        sender_id: claims.user?.id ?? null,
+        message_type: 'chapter_transition',
+        body: c.title,
+        visibility: 'public',
+        metadata: { chapter_id: c.id, description: c.description },
+      });
 
-    setBusy(false);
-    toast.success('Chapter is now current.');
-    await refresh();
-    onChanged?.();
+      toast.success('Chapter is now current.');
+      await refresh();
+      onChanged?.();
+    } catch (e) {
+      toast.error(`Chapter transition failed: ${(e as Error).message ?? 'unknown error'}`);
+    } finally {
+      setBusy(false);
+    }
   };
 
   const complete = async (c: Chapter) => {
     setBusy(true);
-    const { error } = await (supabase as any).from('narrative_chapters')
-      .update({ status: 'completed' })
-      .eq('id', c.id);
-    setBusy(false);
-    if (error) { toast.error(error.message); return; }
-    toast.success('Chapter completed.');
-    await refresh();
-    onChanged?.();
+    try {
+      const { error } = await (supabase as any).from('narrative_chapters')
+        .update({ status: 'completed' })
+        .eq('id', c.id);
+      if (error) { toast.error(error.message); return; }
+      toast.success('Chapter completed.');
+      await refresh();
+      onChanged?.();
+    } catch (e) {
+      toast.error(`Couldn't complete chapter: ${(e as Error).message ?? 'unknown error'}`);
+    } finally {
+      setBusy(false);
+    }
   };
 
   if (!open || typeof document === 'undefined') return null;

@@ -62,33 +62,49 @@ export function EntityEditSheet({ open, onClose, table, entityLabel, row, schema
 
   const save = async () => {
     setBusy(true);
-    // Pick only the fields the schema mentions (ignore stray data).
-    const patch: Record<string, unknown> = {};
-    for (const f of schema) patch[f.column] = values[f.column];
-    let error: { message: string } | null = null;
-    if (row.id) {
-      const r = await (supabase as any).from(table).update(patch).eq('id', row.id);
-      error = r.error;
-    } else {
-      const r = await (supabase as any).from(table).insert(patch);
-      error = r.error;
+    try {
+      // Pick only the fields the schema mentions (ignore stray data).
+      const patch: Record<string, unknown> = {};
+      for (const f of schema) patch[f.column] = values[f.column];
+      let error: { message: string } | null = null;
+      if (row.id) {
+        const r = await (supabase as any).from(table).update(patch).eq('id', row.id);
+        error = r.error;
+      } else {
+        const r = await (supabase as any).from(table).insert(patch);
+        error = r.error;
+      }
+      if (error) {
+        toast.error(`Save failed: ${error.message}`);
+        return;
+      }
+      toast.success('Saved.');
+      onSaved?.();
+      onClose();
+    } catch (e) {
+      toast.error(`Save failed: ${(e as Error).message ?? 'unknown error'}`);
+    } finally {
+      setBusy(false);
     }
-    setBusy(false);
-    if (error) { toast.error(`Save failed: ${error.message}`); return; }
-    toast.success('Saved.');
-    onSaved?.();
-    onClose();
   };
 
   const remove = async () => {
     if (!row.id) { onClose(); return; }
     setBusy(true);
-    const { error } = await (supabase as any).from(table).delete().eq('id', row.id);
-    setBusy(false);
-    if (error) { toast.error(`Delete failed: ${error.message}`); return; }
-    toast.success('Deleted.');
-    onSaved?.();
-    onClose();
+    try {
+      const { error } = await (supabase as any).from(table).delete().eq('id', row.id);
+      if (error) {
+        toast.error(`Delete failed: ${error.message}`);
+        return;
+      }
+      toast.success('Deleted.');
+      onSaved?.();
+      onClose();
+    } catch (e) {
+      toast.error(`Delete failed: ${(e as Error).message ?? 'unknown error'}`);
+    } finally {
+      setBusy(false);
+    }
   };
 
   if (!open || typeof document === 'undefined') return null;

@@ -69,26 +69,31 @@ export function WaitingOnSheet({ open, onClose, campaign, members, flamingo, onS
   const apply = async () => {
     setBusy(true);
     haptic('light');
-    const next = mode === 'clear'
-      ? { mode: null as null }
-      : mode === 'all'
-        ? { mode: 'all' as const, required }
-        : { mode: 'specific' as const, player_ids: Array.from(selected), required };
-    const ok = await onSet(next);
-    setBusy(false);
-    if (!ok) {
-      toast.error('Could not save waiting-on pin.');
-      return;
+    try {
+      const next = mode === 'clear'
+        ? { mode: null as null }
+        : mode === 'all'
+          ? { mode: 'all' as const, required }
+          : { mode: 'specific' as const, player_ids: Array.from(selected), required };
+      const ok = await onSet(next);
+      if (!ok) {
+        toast.error('Could not save waiting-on pin.');
+        return;
+      }
+      if (mode === 'clear') {
+        toast.success('No one is being waited on.');
+      } else if (mode === 'all') {
+        toast.success('Waiting on all players.');
+      } else {
+        const n = selected.size;
+        toast.success(`Waiting on ${n} player${n === 1 ? '' : 's'}.`);
+      }
+      onClose();
+    } catch (e) {
+      toast.error(`Couldn't save pin: ${(e as Error).message ?? 'unknown error'}`);
+    } finally {
+      setBusy(false);
     }
-    if (mode === 'clear') {
-      toast.success('No one is being waited on.');
-    } else if (mode === 'all') {
-      toast.success('Waiting on all players.');
-    } else {
-      const n = selected.size;
-      toast.success(`Waiting on ${n} player${n === 1 ? '' : 's'}.`);
-    }
-    onClose();
   };
 
   if (!open || typeof document === 'undefined') return null;

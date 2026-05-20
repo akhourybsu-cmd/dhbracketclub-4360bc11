@@ -104,10 +104,15 @@ export function NarrativeApprovalsPanel({ installed, isAdmin }: Props) {
                         disabled={busy}
                         onClick={async () => {
                           setBusy(true);
-                          const ok = await rejectCampaign(c.id, notes);
-                          setBusy(false);
-                          if (!ok) { toast.error(hookError ?? 'Reject failed.'); return; }
-                          setActiveId(null); setNotes(''); toast.success('Rejected.');
+                          try {
+                            const ok = await rejectCampaign(c.id, notes);
+                            if (!ok) { toast.error(hookError ?? 'Reject failed.'); return; }
+                            setActiveId(null); setNotes(''); toast.success('Rejected.');
+                          } catch (e) {
+                            toast.error(`Reject failed: ${(e as Error).message ?? 'unknown error'}`);
+                          } finally {
+                            setBusy(false);
+                          }
                         }}
                         className="flex-1 h-8 rounded-md text-[10.5px] font-bold inline-flex items-center justify-center gap-1 bg-destructive/12 text-destructive border border-destructive/25 disabled:opacity-50"
                       >
@@ -118,10 +123,15 @@ export function NarrativeApprovalsPanel({ installed, isAdmin }: Props) {
                         disabled={busy || !notes.trim()}
                         onClick={async () => {
                           setBusy(true);
-                          const ok = await requestChanges(c.id, notes);
-                          setBusy(false);
-                          if (!ok) { toast.error(hookError ?? 'Request changes failed.'); return; }
-                          setActiveId(null); setNotes(''); toast.success('Changes requested.');
+                          try {
+                            const ok = await requestChanges(c.id, notes);
+                            if (!ok) { toast.error(hookError ?? 'Request changes failed.'); return; }
+                            setActiveId(null); setNotes(''); toast.success('Changes requested.');
+                          } catch (e) {
+                            toast.error(`Request changes failed: ${(e as Error).message ?? 'unknown error'}`);
+                          } finally {
+                            setBusy(false);
+                          }
                         }}
                         className="flex-1 h-8 rounded-md text-[10.5px] font-bold inline-flex items-center justify-center gap-1 bg-warning/12 text-warning border border-warning/25 disabled:opacity-50"
                       >
@@ -132,10 +142,15 @@ export function NarrativeApprovalsPanel({ installed, isAdmin }: Props) {
                         disabled={busy}
                         onClick={async () => {
                           setBusy(true);
-                          const ok = await approveCampaign(c.id, notes || undefined);
-                          setBusy(false);
-                          if (!ok) { toast.error(hookError ?? 'Approve failed.'); return; }
-                          setActiveId(null); setNotes(''); toast.success('Approved.');
+                          try {
+                            const ok = await approveCampaign(c.id, notes || undefined);
+                            if (!ok) { toast.error(hookError ?? 'Approve failed.'); return; }
+                            setActiveId(null); setNotes(''); toast.success('Approved.');
+                          } catch (e) {
+                            toast.error(`Approve failed: ${(e as Error).message ?? 'unknown error'}`);
+                          } finally {
+                            setBusy(false);
+                          }
                         }}
                         className="flex-1 h-8 rounded-md text-[10.5px] font-extrabold inline-flex items-center justify-center gap-1 disabled:opacity-50"
                         style={{ background: 'hsl(var(--success) / 0.18)', color: 'hsl(var(--success))', border: '1px solid hsl(var(--success) / 0.35)' }}
