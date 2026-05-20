@@ -63,21 +63,29 @@ export function useNarrativeCampaigns(): UseNarrativeCampaignsResult {
     if (!user || !club?.id) return;
     setLoading(true);
     setError(null);
-    // RLS filters everything — we just ask for the club's campaigns.
-    const { data, error: dbErr } = await (supabase as any)
-      .from('narrative_campaigns')
-      .select('*')
-      .eq('club_id', club.id)
-      .order('updated_at', { ascending: false });
-    if (dbErr) {
-      // Surface the real Postgres message so missing-table / RLS errors
-      // are visible during dev (the old behavior swallowed them).
-      setError(dbErr.message);
+    try {
+      // RLS filters everything — we just ask for the club's campaigns.
+      const { data, error: dbErr } = await (supabase as any)
+        .from('narrative_campaigns')
+        .select('*')
+        .eq('club_id', club.id)
+        .order('updated_at', { ascending: false });
+      if (dbErr) {
+        // Surface the real Postgres message so missing-table / RLS
+        // errors are visible during dev (the old behavior swallowed
+        // them).
+        setError(dbErr.message);
+        return;
+      }
+      setCampaigns((data ?? []) as Campaign[]);
+    } catch (e) {
+      // Network / SDK failures end up here. Surface the message so
+      // the user sees what went wrong instead of an eternal skeleton.
+      setError((e as Error).message ?? 'Failed to load campaigns');
+    } finally {
+      // Always clear loading — closes the permanent-skeleton bug.
       setLoading(false);
-      return;
     }
-    setCampaigns((data ?? []) as Campaign[]);
-    setLoading(false);
   }, [user, club?.id]);
 
   // Mirror refresh in a ref so the realtime subscription can call the

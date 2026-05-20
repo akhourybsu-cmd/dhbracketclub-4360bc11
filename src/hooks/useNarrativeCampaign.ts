@@ -146,41 +146,83 @@ export function useNarrativeCampaign(campaignId: string | undefined): UseNarrati
     if (!campaignId || !user) return;
     setLoading(true);
     setError(null);
-    // Fetch everything in parallel. RLS handles visibility — anything the
-    // user can't see simply doesn't come back.
     const sb = supabase as any;
-    const [
-      campRes, membersRes, charactersRes, scenesRes, messagesRes,
-      npcsRes, factionsRes, clocksRes, cluesRes, itemsRes, locsRes,
-      aiRes,
-    ] = await Promise.all([
-      sb.from('narrative_campaigns').select('*').eq('id', campaignId).maybeSingle(),
-      sb.from('narrative_campaign_members').select('*').eq('campaign_id', campaignId),
-      sb.from('narrative_characters').select('*').eq('campaign_id', campaignId),
-      sb.from('narrative_scenes').select('*').eq('campaign_id', campaignId).order('position', { ascending: true }),
-      sb.from('narrative_messages').select('*').eq('campaign_id', campaignId).order('created_at', { ascending: true }).limit(200),
-      sb.from('narrative_npcs').select('*').eq('campaign_id', campaignId),
-      sb.from('narrative_factions').select('*').eq('campaign_id', campaignId),
-      sb.from('narrative_clocks').select('*').eq('campaign_id', campaignId),
-      sb.from('narrative_clues').select('*').eq('campaign_id', campaignId),
-      sb.from('narrative_items').select('*').eq('campaign_id', campaignId),
-      sb.from('narrative_locations').select('*').eq('campaign_id', campaignId),
-      sb.from('narrative_ai_suggestions').select('*').eq('campaign_id', campaignId).order('created_at', { ascending: false }),
-    ]);
-    if (campRes.error) { setError(campRes.error.message); setLoading(false); return; }
-    setCampaign(campRes.data as Campaign | null);
-    setMembers((membersRes.data ?? []) as CampaignMember[]);
-    setCharacters((charactersRes.data ?? []) as Character[]);
-    setScenes((scenesRes.data ?? []) as Scene[]);
-    setMessages((messagesRes.data ?? []) as Message[]);
-    setNpcs((npcsRes.data ?? []) as NPC[]);
-    setFactions((factionsRes.data ?? []) as Faction[]);
-    setClocks((clocksRes.data ?? []) as Clock[]);
-    setClues((cluesRes.data ?? []) as Clue[]);
-    setItems((itemsRes.data ?? []) as Item[]);
-    setLocations((locsRes.data ?? []) as NarrativeLocation[]);
-    setAiSuggestions((aiRes.data ?? []) as AiSuggestionRow[]);
-    setLoading(false);
+    try {
+      // Fetch everything in parallel. RLS handles visibility — anything
+      // the user can't see simply doesn't come back. Promise.allSettled
+      // is used instead of Promise.all so a single failed query (e.g.
+      // narrative_ai_suggestions when the table doesn't exist yet
+      // because migrations haven't been applied) can't bring down the
+      // whole hydrate. Previously a single rejected promise left the
+      // page stuck on the skeleton with no way out.
+      const results = await Promise.allSettled([
+        sb.from('narrative_campaigns').select('*').eq('id', campaignId).maybeSingle(),
+        sb.from('narrative_campaign_members').select('*').eq('campaign_id', campaignId),
+        sb.from('narrative_characters').select('*').eq('campaign_id', campaignId),
+        sb.from('narrative_scenes').select('*').eq('campaign_id', campaignId).order('position', { ascending: true }),
+        sb.from('narrative_messages').select('*').eq('campaign_id', campaignId).order('created_at', { ascending: true }).limit(200),
+        sb.from('narrative_npcs').select('*').eq('campaign_id', campaignId),
+        sb.from('narrative_factions').select('*').eq('campaign_id', campaignId),
+        sb.from('narrative_clocks').select('*').eq('campaign_id', campaignId),
+        sb.from('narrative_clues').select('*').eq('campaign_id', campaignId),
+        sb.from('narrative_items').select('*').eq('campaign_id', campaignId),
+        sb.from('narrative_locations').select('*').eq('campaign_id', campaignId),
+        sb.from('narrative_ai_suggestions').select('*').eq('campaign_id', campaignId).order('created_at', { ascending: false }),
+      ]);
+      const [
+        campRes, membersRes, charactersRes, scenesRes, messagesRes,
+        npcsRes, factionsRes, clocksRes, cluesRes, itemsRes, locsRes,
+        aiRes,
+      ] = results;
+      // Pull `.value.data` for fulfilled, fall back to [] / null for
+      // rejected. Each query is independent — empty data is fine.
+      const pickRow = (r: typeof campRes) => r.status === 'fulfilled' ? (r.value as any)?.data ?? null : null;
+      const pickList = <T,>(r: PromiseSettledResult<any>): T[] =>
+        r.status === 'fulfilled' ? ((r.value as any)?.data ?? []) as T[] : [];
+
+      // Campaign row is the one query we MUST have. If it failed AND
+      // returned an error message, surface it so the page can show
+      // "Campaign not found / can't load" instead of the skeleton.
+      if (campRes.status === 'fulfilled') {
+        const cv = campRes.value as any;
+        if (cv?.error) setError(cv.error.message);
+      } else if (campRes.status === 'rejected') {
+        setError(campRes.reason?.message ?? 'Failed to load campaign');
+      }
+
+      setCampaign(pickRow(campRes) as Campaign | null);
+      setMembers(pickList<CampaignMember>(membersRes));
+      setCharacters(pickList<Character>(charactersRes));
+      setScenes(pickList<Scene>(scenesRes));
+      setMessages(pickList<Message>(messagesRes));
+      setNpcs(pickList<NPC>(npcsRes));
+      setFactions(pickList<Faction>(factionsRes));
+      setClocks(pickList<Clock>(clocksRes));
+      setClues(pickList<Clue>(cluesRes));
+      setItems(pickList<Item>(itemsRes));
+      setLocations(pickList<NarrativeLocation>(locsRes));
+      setAiSuggestions(pickList<AiSuggestionRow>(aiRes));
+
+      // Log any rejected sub-queries to the console so we can spot
+      // which table is the troublemaker without breaking the page.
+      const rejected = results
+        .map((r, i) => r.status === 'rejected' ? `${i}: ${r.reason?.message ?? 'unknown'}` : null)
+        .filter(Boolean);
+      if (rejected.length > 0) {
+        console.warn('[useNarrativeCampaign] partial hydrate — failed queries:', rejected);
+      }
+    } catch (e) {
+      // Should be unreachable now that we use allSettled, but a
+      // belt-and-suspenders catch makes sure setLoading(false) always
+      // runs even if something earlier in the function throws.
+      console.error('[useNarrativeCampaign] refresh threw:', e);
+      setError((e as Error).message ?? 'Failed to load campaign');
+    } finally {
+      // ALWAYS clear loading — fixes the permanent-skeleton bug where
+      // a single rejected query left the page stuck on the loading
+      // state with no way to recover short of a full reload.
+      setLoading(false);
+    }
   }, [campaignId, user]);
 
   useEffect(() => { refresh(); }, [refresh]);
