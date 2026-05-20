@@ -51,22 +51,31 @@ export function PlayerAiAssistMenu({ open, onClose, campaignId, character, draft
 
   const run = async (intent: Intent) => {
     setBusy(intent);
-    const result = await invokePlayerTool({
-      campaignId,
-      characterName: character?.name,
-      characterArchetype: character?.archetype ?? undefined,
-      draft,
-      intent,
-    });
-    setBusy(null);
-    if ('available' in result && result.available === false) {
-      toast.error(result.reason);
-      return;
+    try {
+      const result = await invokePlayerTool({
+        campaignId,
+        characterName: character?.name,
+        characterArchetype: character?.archetype ?? undefined,
+        draft,
+        intent,
+      });
+      if ('available' in result && result.available === false) {
+        toast.error(result.reason);
+        return;
+      }
+      if (!('draft' in result)) return;
+      onApply(result.draft);
+      toast.success('Draft updated — review before sending.');
+      onClose();
+    } catch (e) {
+      // invokePlayerTool already has its own try/catch returning
+      // AiUnavailable, so this is belt-and-suspenders for anything
+      // that slips past — leaves the menu usable instead of locked
+      // on a single intent button forever.
+      toast.error(`AI assist failed: ${(e as Error).message ?? 'unknown error'}`);
+    } finally {
+      setBusy(null);
     }
-    if (!('draft' in result)) return;
-    onApply(result.draft);
-    toast.success('Draft updated — review before sending.');
-    onClose();
   };
 
   if (!open || typeof document === 'undefined') return null;

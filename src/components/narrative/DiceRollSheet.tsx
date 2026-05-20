@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 import { X, Dices } from 'lucide-react';
+import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { CHRONICLE_STATS, type ChronicleStat, type RollAdvantage } from '@/lib/narrative/chronicleRuleset';
@@ -47,18 +48,32 @@ export function DiceRollSheet({ open, onClose, character, isGm, onRoll }: Props)
 
   const submit = async () => {
     setRolling(true);
-    await onRoll({
-      stat,
-      statValue,
-      modifier,
-      difficulty,
-      advantage,
-      reason: reason.trim(),
-      visibility: hidden ? 'gm_only' : 'public',
-    });
-    setRolling(false);
-    setReason('');
-    onClose();
+    let ok = false;
+    try {
+      await onRoll({
+        stat,
+        statValue,
+        modifier,
+        difficulty,
+        advantage,
+        reason: reason.trim(),
+        visibility: hidden ? 'gm_only' : 'public',
+      });
+      ok = true;
+    } catch (e) {
+      // Don't auto-close on error — the user's setup (stat / modifier
+      // / reason) stays on screen so they can adjust and retry without
+      // recomposing the whole roll.
+      toast.error(`Roll failed: ${(e as Error).message ?? 'unknown error'}`);
+    } finally {
+      // ALWAYS clear rolling — fixes the permanent-loading bug where a
+      // thrown error from onRoll left the Roll button disabled forever.
+      setRolling(false);
+    }
+    if (ok) {
+      setReason('');
+      onClose();
+    }
   };
 
   return createPortal(

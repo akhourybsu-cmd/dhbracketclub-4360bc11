@@ -9,6 +9,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Dices, Megaphone, MessageCircle, Sparkles, Lock, ChevronDown, ChevronUp, EyeOff, Wand2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { Textarea } from '@/components/ui/textarea';
 import { SceneMessage } from './SceneMessage';
@@ -108,16 +109,28 @@ export function StoryChat({
     if (!draft.trim() || sending) return;
     setSending(true);
     haptic('light');
-    const meta = MODE_META[mode];
-    await onPost({
-      body: draft.trim(),
-      message_type: meta.type,
-      character_id: mode === 'character' || mode === 'action' ? myCharacter?.id ?? null : null,
-      visibility: mode === 'gm_private' ? 'gm_only' : 'public',
-    });
-    setDraft('');
-    setSending(false);
-    setAutoScroll(true);
+    let posted = false;
+    try {
+      const meta = MODE_META[mode];
+      await onPost({
+        body: draft.trim(),
+        message_type: meta.type,
+        character_id: mode === 'character' || mode === 'action' ? myCharacter?.id ?? null : null,
+        visibility: mode === 'gm_private' ? 'gm_only' : 'public',
+      });
+      posted = true;
+    } catch (e) {
+      // Don't clear the draft on failure — the user's message stays
+      // in the composer so they can retry without retyping.
+      toast.error(`Couldn't post: ${(e as Error).message ?? 'unknown error'}`);
+    } finally {
+      // ALWAYS clear sending so the send button doesn't stick.
+      setSending(false);
+    }
+    if (posted) {
+      setDraft('');
+      setAutoScroll(true);
+    }
   };
 
   const visibleClocks = clocks.filter(c => c.visibility === 'public' || isGm);

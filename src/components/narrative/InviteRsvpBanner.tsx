@@ -30,15 +30,25 @@ export function InviteRsvpBanner({ invitation, campaignTitle, onResponded }: Pro
 
   const respond = async (decision: 'accept' | 'decline') => {
     setBusy(decision);
-    const nextStatus = decision === 'accept' ? 'active' : 'removed';
-    const { error } = await (supabase as any)
-      .from('narrative_campaign_members')
-      .update({ status: nextStatus, joined_at: decision === 'accept' ? new Date().toISOString() : invitation.joined_at })
-      .eq('id', invitation.id);
-    setBusy(null);
-    if (error) { toast.error(`Couldn't respond: ${error.message}`); return; }
-    toast.success(decision === 'accept' ? `Joined as ${ROLE_LABEL[invitation.role]}.` : 'Invite declined.');
-    onResponded?.();
+    try {
+      const nextStatus = decision === 'accept' ? 'active' : 'removed';
+      const { error } = await (supabase as any)
+        .from('narrative_campaign_members')
+        .update({ status: nextStatus, joined_at: decision === 'accept' ? new Date().toISOString() : invitation.joined_at })
+        .eq('id', invitation.id);
+      if (error) {
+        toast.error(`Couldn't respond: ${error.message}`);
+        return;
+      }
+      toast.success(decision === 'accept' ? `Joined as ${ROLE_LABEL[invitation.role]}.` : 'Invite declined.');
+      onResponded?.();
+    } catch (e) {
+      toast.error(`Couldn't respond: ${(e as Error).message ?? 'unknown error'}`);
+    } finally {
+      // Always clear — fixes the permanent-loading bug where a thrown
+      // error left both Accept/Decline buttons disabled forever.
+      setBusy(null);
+    }
   };
 
   return (
