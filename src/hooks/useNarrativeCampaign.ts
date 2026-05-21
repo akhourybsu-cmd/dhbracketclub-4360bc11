@@ -349,7 +349,7 @@ export function useNarrativeCampaign(campaignId: string | undefined): UseNarrati
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'narrative_ai_suggestions', filter: `campaign_id=eq.${campaignId}` },
         (payload: any) => setAiSuggestions(prev => prev.some(s => s.id === payload.new.id) ? prev : [payload.new as AiSuggestionRow, ...prev]))
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'narrative_ai_suggestions', filter: `campaign_id=eq.${campaignId}` },
-        (payload: any) => setAiSuggestions(prev => prev.map(s => s.id === payload.new.id) ? payload.new as AiSuggestionRow : s))
+        (payload: any) => setAiSuggestions(prev => prev.map(s => s.id === payload.new.id ? payload.new as AiSuggestionRow : s)))
       // Subscribe callback receives state transitions: SUBSCRIBED,
       // TIMED_OUT, CLOSED, CHANNEL_ERROR. We log every transition for
       // debugging, and trigger a refetch when we go back to SUBSCRIBED

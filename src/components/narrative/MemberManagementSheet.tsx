@@ -105,7 +105,7 @@ export function MemberManagementSheet({ open, onClose, campaign, members, onChan
       (profileRows ?? []).forEach((p: any) => {
         profileMap.set(p.id, { display_name: p.display_name ?? null, avatar_url: p.avatar_url ?? null });
       });
-      const rows: ClubMemberLite[] = userIds.map(uid => ({
+      const rows: ClubMemberLite[] = (userIds as string[]).map(uid => ({
         user_id: uid,
         display_name: profileMap.get(uid)?.display_name ?? null,
         avatar_url: profileMap.get(uid)?.avatar_url ?? null,
