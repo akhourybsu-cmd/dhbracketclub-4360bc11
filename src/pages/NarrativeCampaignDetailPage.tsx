@@ -372,6 +372,9 @@ export default function NarrativeCampaignDetailPage() {
           clocks={publicClocks}
           onPost={data.postMessage as any}
           onRoll={data.rollDice as any}
+          hasMoreMessages={data.hasMoreMessages}
+          loadingMoreMessages={data.loadingMoreMessages}
+          onLoadEarlier={data.loadEarlierMessages}
         />
       )}
 

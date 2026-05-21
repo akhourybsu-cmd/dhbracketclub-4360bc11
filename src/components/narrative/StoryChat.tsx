@@ -8,7 +8,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Dices, Megaphone, MessageCircle, Sparkles, Lock, ChevronDown, ChevronUp, EyeOff, Wand2 } from 'lucide-react';
+import { Send, Dices, Megaphone, MessageCircle, Sparkles, Lock, ChevronDown, ChevronUp, EyeOff, Wand2, Loader2 as Loader2Icon } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { Textarea } from '@/components/ui/textarea';
@@ -37,6 +37,10 @@ interface Props {
   clocks: Clock[];
   onPost: (input: { body: string; message_type: MessageType; character_id?: string | null; visibility?: 'public' | 'gm_only' | 'private' }) => Promise<void>;
   onRoll: (input: { stat: string; statValue: number; modifier: number; difficulty: number; advantage: 'none' | 'advantage' | 'disadvantage'; reason: string; visibility: 'public' | 'gm_only' }) => Promise<void>;
+  /** Pagination — pass through from useNarrativeCampaign. */
+  hasMoreMessages?: boolean;
+  loadingMoreMessages?: boolean;
+  onLoadEarlier?: () => void;
 }
 
 type PostMode = 'character' | 'action' | 'ooc' | 'gm_narration' | 'gm_private';
@@ -51,6 +55,7 @@ const MODE_META: Record<PostMode, { label: string; type: MessageType; icon: type
 
 export function StoryChat({
   campaign, isGm, myRole, myCharacter, characters, members, scenes, currentScene, messages, clocks, onPost, onRoll,
+  hasMoreMessages, loadingMoreMessages, onLoadEarlier,
 }: Props) {
   const { user } = useAuth();
   const flamingo = isFlamingoCampaign(campaign.template_key);
@@ -256,6 +261,40 @@ export function StoryChat({
         className="flex-1 overflow-y-auto px-4 py-3 space-y-2.5 min-h-0"
         style={{ overscrollBehavior: 'contain' }}
       >
+        {/* Load earlier — anchored at the top of the stream. Only
+            renders when the hook says there's older history we
+            haven't fetched. Clicking PREPENDS the next page; the
+            current scroll position stays anchored because the new
+            rows render above the existing ones. */}
+        {hasMoreMessages && onLoadEarlier && (
+          <div className="flex justify-center py-1">
+            <button
+              type="button"
+              onClick={onLoadEarlier}
+              disabled={loadingMoreMessages}
+              className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-[10.5px] font-bold uppercase tracking-wider transition active:scale-95 disabled:opacity-50"
+              style={flamingo ? {
+                background: `hsl(${FLAMINGO.ink} / 0.8)`,
+                border: `1px solid hsl(${FLAMINGO.cyan} / 0.4)`,
+                color: `hsl(${FLAMINGO.cyan})`,
+              } : {
+                background: 'hsl(var(--muted) / 0.4)',
+                border: '1px solid hsl(var(--border) / 0.5)',
+                color: 'hsl(var(--muted-foreground) / 0.85)',
+              }}
+            >
+              {loadingMoreMessages ? (
+                <>
+                  <Loader2Icon className="w-3 h-3 animate-spin" /> Loading earlier…
+                </>
+              ) : (
+                <>
+                  <ChevronUp className="w-3 h-3" /> Load earlier messages
+                </>
+              )}
+            </button>
+          </div>
+        )}
         {!currentScene && messages.length === 0 && (
           <EmptyStoryState flamingo={flamingo} isGm={isGm} />
         )}

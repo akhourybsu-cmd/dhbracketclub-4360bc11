@@ -30,6 +30,9 @@ import type {
  */
 export type RecentlyChangedSet = Set<string>;
 
+/** Page size for the initial message load + "load earlier" paginator. */
+const MESSAGE_PAGE_SIZE = 50;
+
 interface UseNarrativeCampaignResult {
   campaign: Campaign | null;
   myRole: 'game_master' | 'player' | 'spectator' | null;
@@ -51,6 +54,14 @@ interface UseNarrativeCampaignResult {
    *  read this to render a brief highlight pulse on freshly-changed
    *  rows (e.g. clock advanced, faction heat shifted). */
   recentlyChanged: RecentlyChangedSet;
+  /** True if the server still has older messages we haven't fetched
+   *  yet. Drives the "Load earlier" button in Story Chat. */
+  hasMoreMessages: boolean;
+  /** True while a "load earlier" fetch is in flight. */
+  loadingMoreMessages: boolean;
+  /** Fetches the next page of older messages and PREPENDS them to the
+   *  local stream. Safe to call when hasMoreMessages is false (no-op). */
+  loadEarlierMessages: () => Promise<void>;
   loading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
@@ -117,6 +128,10 @@ export function useNarrativeCampaign(campaignId: string | undefined): UseNarrati
   const [recentlyChanged, setRecentlyChanged] = useState<RecentlyChangedSet>(() => new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Pagination state. hasMoreMessages flips false when the last fetch
+  // returned fewer rows than the page size — there's nothing older.
+  const [hasMoreMessages, setHasMoreMessages] = useState(false);
+  const [loadingMoreMessages, setLoadingMoreMessages] = useState(false);
 
   /** Mark an entity id as recently-changed and auto-clear after 2.4s.
    *  Called from realtime UPDATE handlers so any approved AI state
@@ -142,6 +157,15 @@ export function useNarrativeCampaign(campaignId: string | undefined): UseNarrati
   const campaignRef = useRef<Campaign | null>(null);
   useEffect(() => { campaignRef.current = campaign; }, [campaign]);
 
+  // Refs used by realtime hygiene: refreshRef so subscribe callback
+  // and visibility handler always call the latest refresh closure
+  // (refresh changes identity on campaignId/user change), and the
+  // disconnect/hidden-at refs to drive reconnect + visibility-aware
+  // refetch logic without tying the realtime effect to those values.
+  const refreshRef = useRef<() => Promise<void>>();
+  const hadDisconnectRef = useRef(false);
+  const lastHiddenAtRef = useRef(Date.now());
+
   const refresh = useCallback(async () => {
     // Early-return for missing prereqs MUST clear loading. Otherwise
     // the initial useState(true) leaves the detail page stuck on the
@@ -166,7 +190,13 @@ export function useNarrativeCampaign(campaignId: string | undefined): UseNarrati
         sb.from('narrative_campaign_members').select('*').eq('campaign_id', campaignId),
         sb.from('narrative_characters').select('*').eq('campaign_id', campaignId),
         sb.from('narrative_scenes').select('*').eq('campaign_id', campaignId).order('position', { ascending: true }),
-        sb.from('narrative_messages').select('*').eq('campaign_id', campaignId).order('created_at', { ascending: true }).limit(200),
+        // Messages: fetch the MOST RECENT page DESC and reverse for
+        // chronological display. The prior `asc + limit 200` query
+        // silently returned the oldest 200 messages for any campaign
+        // larger than that — players were stuck reading week-one
+        // dialogue forever. Now: newest 50 on first load, "Load
+        // earlier" fetches older pages via cursor.
+        sb.from('narrative_messages').select('*').eq('campaign_id', campaignId).order('created_at', { ascending: false }).limit(MESSAGE_PAGE_SIZE),
         sb.from('narrative_npcs').select('*').eq('campaign_id', campaignId),
         sb.from('narrative_factions').select('*').eq('campaign_id', campaignId),
         sb.from('narrative_clocks').select('*').eq('campaign_id', campaignId),
@@ -200,7 +230,12 @@ export function useNarrativeCampaign(campaignId: string | undefined): UseNarrati
       setMembers(pickList<CampaignMember>(membersRes));
       setCharacters(pickList<Character>(charactersRes));
       setScenes(pickList<Scene>(scenesRes));
-      setMessages(pickList<Message>(messagesRes));
+      // Messages came back DESC (newest first) for the cursor; reverse
+      // to chronological for display. Flag hasMoreMessages when the
+      // server returned a full page — there's likely older history.
+      const messageBatch = pickList<Message>(messagesRes);
+      setMessages(messageBatch.slice().reverse());
+      setHasMoreMessages(messageBatch.length === MESSAGE_PAGE_SIZE);
       setNpcs(pickList<NPC>(npcsRes));
       setFactions(pickList<Faction>(factionsRes));
       setClocks(pickList<Clock>(clocksRes));
@@ -231,6 +266,7 @@ export function useNarrativeCampaign(campaignId: string | undefined): UseNarrati
     }
   }, [campaignId, user]);
 
+  useEffect(() => { refreshRef.current = refresh; }, [refresh]);
   useEffect(() => { refresh(); }, [refresh]);
 
   // The seed-attempt ref lives here so it persists across renders;
@@ -302,10 +338,55 @@ export function useNarrativeCampaign(campaignId: string | undefined): UseNarrati
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'narrative_ai_suggestions', filter: `campaign_id=eq.${campaignId}` },
         (payload: any) => setAiSuggestions(prev => prev.some(s => s.id === payload.new.id) ? prev : [payload.new as AiSuggestionRow, ...prev]))
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'narrative_ai_suggestions', filter: `campaign_id=eq.${campaignId}` },
-        (payload: any) => setAiSuggestions(prev => prev.map(s => s.id === payload.new.id ? payload.new as AiSuggestionRow : s)))
-      .subscribe();
+        (payload: any) => setAiSuggestions(prev => prev.map(s => s.id === payload.new.id) ? payload.new as AiSuggestionRow : s))
+      // Subscribe callback receives state transitions: SUBSCRIBED,
+      // TIMED_OUT, CLOSED, CHANNEL_ERROR. We log every transition for
+      // debugging, and trigger a refetch when we go back to SUBSCRIBED
+      // after a disconnect — otherwise any messages posted while we
+      // were dropped would be lost until the next manual refresh.
+      .subscribe((status: string) => {
+        console.debug(`[narrative-rt:${campaignId}]`, status);
+        if (status === 'SUBSCRIBED' && hadDisconnectRef.current) {
+          hadDisconnectRef.current = false;
+          // Refresh on reconnect to catch any events we missed during
+          // the dropped window. Uses the ref so we always call the
+          // latest refresh closure.
+          refreshRef.current?.();
+        }
+        if (status === 'CLOSED' || status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          hadDisconnectRef.current = true;
+        }
+      });
     return () => { (supabase as any).removeChannel(ch); };
   }, [campaignId, flashChange]);
+
+  // Refetch on tab visibility change. When the user returns after >5
+  // minutes, realtime may have missed events while the tab was
+  // backgrounded (some browsers throttle WebSocket activity hard).
+  // Cheap belt-and-suspenders: always pull fresh data on tab focus.
+  useEffect(() => {
+    if (!campaignId) return;
+    const handler = () => {
+      if (document.visibilityState !== 'visible') return;
+      // Only refresh if we've been hidden for >30s to avoid double-
+      // fetching on tab-switch-and-back.
+      const hiddenMs = Date.now() - lastHiddenAtRef.current;
+      if (hiddenMs > 30_000) {
+        refreshRef.current?.();
+      }
+    };
+    const hide = () => {
+      if (document.visibilityState === 'hidden') {
+        lastHiddenAtRef.current = Date.now();
+      }
+    };
+    document.addEventListener('visibilitychange', handler);
+    document.addEventListener('visibilitychange', hide);
+    return () => {
+      document.removeEventListener('visibilitychange', handler);
+      document.removeEventListener('visibilitychange', hide);
+    };
+  }, [campaignId]);
 
   /* ── Derived ─────────────────────────────────────────────── */
 
@@ -370,6 +451,49 @@ export function useNarrativeCampaign(campaignId: string | undefined): UseNarrati
   );
 
   /* ── Mutators: messages ──────────────────────────────────── */
+
+  /** Fetch the next page of older messages and PREPEND them to the
+   *  local stream. Cursor: messages.created_at < oldest_currently_loaded.
+   *  No-op when hasMoreMessages is false or a load is already in flight. */
+  const loadEarlierMessages = useCallback(async () => {
+    if (!campaignId) return;
+    if (!hasMoreMessages || loadingMoreMessages) return;
+    if (messages.length === 0) return;
+    const oldestLoaded = messages[0]?.created_at;
+    if (!oldestLoaded) return;
+    setLoadingMoreMessages(true);
+    try {
+      const { data, error: err } = await (supabase as any)
+        .from('narrative_messages')
+        .select('*')
+        .eq('campaign_id', campaignId)
+        .lt('created_at', oldestLoaded)
+        .order('created_at', { ascending: false })
+        .limit(MESSAGE_PAGE_SIZE);
+      if (err) {
+        setError(err.message);
+        return;
+      }
+      const batch = (data ?? []) as Message[];
+      if (batch.length === 0) {
+        setHasMoreMessages(false);
+        return;
+      }
+      // DESC → reverse → prepend. Dedupe in case realtime delivered
+      // one of these between the cursor read and the page fetch.
+      const chrono = batch.slice().reverse();
+      setMessages(prev => {
+        const seen = new Set(prev.map(m => m.id));
+        const additions = chrono.filter(m => !seen.has(m.id));
+        return [...additions, ...prev];
+      });
+      setHasMoreMessages(batch.length === MESSAGE_PAGE_SIZE);
+    } catch (e) {
+      setError((e as Error).message ?? 'Failed to load earlier messages');
+    } finally {
+      setLoadingMoreMessages(false);
+    }
+  }, [campaignId, hasMoreMessages, loadingMoreMessages, messages]);
 
   const postMessage = useCallback(async (input: PostMessageInput): Promise<Message | null> => {
     if (!user || !campaignId) return null;
@@ -605,6 +729,9 @@ export function useNarrativeCampaign(campaignId: string | undefined): UseNarrati
     messages, npcs, factions, clocks, clues, items, locations,
     aiSuggestions,
     recentlyChanged,
+    hasMoreMessages,
+    loadingMoreMessages,
+    loadEarlierMessages,
     loading, error, refresh,
     postMessage, rollDice,
     createCharacter, updateCharacter,
