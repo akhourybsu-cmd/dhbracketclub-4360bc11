@@ -76,16 +76,59 @@ export function SceneMessage({ message, characters, senderNames, npcNames, isOwn
     );
   }
 
+  // Chapter transition — dedicated full-width title card (parity with Flamingo)
+  if (t === 'chapter_transition') {
+    const meta = message.metadata as any;
+    const chapterNumber = meta?.chapter_number ?? meta?.number;
+    return (
+      <div
+        className="rounded-2xl border p-4 my-1"
+        style={{
+          background: 'linear-gradient(135deg, hsl(var(--gold) / 0.14), hsl(var(--gold) / 0.03) 60%, hsl(var(--card)))',
+          borderColor: 'hsl(var(--gold) / 0.45)',
+        }}
+      >
+        <div className="flex items-center gap-1.5">
+          <Bookmark className="w-3 h-3" style={{ color: 'hsl(var(--gold))' }} />
+          <p className="text-[9.5px] font-extrabold uppercase tracking-[0.28em]" style={{ color: 'hsl(var(--gold))' }}>
+            {chapterNumber != null ? `Chapter ${chapterNumber}` : 'New Chapter'}
+          </p>
+        </div>
+        <h3 className="text-[16px] font-extrabold tracking-tight mt-1 leading-tight">{message.body}</h3>
+        {meta?.subtitle && (
+          <p className="text-[12px] italic text-foreground/70 leading-snug mt-1">{meta.subtitle}</p>
+        )}
+      </div>
+    );
+  }
+
+  // Campaign summary — slightly elevated card (more prominent than system strip)
+  if (t === 'campaign_summary') {
+    return (
+      <div
+        className="rounded-2xl border px-3.5 py-3"
+        style={{
+          borderColor: 'hsl(var(--primary) / 0.4)',
+          background: 'linear-gradient(180deg, hsl(var(--primary) / 0.06), hsl(var(--card)))',
+        }}
+      >
+        <div className="flex items-center gap-1.5">
+          <Sparkles className="w-3 h-3 text-primary" />
+          <p className="text-[9.5px] font-extrabold uppercase tracking-[0.22em] text-primary">Campaign Summary</p>
+        </div>
+        <p className="text-[12.5px] text-foreground/85 leading-relaxed mt-1 whitespace-pre-wrap">{message.body}</p>
+      </div>
+    );
+  }
+
   // System/structured updates (clue, inventory, faction, clock, etc.)
-  if (t === 'clue_discovered' || t === 'inventory_update' || t === 'faction_update' || t === 'clock_update' || t === 'chapter_transition' || t === 'system' || t === 'campaign_summary') {
+  if (t === 'clue_discovered' || t === 'inventory_update' || t === 'faction_update' || t === 'clock_update' || t === 'system') {
     const sysMeta: Record<string, { label: string; icon: typeof Sparkles; accent: string }> = {
       clue_discovered:    { label: 'Clue discovered',   icon: KeyRound,    accent: '195 80% 55%' },
       inventory_update:   { label: 'Inventory update',  icon: Backpack,    accent: '38 95% 55%' },
       faction_update:     { label: 'Faction update',    icon: UsersIcon,   accent: '270 70% 60%' },
       clock_update:       { label: 'Clock advanced',    icon: ClockIcon,   accent: '0 75% 55%' },
-      chapter_transition: { label: 'Chapter transition', icon: Bookmark,   accent: 'var(--gold)' },
       system:             { label: 'System',            icon: AlertOctagon, accent: 'var(--muted-foreground)' },
-      campaign_summary:   { label: 'Campaign summary',  icon: Sparkles,    accent: 'var(--primary)' },
     };
     const meta = sysMeta[t];
     const Icon = meta.icon;
@@ -127,10 +170,26 @@ export function SceneMessage({ message, characters, senderNames, npcNames, isOwn
   // NPC dialogue
   if (t === 'npc_dialogue') {
     const npcName = (message.metadata as any)?.npc_name || (message.npc_id && npcNames?.get(message.npc_id)) || 'NPC';
+    const npcInitial = npcName.charAt(0).toUpperCase();
     return (
-      <div className="rounded-2xl border border-border/35 bg-card p-3">
-        <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-muted-foreground/80">{npcName}</p>
-        <p className="text-[13.5px] italic text-foreground/85 leading-snug mt-1 whitespace-pre-wrap">"{message.body}"</p>
+      <div className="flex items-start gap-2">
+        <div
+          className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-extrabold flex-shrink-0 border"
+          style={{
+            background: 'hsl(var(--muted) / 0.5)',
+            borderColor: 'hsl(var(--border) / 0.45)',
+            color: 'hsl(var(--foreground) / 0.75)',
+          }}
+        >
+          {npcInitial}
+        </div>
+        <div className="min-w-0 flex-1 rounded-2xl border border-border/35 bg-card p-3 rounded-tl-md">
+          <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-muted-foreground/80">
+            {npcName}
+            <span className="ml-1.5 text-[8.5px] font-bold tracking-wider text-muted-foreground/55">NPC</span>
+          </p>
+          <p className="text-[13.5px] italic text-foreground/85 leading-snug mt-1 whitespace-pre-wrap">&ldquo;{message.body}&rdquo;</p>
+        </div>
       </div>
     );
   }
