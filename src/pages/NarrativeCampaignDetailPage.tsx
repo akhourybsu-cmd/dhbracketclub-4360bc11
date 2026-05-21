@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { useClub } from '@/contexts/ClubContext';
 import { useNarrativeCampaign } from '@/hooks/useNarrativeCampaign';
 import { useNarrativeCampaigns } from '@/hooks/useNarrativeCampaigns';
 import { CampaignStatusPill } from '@/components/narrative/CampaignStatusPill';
@@ -55,6 +56,7 @@ export default function NarrativeCampaignDetailPage() {
   const { campaignId } = useParams<{ campaignId: string }>();
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
+  const { isClubAdmin } = useClub();
   const { submitForApproval } = useNarrativeCampaigns();
   const data = useNarrativeCampaign(campaignId);
   const [tab, setTab] = useState<Tab>('story');
@@ -164,7 +166,7 @@ export default function NarrativeCampaignDetailPage() {
           pendingAiCount={pendingAiCount}
           canOpenGmConsole={data.isGm && isActive}
           onOpenGmConsole={() => setGmOpen(true)}
-          canManageMembers={(data.isGm || data.myRole === 'game_master') && isActive}
+          canManageMembers={(data.isGm || data.myRole === 'game_master' || isClubAdmin) && isActive}
           onManageMembers={() => setMembersOpen(true)}
         />
       ) : (
@@ -191,7 +193,7 @@ export default function NarrativeCampaignDetailPage() {
             {template.name}
           </p>
         </div>
-        {(data.isGm || data.myRole === 'game_master') && isActive && (
+        {(data.isGm || data.myRole === 'game_master' || isClubAdmin) && isActive && (
           <button
             type="button"
             onClick={() => setMembersOpen(true)}
@@ -875,8 +877,11 @@ export default function NarrativeCampaignDetailPage() {
           onChanged={data.refresh}
         />
       )}
-      {/* Member management — GM or admin only. */}
-      {data.isGm && (
+      {/* Member management + danger zone — GM, campaign creator, or
+          club admin. Club admins are included because they're the only
+          ones who can hard-delete a campaign (RLS gates that path);
+          without this they'd have no UI entry point. */}
+      {(data.isGm || isClubAdmin) && (
         <MemberManagementSheet
           open={membersOpen}
           onClose={() => setMembersOpen(false)}

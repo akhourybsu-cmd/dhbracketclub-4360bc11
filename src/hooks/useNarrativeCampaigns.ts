@@ -30,6 +30,12 @@ interface UseNarrativeCampaignsResult {
   requestChanges: (campaignId: string, notes: string) => Promise<boolean>;
   rejectCampaign: (campaignId: string, notes: string) => Promise<boolean>;
   archiveCampaign: (campaignId: string) => Promise<boolean>;
+  /** Hard-delete a campaign. Removes the row and CASCADEs every child
+   *  entity (members, characters, scenes, messages, NPCs, clues, items,
+   *  factions, clocks, memory, summaries, rolls, ai_suggestions, GM
+   *  notes, approval events). Only club admins can call this — RLS
+   *  enforces the same. Returns true on success. */
+  deleteCampaign: (campaignId: string) => Promise<boolean>;
   submitForApproval: (campaignId: string) => Promise<boolean>;
 }
 
@@ -217,6 +223,31 @@ export function useNarrativeCampaigns(): UseNarrativeCampaignsResult {
     transition(id, 'archived', 'archived'),
   [transition]);
 
+  const deleteCampaign = useCallback(async (id: string): Promise<boolean> => {
+    if (!user) {
+      setError('Not signed in');
+      return false;
+    }
+    setError(null);
+    // Hard delete — RLS gates this to club admins (narrative_campaigns_delete
+    // policy uses narrative_is_club_admin). Cascade FKs handle every child
+    // entity automatically; no orphan rows survive.
+    const { error: delErr } = await (supabase as any)
+      .from('narrative_campaigns')
+      .delete()
+      .eq('id', id);
+    if (delErr) {
+      setError(delErr.message);
+      return false;
+    }
+    // Realtime subscription on narrative_campaigns will catch the DELETE
+    // and refresh the list for every viewer. We also refresh locally
+    // immediately so the navigating user sees the list update without
+    // waiting for the realtime round-trip.
+    await refresh();
+    return true;
+  }, [user, refresh]);
+
   return useMemo(() => ({
     campaigns,
     loading,
@@ -227,6 +258,7 @@ export function useNarrativeCampaigns(): UseNarrativeCampaignsResult {
     requestChanges,
     rejectCampaign,
     archiveCampaign,
+    deleteCampaign,
     submitForApproval,
-  }), [campaigns, loading, error, refresh, createCampaign, approveCampaign, requestChanges, rejectCampaign, archiveCampaign, submitForApproval]);
+  }), [campaigns, loading, error, refresh, createCampaign, approveCampaign, requestChanges, rejectCampaign, archiveCampaign, deleteCampaign, submitForApproval]);
 }

@@ -15,11 +15,13 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { X, UserPlus, Search, Loader2, UserMinus, Crown, Eye, User } from 'lucide-react';
+import { X, UserPlus, Search, Loader2, UserMinus, Crown, Eye, User, Archive, Trash2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useClub } from '@/contexts/ClubContext';
+import { useNarrativeCampaigns } from '@/hooks/useNarrativeCampaigns';
 import { Input } from '@/components/ui/input';
 import { StatusPill } from '@/components/ui/status-pill';
 import type { Campaign, CampaignMember, MemberRole } from '@/lib/narrative/types';
@@ -46,11 +48,19 @@ const ROLE_LABEL: Record<MemberRole, string> = {
 };
 
 export function MemberManagementSheet({ open, onClose, campaign, members, onChanged }: Props) {
-  const { club } = useClub();
+  const { club, isClubAdmin } = useClub();
+  const navigate = useNavigate();
+  const { archiveCampaign, deleteCampaign } = useNarrativeCampaigns();
   const [search, setSearch] = useState('');
   const [clubMembers, setClubMembers] = useState<ClubMemberLite[]>([]);
   const [loading, setLoading] = useState(false);
   const [busyUserId, setBusyUserId] = useState<string | null>(null);
+  // Danger-zone state. `dangerStep` controls which destructive action is
+  // expanded inline (avoids a separate alert dialog). 'delete' requires
+  // the user to type the campaign title to confirm.
+  const [dangerStep, setDangerStep] = useState<'idle' | 'archive' | 'delete'>('idle');
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [dangerBusy, setDangerBusy] = useState(false);
 
   useEffect(() => {
     if (!open || !club?.id) return;
@@ -386,6 +396,145 @@ export function MemberManagementSheet({ open, onClose, campaign, members, onChan
             )}
             {!campaign.spectators_allowed && (
               <p className="text-[10px] text-muted-foreground/60 mt-2">Spectators disabled for this campaign — toggle in campaign settings to enable.</p>
+            )}
+          </section>
+
+          {/* Danger zone — Archive (any GM) + Delete (club admin only).
+              Archive flips status to 'archived' so the campaign drops
+              out of active lists but data is preserved. Delete is hard
+              + cascades through every child row (members, characters,
+              messages, scenes, NPCs, clues, items, factions, clocks,
+              memory, summaries, rolls, AI suggestions, GM notes,
+              approval events). */}
+          <section className="space-y-2">
+            <div className="flex items-center gap-1.5">
+              <AlertTriangle className="w-3.5 h-3.5 text-destructive/80" />
+              <h3 className="text-[10px] font-extrabold uppercase tracking-[0.22em] text-destructive/80">
+                Danger zone
+              </h3>
+            </div>
+
+            {/* Archive */}
+            {dangerStep !== 'archive' ? (
+              <button
+                type="button"
+                onClick={() => { setDangerStep('archive'); setDeleteConfirmText(''); }}
+                disabled={dangerBusy || campaign.status === 'archived'}
+                className="w-full h-10 rounded-xl text-[11.5px] font-bold inline-flex items-center justify-center gap-1.5 bg-muted/30 border border-warning/40 text-warning hover:bg-warning/10 active:scale-[0.98] transition disabled:opacity-50"
+              >
+                <Archive className="w-3.5 h-3.5" />
+                {campaign.status === 'archived' ? 'Already archived' : 'Archive campaign'}
+              </button>
+            ) : (
+              <div className="rounded-xl border border-warning/40 p-3 space-y-2" style={{ background: 'hsl(38 95% 50% / 0.06)' }}>
+                <p className="text-[11.5px] leading-snug">
+                  <span className="font-extrabold">Archive this campaign?</span> It will drop out of the active list. Data is preserved and a club admin can still delete it later.
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setDangerStep('idle')}
+                    disabled={dangerBusy}
+                    className="flex-1 h-9 rounded-lg text-[11px] font-bold bg-muted/40 border border-border/40"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    disabled={dangerBusy}
+                    onClick={async () => {
+                      setDangerBusy(true);
+                      try {
+                        const ok = await archiveCampaign(campaign.id);
+                        if (!ok) { toast.error("Couldn't archive campaign."); return; }
+                        toast.success('Campaign archived.');
+                        onChanged?.();
+                        setDangerStep('idle');
+                        onClose();
+                      } catch (e) {
+                        toast.error(`Archive failed: ${(e as Error).message ?? 'unknown error'}`);
+                      } finally {
+                        setDangerBusy(false);
+                      }
+                    }}
+                    className="flex-1 h-9 rounded-lg text-[11px] font-extrabold inline-flex items-center justify-center gap-1 disabled:opacity-50"
+                    style={{ background: 'hsl(38 95% 50% / 0.2)', color: 'hsl(38 95% 50%)', border: '1px solid hsl(38 95% 50% / 0.5)' }}
+                  >
+                    {dangerBusy ? <Loader2 className="w-3 h-3 animate-spin" /> : <Archive className="w-3 h-3" />}
+                    Confirm archive
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Delete — club admin only. Hard delete + cascade.
+                Type-to-confirm prevents accidental destruction. */}
+            {isClubAdmin && (dangerStep !== 'delete' ? (
+              <button
+                type="button"
+                onClick={() => { setDangerStep('delete'); setDeleteConfirmText(''); }}
+                disabled={dangerBusy}
+                className="w-full h-10 rounded-xl text-[11.5px] font-bold inline-flex items-center justify-center gap-1.5 bg-destructive/8 border border-destructive/40 text-destructive hover:bg-destructive/15 active:scale-[0.98] transition disabled:opacity-50"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Delete campaign permanently
+              </button>
+            ) : (
+              <div className="rounded-xl border border-destructive/50 p-3 space-y-2" style={{ background: 'hsl(var(--destructive) / 0.06)' }}>
+                <p className="text-[11.5px] leading-snug">
+                  <span className="font-extrabold text-destructive">This deletes everything</span> — characters, messages, dice rolls, NPCs, clues, factions, clocks, memory, summaries. <span className="font-extrabold">Cannot be undone.</span>
+                </p>
+                <p className="text-[10.5px] text-muted-foreground/85">
+                  Type the campaign title to confirm:
+                </p>
+                <p className="text-[11px] font-extrabold text-foreground/90 break-words">{campaign.title}</p>
+                <Input
+                  value={deleteConfirmText}
+                  onChange={e => setDeleteConfirmText(e.target.value)}
+                  placeholder="Type exact title…"
+                  className="h-9 text-[12px]"
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => { setDangerStep('idle'); setDeleteConfirmText(''); }}
+                    disabled={dangerBusy}
+                    className="flex-1 h-9 rounded-lg text-[11px] font-bold bg-muted/40 border border-border/40"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    disabled={dangerBusy || deleteConfirmText.trim() !== campaign.title.trim()}
+                    onClick={async () => {
+                      setDangerBusy(true);
+                      try {
+                        const ok = await deleteCampaign(campaign.id);
+                        if (!ok) { toast.error("Couldn't delete campaign."); return; }
+                        toast.success('Campaign deleted.');
+                        // Navigate away — the campaign no longer exists.
+                        // Realtime DELETE subscription on the list view
+                        // catches the removal for other viewers.
+                        navigate('/narrative');
+                      } catch (e) {
+                        toast.error(`Delete failed: ${(e as Error).message ?? 'unknown error'}`);
+                      } finally {
+                        setDangerBusy(false);
+                      }
+                    }}
+                    className="flex-1 h-9 rounded-lg text-[11px] font-extrabold inline-flex items-center justify-center gap-1 disabled:opacity-40"
+                    style={{ background: 'hsl(var(--destructive) / 0.18)', color: 'hsl(var(--destructive))', border: '1px solid hsl(var(--destructive) / 0.55)' }}
+                  >
+                    {dangerBusy ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                    Delete permanently
+                  </button>
+                </div>
+              </div>
+            ))}
+            {!isClubAdmin && (
+              <p className="text-[10px] text-muted-foreground/60">
+                Only club admins can permanently delete campaigns. Archive is reversible.
+              </p>
             )}
           </section>
         </div>
