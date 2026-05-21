@@ -108,8 +108,14 @@ export function useNarrativeCampaigns(): UseNarrativeCampaignsResult {
   // campaigns are low-volume per club.
   useEffect(() => {
     if (!club?.id) return;
-    const channel = (supabase as any)
-      .channel(`narrative-campaigns:${club.id}`)
+    // Unique channel name per mount avoids Supabase's topic-level dedup
+    // which, under React StrictMode double-invoke, causes the second
+    // .on() to be called on an already-subscribed channel instance and
+    // throws "cannot add postgres_changes callbacks after subscribe()".
+    const channel = (supabase as any).channel(
+      `narrative-campaigns:${club.id}:${Math.random().toString(36).slice(2)}`,
+    );
+    channel
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'narrative_campaigns', filter: `club_id=eq.${club.id}` },
