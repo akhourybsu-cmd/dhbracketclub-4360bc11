@@ -107,31 +107,14 @@ export default function NarrativeCampaignDetailPage() {
     // Layout-matching skeleton — same chrome shapes as the real page so
     // there's no jank when content swaps in. Each block uses the
     // skeleton-shimmer animation defined in index.css.
-    return (
-      <div className="flex flex-col h-[calc(100dvh-3rem-env(safe-area-inset-top,0px))]">
-        {/* Header skeleton */}
-        <div className="flex-shrink-0 px-3 py-2.5 border-b border-border/15 flex items-center gap-2" style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top, 0px))' }}>
-          <div className="w-9 h-9 rounded-lg skeleton-shimmer" />
-          <div className="flex-1 space-y-1.5">
-            <div className="h-2.5 w-24 rounded-full skeleton-shimmer" />
-            <div className="h-3.5 w-40 rounded-md skeleton-shimmer" />
-          </div>
-          <div className="w-9 h-9 rounded-lg skeleton-shimmer" />
-        </div>
-        {/* Tab strip skeleton */}
-        <div className="px-3 py-2 border-b border-border/10 grid grid-cols-4 gap-1.5">
-          {[0, 1, 2, 3].map(i => <div key={i} className="h-12 rounded-lg skeleton-shimmer" />)}
-        </div>
-        {/* Scene + chat skeleton */}
-        <div className="px-4 py-3 space-y-2.5">
-          <div className="h-14 rounded-xl skeleton-shimmer" />
-          <div className="flex justify-start"><div className="h-10 w-2/3 rounded-2xl skeleton-shimmer" /></div>
-          <div className="flex justify-end"><div className="h-10 w-1/2 rounded-2xl skeleton-shimmer" /></div>
-          <div className="flex justify-start"><div className="h-14 w-3/4 rounded-2xl skeleton-shimmer" /></div>
-          <div className="flex justify-start"><div className="h-10 w-1/2 rounded-2xl skeleton-shimmer" /></div>
-        </div>
-      </div>
-    );
+    //
+    // Manual escape hatch: if the skeleton has been up for >10s, show
+    // a "Still loading… Tap to retry" affordance. This is a safety net
+    // on top of the hook's withTimeout deadlines — even if some future
+    // regression introduces a new way for `loading` to stay true past
+    // the hydrate, the user always has a one-tap recovery instead of
+    // having to do a hard reload.
+    return <DetailSkeleton onRetry={data.refresh} />;
   }
 
   if (!data.campaign) {
@@ -1281,6 +1264,60 @@ function FlamingoEntityCard({
           </span>
         )}
       </div>
+    </div>
+  );
+}
+
+/** Skeleton with a delayed manual retry escape hatch. The hook's
+ *  withTimeout deadlines guarantee `loading` flips false within ~18s,
+ *  but this affordance gives the user a one-tap recovery if a future
+ *  regression ever lets the skeleton outlive that window again. The
+ *  "stuck" indicator only appears after 10s so normal slow loads stay
+ *  visually quiet. */
+function DetailSkeleton({ onRetry }: { onRetry: () => void | Promise<void> }) {
+  const [stuck, setStuck] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setStuck(true), 10_000);
+    return () => clearTimeout(t);
+  }, []);
+  return (
+    <div className="flex flex-col h-[calc(100dvh-3rem-env(safe-area-inset-top,0px))]">
+      <div className="flex-shrink-0 px-3 py-2.5 border-b border-border/15 flex items-center gap-2" style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top, 0px))' }}>
+        <div className="w-9 h-9 rounded-lg skeleton-shimmer" />
+        <div className="flex-1 space-y-1.5">
+          <div className="h-2.5 w-24 rounded-full skeleton-shimmer" />
+          <div className="h-3.5 w-40 rounded-md skeleton-shimmer" />
+        </div>
+        <div className="w-9 h-9 rounded-lg skeleton-shimmer" />
+      </div>
+      <div className="px-3 py-2 border-b border-border/10 grid grid-cols-4 gap-1.5">
+        {[0, 1, 2, 3].map(i => <div key={i} className="h-12 rounded-lg skeleton-shimmer" />)}
+      </div>
+      <div className="px-4 py-3 space-y-2.5">
+        <div className="h-14 rounded-xl skeleton-shimmer" />
+        <div className="flex justify-start"><div className="h-10 w-2/3 rounded-2xl skeleton-shimmer" /></div>
+        <div className="flex justify-end"><div className="h-10 w-1/2 rounded-2xl skeleton-shimmer" /></div>
+        <div className="flex justify-start"><div className="h-14 w-3/4 rounded-2xl skeleton-shimmer" /></div>
+        <div className="flex justify-start"><div className="h-10 w-1/2 rounded-2xl skeleton-shimmer" /></div>
+      </div>
+      {stuck && (
+        <div className="px-4 mt-2">
+          <div className="rounded-xl border border-border/40 bg-card/80 px-3.5 py-3 flex items-center gap-2.5">
+            <div className="min-w-0 flex-1">
+              <p className="text-[12px] font-extrabold">Still loading…</p>
+              <p className="text-[11px] text-muted-foreground/75 leading-snug">Network looks slow. You can retry.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => { setStuck(false); void onRetry(); }}
+              className="h-9 px-3 rounded-lg text-[11px] font-extrabold active:scale-95 transition"
+              style={{ background: 'hsl(var(--primary) / 0.18)', color: 'hsl(var(--primary))', border: '1px solid hsl(var(--primary) / 0.4)' }}
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -16,6 +16,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { rollChronicle, type ChronicleStat, type RollAdvantage } from '@/lib/narrative/chronicleRuleset';
 import { ensureCampaignWorldSeeded } from '@/lib/narrative/templateSeeder';
+import { withTimeout, QUERY_TIMEOUT_MS, HYDRATE_TIMEOUT_MS } from '@/lib/asyncGuards';
 import type {
   Campaign, CampaignMember, Character, Scene, Message, MessageType,
   NPC, Faction, Clock, Clue, Item, Location as NarrativeLocation,
@@ -185,26 +186,36 @@ export function useNarrativeCampaign(campaignId: string | undefined): UseNarrati
       // because migrations haven't been applied) can't bring down the
       // whole hydrate. Previously a single rejected promise left the
       // page stuck on the skeleton with no way out.
-      const results = await Promise.allSettled([
-        sb.from('narrative_campaigns').select('*').eq('id', campaignId).maybeSingle(),
-        sb.from('narrative_campaign_members').select('*').eq('campaign_id', campaignId),
-        sb.from('narrative_characters').select('*').eq('campaign_id', campaignId),
-        sb.from('narrative_scenes').select('*').eq('campaign_id', campaignId).order('position', { ascending: true }),
+      // Every query is wrapped in `withTimeout` so a single hung
+      // Supabase call can't strand the page on a skeleton. Without
+      // these deadlines, `Promise.allSettled` waits forever for the
+      // slowest input — and a hung WebSocket / fetch never settles,
+      // so the outer `finally` (which clears `loading`) never runs.
+      // See src/lib/asyncGuards.ts for the rationale.
+      const q = <T,>(p: Promise<T>, label: string) => withTimeout(p, QUERY_TIMEOUT_MS, label);
+      // The whole hydrate also has an outer deadline as a final
+      // safety net — if a query somehow slips past its individual
+      // timeout, this guarantees the awaiter resumes.
+      const results = await withTimeout(Promise.allSettled([
+        q(sb.from('narrative_campaigns').select('*').eq('id', campaignId).maybeSingle(),                          'narrative_campaigns'),
+        q(sb.from('narrative_campaign_members').select('*').eq('campaign_id', campaignId),                          'narrative_campaign_members'),
+        q(sb.from('narrative_characters').select('*').eq('campaign_id', campaignId),                                'narrative_characters'),
+        q(sb.from('narrative_scenes').select('*').eq('campaign_id', campaignId).order('position', { ascending: true }), 'narrative_scenes'),
         // Messages: fetch the MOST RECENT page DESC and reverse for
         // chronological display. The prior `asc + limit 200` query
         // silently returned the oldest 200 messages for any campaign
         // larger than that — players were stuck reading week-one
         // dialogue forever. Now: newest 50 on first load, "Load
         // earlier" fetches older pages via cursor.
-        sb.from('narrative_messages').select('*').eq('campaign_id', campaignId).order('created_at', { ascending: false }).limit(MESSAGE_PAGE_SIZE),
-        sb.from('narrative_npcs').select('*').eq('campaign_id', campaignId),
-        sb.from('narrative_factions').select('*').eq('campaign_id', campaignId),
-        sb.from('narrative_clocks').select('*').eq('campaign_id', campaignId),
-        sb.from('narrative_clues').select('*').eq('campaign_id', campaignId),
-        sb.from('narrative_items').select('*').eq('campaign_id', campaignId),
-        sb.from('narrative_locations').select('*').eq('campaign_id', campaignId),
-        sb.from('narrative_ai_suggestions').select('*').eq('campaign_id', campaignId).order('created_at', { ascending: false }),
-      ]);
+        q(sb.from('narrative_messages').select('*').eq('campaign_id', campaignId).order('created_at', { ascending: false }).limit(MESSAGE_PAGE_SIZE), 'narrative_messages'),
+        q(sb.from('narrative_npcs').select('*').eq('campaign_id', campaignId),                                     'narrative_npcs'),
+        q(sb.from('narrative_factions').select('*').eq('campaign_id', campaignId),                                 'narrative_factions'),
+        q(sb.from('narrative_clocks').select('*').eq('campaign_id', campaignId),                                   'narrative_clocks'),
+        q(sb.from('narrative_clues').select('*').eq('campaign_id', campaignId),                                    'narrative_clues'),
+        q(sb.from('narrative_items').select('*').eq('campaign_id', campaignId),                                    'narrative_items'),
+        q(sb.from('narrative_locations').select('*').eq('campaign_id', campaignId),                                'narrative_locations'),
+        q(sb.from('narrative_ai_suggestions').select('*').eq('campaign_id', campaignId).order('created_at', { ascending: false }), 'narrative_ai_suggestions'),
+      ]), HYDRATE_TIMEOUT_MS, 'narrative campaign hydrate');
       const [
         campRes, membersRes, charactersRes, scenesRes, messagesRes,
         npcsRes, factionsRes, clocksRes, cluesRes, itemsRes, locsRes,
