@@ -9,7 +9,7 @@
 // no provider is configured, each button shows a clear "AI not
 // configured" message instead of failing silently.
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SPRING_SOFT } from '@/lib/narrative/motion';
@@ -75,12 +75,25 @@ interface Props {
   onCreateItem: (input: { name: string; description?: string; visibility?: 'public' | 'gm_only' }) => Promise<unknown>;
   /** Called after the GM applies a state-update set so parent can refresh. */
   onChanged?: () => void;
+  /** Initial tab to focus on open. Used by the Quick Actions bar so
+   *  "Writer's Room" / "Clocks" / "NPCs" buttons open the console
+   *  pre-routed to the right surface. Changes after mount are honored
+   *  whenever `open` flips from false → true. */
+  initialTab?: TabKey;
 }
 
 export function GMConsoleSheet(props: Props) {
-  const { open, onClose, campaign } = props;
+  const { open, onClose, campaign, initialTab } = props;
   const flamingo = isFlamingoCampaign(campaign.template_key);
-  const [tab, setTab] = useState<TabKey>('scene');
+  const [tab, setTab] = useState<TabKey>(initialTab ?? 'scene');
+
+  // Reset the active tab to `initialTab` each time the sheet re-opens
+  // so the Quick Actions bar's pre-routed entry point actually lands
+  // on the right tab even if the GM previously closed the console on
+  // a different tab.
+  useEffect(() => {
+    if (open && initialTab) setTab(initialTab);
+  }, [open, initialTab]);
   const [editTarget, setEditTarget] = useState<{ table: string; label: string; row: any; schema: any } | null>(null);
   const [chaptersOpen, setChaptersOpen] = useState(false);
   const [summaryOpen, setSummaryOpen] = useState(false);

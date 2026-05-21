@@ -41,6 +41,14 @@ interface Props {
   hasMoreMessages?: boolean;
   loadingMoreMessages?: boolean;
   onLoadEarlier?: () => void;
+  /** GM ribbon — surface in the pinned strip when the viewer is GM. */
+  pendingAiCount?: number;
+  waitingOnState?: Campaign['waiting_on_state'];
+  /** Quick Actions bar callbacks. All GM-only. */
+  onOpenWritersRoom?: () => void;
+  onOpenClocks?: () => void;
+  onOpenWaitingPin?: () => void;
+  onEndScene?: () => Promise<unknown> | void;
 }
 
 type PostMode = 'character' | 'action' | 'ooc' | 'gm_narration' | 'gm_private';
@@ -56,6 +64,8 @@ const MODE_META: Record<PostMode, { label: string; type: MessageType; icon: type
 export function StoryChat({
   campaign, isGm, myRole, myCharacter, characters, members, scenes, currentScene, messages, clocks, onPost, onRoll,
   hasMoreMessages, loadingMoreMessages, onLoadEarlier,
+  pendingAiCount, waitingOnState,
+  onOpenWritersRoom, onOpenClocks, onOpenWaitingPin, onEndScene,
 }: Props) {
   const { user } = useAuth();
   const flamingo = isFlamingoCampaign(campaign.template_key);
@@ -206,6 +216,56 @@ export function StoryChat({
             </span>
             {sceneStripOpen ? <ChevronUp className="w-3 h-3 opacity-50" /> : <ChevronDown className="w-3 h-3 opacity-50" />}
           </button>
+          {/* GM-only ribbon: AI suggestion count + waiting-on state.
+              Renders inline in the pinned strip header so the GM has
+              ops info at a glance without leaving the chat. Each chip
+              taps into the matching surface. */}
+          {isGm && ((pendingAiCount ?? 0) > 0 || waitingOnState?.mode) && (
+            <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
+              {(pendingAiCount ?? 0) > 0 && (
+                <button
+                  type="button"
+                  onClick={onOpenWritersRoom}
+                  className="inline-flex items-center gap-1 h-6 px-2 rounded-full text-[9.5px] font-extrabold uppercase tracking-wider active:scale-95 transition"
+                  style={flamingo ? {
+                    background: `hsl(${FLAMINGO.pink} / 0.18)`,
+                    color: `hsl(${FLAMINGO.pink})`,
+                    border: `1px solid hsl(${FLAMINGO.pink} / 0.5)`,
+                  } : {
+                    background: 'hsl(var(--primary) / 0.14)',
+                    color: 'hsl(var(--primary))',
+                    border: '1px solid hsl(var(--primary) / 0.4)',
+                  }}
+                  aria-label={`Open Writer's Room — ${pendingAiCount} pending suggestion${pendingAiCount === 1 ? '' : 's'}`}
+                >
+                  <Sparkles className="w-2.5 h-2.5" />
+                  AI · {pendingAiCount! > 9 ? '9+' : pendingAiCount}
+                </button>
+              )}
+              {waitingOnState?.mode && (
+                <button
+                  type="button"
+                  onClick={onOpenWaitingPin}
+                  className="inline-flex items-center gap-1 h-6 px-2 rounded-full text-[9.5px] font-extrabold uppercase tracking-wider active:scale-95 transition"
+                  style={flamingo ? {
+                    background: `hsl(${FLAMINGO.gold} / 0.18)`,
+                    color: `hsl(${FLAMINGO.gold})`,
+                    border: `1px solid hsl(${FLAMINGO.gold} / 0.5)`,
+                  } : {
+                    background: 'hsl(var(--gold) / 0.14)',
+                    color: 'hsl(var(--gold))',
+                    border: '1px solid hsl(var(--gold) / 0.4)',
+                  }}
+                  aria-label="Manage waiting-on pin"
+                >
+                  <Lock className="w-2.5 h-2.5" />
+                  {waitingOnState.mode === 'all'
+                    ? 'Waiting · all'
+                    : `Waiting · ${(waitingOnState.player_ids ?? []).length}`}
+                </button>
+              )}
+            </div>
+          )}
           {sceneStripOpen && (
           <div className="space-y-2">
           {currentScene && (
@@ -344,6 +404,63 @@ export function StoryChat({
           </motion.button>
         )}
       </AnimatePresence>
+
+      {/* GM Quick Actions bar — small horizontal chip row above the
+          composer, GM-only. Pre-routes the GM Console to the right
+          tab (Writer's Room / Clocks / NPCs) or fires a one-tap
+          End Scene. Cuts the tap count for the most common in-scene
+          GM ops compared to opening the console and drilling into a
+          tab manually. */}
+      {isGm && (onOpenWritersRoom || onOpenClocks || onEndScene) && (
+        <div
+          className="border-t px-3 pt-1.5 pb-1.5 flex items-center gap-1.5 overflow-x-auto"
+          style={{
+            scrollbarWidth: 'none',
+            borderColor: flamingo ? `hsl(${FLAMINGO.pink} / 0.16)` : 'hsl(var(--border) / 0.18)',
+            background: flamingo ? `hsl(${FLAMINGO.midnight} / 0.5)` : undefined,
+          }}
+        >
+          <span
+            className="text-[9px] font-extrabold uppercase tracking-[0.2em] flex-shrink-0 pl-0.5 pr-1"
+            style={{ color: flamingo ? `hsl(${FLAMINGO.cyan})` : 'hsl(var(--muted-foreground) / 0.65)' }}
+          >
+            GM
+          </span>
+          {onOpenWritersRoom && (
+            <QuickActionChip
+              flamingo={flamingo}
+              label="Writer's Room"
+              icon={<Wand2 className="w-3 h-3" />}
+              onClick={onOpenWritersRoom}
+              accent={flamingo ? FLAMINGO.pink : 'hsl(var(--primary))'}
+            />
+          )}
+          {onOpenClocks && (
+            <QuickActionChip
+              flamingo={flamingo}
+              label="Clocks"
+              icon={<Megaphone className="w-3 h-3" />}
+              onClick={onOpenClocks}
+              accent={flamingo ? FLAMINGO.danger : 'hsl(var(--warning))'}
+            />
+          )}
+          {onEndScene && currentScene && (
+            <QuickActionChip
+              flamingo={flamingo}
+              label="End scene"
+              icon={<Lock className="w-3 h-3" />}
+              accent={flamingo ? FLAMINGO.gold : 'hsl(var(--gold))'}
+              onClick={async () => {
+                try {
+                  await onEndScene();
+                } catch (e) {
+                  toast.error(`Couldn't end scene: ${(e as Error).message ?? 'unknown error'}`);
+                }
+              }}
+            />
+          )}
+        </div>
+      )}
 
       {/* Composer — calm by default, Flamingo neon for Flamingo Protocol. */}
       <div
@@ -574,6 +691,41 @@ export function StoryChat({
         onSelect={(next) => setMode(next as PostMode)}
       />
     </div>
+  );
+}
+
+/** Quick Actions bar chip — small horizontally-scrollable button used
+ *  by the GM bar above the composer. `accent` for Flamingo is the raw
+ *  HSL triple (e.g. "330 95% 62%"); for calm shell it's a full CSS
+ *  color expression (e.g. "hsl(var(--primary))"). The two branches
+ *  use different mixing patterns to keep both readable. */
+function QuickActionChip({
+  flamingo, label, icon, onClick, accent,
+}: { flamingo: boolean; label: string; icon: React.ReactNode; onClick: () => void; accent: string }) {
+  const style: React.CSSProperties = flamingo
+    ? {
+        background: `hsl(${accent} / 0.18)`,
+        color: `hsl(${accent})`,
+        border: `1px solid hsl(${accent} / 0.5)`,
+      }
+    : {
+        // Calm shell accent is already a full hsl() expression; using
+        // bg-muted gives a neutral chip with the accent driving the
+        // text + border. Keeps the bar visually quiet on light mode
+        // where alpha-mixing custom HSLs can look muddy.
+        background: 'hsl(var(--muted) / 0.5)',
+        color: accent,
+        border: `1px solid hsl(var(--border) / 0.6)`,
+      };
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex-shrink-0 inline-flex items-center gap-1 h-7 px-2 rounded-md text-[10px] font-extrabold uppercase tracking-wider active:scale-95 transition"
+      style={style}
+    >
+      {icon}{label}
+    </button>
   );
 }
 

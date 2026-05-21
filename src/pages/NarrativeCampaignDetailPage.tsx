@@ -65,6 +65,10 @@ export default function NarrativeCampaignDetailPage() {
   const [membersOpen, setMembersOpen] = useState(false);
   const [waitingOpen, setWaitingOpen] = useState(false);
   const [onboardingOpen, setOnboardingOpen] = useState(false);
+  // Pre-routed entry point for GM Console. Quick Actions bar in
+  // StoryChat sets this before opening the console so it lands on
+  // the right tab.
+  const [gmInitialTab, setGmInitialTab] = useState<'scene' | 'chapters' | 'npcs' | 'clues' | 'items' | 'factions' | 'clocks' | 'memory' | 'notes' | 'ai'>('scene');
   // Auto-open GM onboarding once per (campaign, device) — only after
   // data has loaded and only for the actual GM / creator. New campaigns
   // start as a blank canvas; this sheet explains the setting, offers
@@ -375,6 +379,16 @@ export default function NarrativeCampaignDetailPage() {
           hasMoreMessages={data.hasMoreMessages}
           loadingMoreMessages={data.loadingMoreMessages}
           onLoadEarlier={data.loadEarlierMessages}
+          // GM ribbon — surface the AI-suggestion count + waiting-on
+          // state inline above the chat so the GM doesn't have to
+          // visually scan the header for ops info while running a scene.
+          pendingAiCount={data.aiSuggestions.filter(s => s.status === 'pending' || s.status === 'edited').length}
+          waitingOnState={campaign.waiting_on_state}
+          onOpenWritersRoom={() => { setGmInitialTab('ai'); setGmOpen(true); }}
+          onOpenClocks={() => { setGmInitialTab('clocks'); setGmOpen(true); }}
+          onOpenWaitingPin={() => setWaitingOpen(true)}
+          // Quick Actions bar — end-scene shortcut.
+          onEndScene={data.currentScene ? () => data.endScene(data.currentScene!.id) : undefined}
         />
       )}
 
@@ -878,6 +892,7 @@ export default function NarrativeCampaignDetailPage() {
           onCreateFaction={data.createFaction as any}
           onCreateItem={data.createItem as any}
           onChanged={data.refresh}
+          initialTab={gmInitialTab}
         />
       )}
       {/* Member management + danger zone — GM, campaign creator, or
