@@ -1,178 +1,164 @@
-# Narrative RPG — Level-Up Plan
+# DH Club — Premium Home & Shell Redesign
 
-A comprehensive roadmap to evolve Narrative RPG from a working Chronicle Engine into a flagship plugin that's delightful for both GMs and players. Organized by theme, then sequenced into phases.
-
-## Goals
-
-1. **Cut GM workload in half** — fewer taps, smarter defaults, AI doing the boring parts.
-2. **Make players feel present** — even async sessions should feel alive.
-3. **Show, don't tell** — the campaign world should be visible, not buried in tabs.
-4. **Polish the seams** — typography, motion, sound, and shared visual identity.
+A focused, mobile-first pass to make the app feel less box-like and more like a living club hub. Scope is intentionally bounded to the **global shell + home experience + shared primitives** — individual plugin pages stay as-is unless touched by the new primitives.
 
 ---
 
-## 1. Design & Visual Identity
+## Audit findings (current state)
 
-A distinct "tabletop / pulp paperback" aesthetic that sets Narrative apart from other modules.
+**Home (`src/pages/DashboardPage.tsx` + `src/components/home/`)**
+- 8+ stacked modules (`HomeHero`, `QuickBar`, `RightNowCard`, `AssetLauncher`, `LeagueSnapshot`, `EventsStrip`, `ClubPulse`, `Highlights`, `MembersOnline`, `DiscoverStrip`) — each is its own bordered `rounded-2xl bg-card border` container. Visually identical chrome → "stack of widgets" feeling.
+- Multiple modules carry their own accent glow → glow loses meaning.
+- `HomeHero` is a tight identity strip, not a hero; no cinematic primary action.
+- `AssetLauncher` shows tiny truncated labels in a horizontal rail.
+- `RightNowCard` already has next-action logic (`src/lib/home/nextAction.ts`) but is rendered as just another card.
+- No clear primary → secondary → ambient hierarchy.
 
-- **Campaign-themed palettes** — each template (Flamingo Protocol, etc.) gets a signature palette + accent gradient + grain texture, applied to the detail page header, GM Console, message bubbles, and chapter cards.
-- **Typography pass** — display serif for chapter titles and scene openers; mono for system/dice; current sans for body. Pull from existing font-pair tokens.
-- **Scene Message redesign** — distinct bubble styles per `message_type` (gm_narration = full-bleed prose card, npc_dialogue = quoted with NPC portrait + name chip, player = right-aligned bubble, system = subtle inline, dice = result chip with crit/fail flair, chapter_transition = full-width title card with parallax).
-- **Chapter Transition Overlay v2** — letterboxed full-screen takeover with recap + hook + "Begin Chapter" CTA, programmatic sound sting.
-- **Dice roll cinematics** — short 3D-ish die animation (CSS/SVG), crit success = confetti, crit fail = screen shake.
-- **NPC & location portraits** — AI-generated cover images (Nano Banana) on first reference, cached on the row; fallback to colored monogram tile.
-- **Campaign cover hero** — large hero image on the detail page (AI-generated from premise + tone profile).
-- **Empty states** — replace the generic gradient-icon pattern with narrative-themed empty states ("No clues yet. The fog is thick.").
-- **Dark mode lock** — Narrative looks best dark; force dark within `/narrative/*` like Nexus does.
+**Shared chrome**
+- `Card`, plugin cards (`NarrativeHomeWidget`, etc.), and home modules all converge on the same `rounded-2xl border bg-card` recipe.
+- Status pills (`CampaignStatusPill`, etc.) compete with titles for visual weight.
+- Small uppercase 10–11px labels are repeated everywhere.
 
-## 2. GM Efficiency
-
-The GM is the bottleneck. Everything here removes friction.
-
-- **GM Console redesign** — replace the 10-tab drawer with a left-rail icon nav + main panel, so common actions (Scene · NPCs · Clocks) are always one tap away. Pin the active scene to the top.
-- **Quick Actions bar** above the composer: "Advance scene clock", "NPC speaks", "Reveal clue", "End scene" — all open pre-filled Writer's Room tools.
-- **One-tap NPC dialogue** — tap any NPC chip → AI drafts a line in their voice, GM edits inline, post. No multi-modal flow.
-- **Smart defaults from context** — Writer's Room pre-fills tone/length/safety from the campaign tone profile + current scene stakes. GM rarely touches the controls.
-- **Auto-suggest state updates** — after every player message, surface a non-blocking "Should this add a clue / advance a clock?" chip in the GM-only ribbon.
-- **GM-only ribbon** — persistent, collapsible bar visible only to GMs at the top of Story Chat showing: active scene, active clocks (mini progress dots), waiting-on, AI suggestion count.
-- **Scene templates** — save any scene as a reusable template (premise, NPCs, clocks, stakes); spin up new scenes in 2 taps.
-- **Bulk approve AI suggestions** — multi-select in NarrativeApprovalsPanel, approve all, edit individually before commit.
-- **GM notes** — markdown scratchpad per campaign/scene, never shown to players, AI can read it as context.
-- **Session prep mode** — a focused full-screen view: outline next scene's beats, draft NPC openers, queue clocks, all before going live.
-
-## 3. Player Experience
-
-Players currently mostly read and post. Give them more agency without giving them GM powers.
-
-- **Character sheet drawer** — always one-tap accessible from Story Chat (bottom-left); shows stats, conditions, inventory, recent rolls.
-- **Intent buttons on composer** — "Speak in character" / "Describe action" / "Aside (OOC)" — formats the post and tags `message_type`.
-- **Player-initiated rolls** — tap a stat on your sheet → pick reason → roll. Result posts as `dice_roll` and GM gets an AI-drafted resolution suggestion.
-- **Player AI assist polish** — show the rewrite inline (diff highlight) instead of replacing the draft outright; accept/reject per paragraph.
-- **Spotlight indicator** — when it's your character's "turn" (GM tagged you or `waiting_on_state` includes you), pulse the composer + push notification.
-- **Public world tab** — players see only the public scope of Clues / NPCs / Locations / Factions with rich cards (no admin chrome).
-- **Personal log** — automatic per-player feed of "what your character did/learned this session" (filtered from scene log).
-- **Async-friendly recaps** — "Catch me up" button = AI summary of messages since you last visited, scoped to public + things involving your character.
-
-## 4. AI Capabilities
-
-We already invoke `narrative-ai`. Expand it.
-
-- **Streaming responses** — stream Writer's Room drafts token-by-token so the GM can stop early.
-- **Tone profile learning** — feed past approved messages back into the system prompt so the AI's voice converges on the campaign's voice over time.
-- **NPC voice memory** — store a few "signature lines" per NPC; AI uses them as examples when drafting that NPC's dialogue.
-- **Auto-recap generator** — at scene end, AI proposes a structured summary (decisions, quotes, unresolved questions, memory diff) → SceneSummaryWizard already exists, just auto-trigger.
-- **"What would my NPC do?"** — GM taps an NPC, picks an event ("the players just lied about the briefcase"), AI returns reaction + suggested state updates.
-- **Image generation** — generate NPC portraits, location art, scene establishing shots via Nano Banana on demand.
-- **Voice (stretch)** — read GM narration aloud with a tone-matched TTS voice on player devices.
-- **AI quotas + cost guardrails** — per-campaign daily AI call budget surfaced to GM; soft warn at 80%.
-
-## 5. Real-Time & Presence
-
-- **Typing indicators** — show "GM is writing…" / "Alex is writing…" using realtime broadcast (not DB writes).
-- **Read receipts** — last-read marker per user per campaign; GM sees who's caught up.
-- **Live session mode polish** — when LiveSessionControls is "live", boost realtime cadence, show presence avatars in the header, enable typing indicators, push to absent players.
-- **Round-robin spotlight timer** — optional GM toggle that auto-rotates `waiting_on_state` through players at a set interval to keep async sessions moving.
-
-## 6. Scene & Chapter Architecture
-
-- **Scene timeline view** — horizontal scrollable timeline of all scenes in the current chapter, tap to jump.
-- **Chapter map** — visual graph of chapters with branching options (resolved/unresolved).
-- **Scene goals & stakes pinned** — always visible at top of Story Chat (collapsible).
-- **End-of-scene wrap** — explicit "End scene" action triggers ChapterTransitionOverlay + memory write + state diff review.
-
-## 7. World State Visibility
-
-- **World tab redesign** — a single explorable canvas with Locations, NPCs, Factions, Clues, Items grouped by relevance to current scene, with filter chips.
-- **Faction relationship web** — small force-directed graph showing factions + their attitudes toward each other and the party.
-- **Clock dashboard** — every active clock as a ring with progress, name, and "what happens at full" tooltip.
-- **Inventory per character** — items list on character sheet; transfer items between characters in 2 taps.
-
-## 8. Notifications
-
-- **Per-event preferences** — toggles for: spotlight on me, GM posted, scene started, chapter transitioned, AI suggestion approved.
-- **Push to absent players** when GM posts a `chapter_transition` or starts a new scene.
-- **Daily digest** — opt-in summary of campaigns you're in, what changed.
-- **Quiet hours** — respect existing notification preferences module.
-
-## 9. Onboarding & Tutorials
-
-- **New-GM tour** — GmOnboardingSheet upgrade: interactive 5-step walkthrough touching Scene, NPCs, Clocks, Writer's Room, End Scene.
-- **First-player tour** — 3 steps: composer modes, character sheet, rolling.
-- **Template gallery** — visual gallery of campaign templates (cover art + tone + one-liner) instead of dropdown.
-- **Sample campaign** — every new club gets a read-only "Demo: Flamingo Protocol" so GMs can see what a real campaign looks like.
-
-## 10. Performance & Reliability
-
-- **Pagination** — narrative_messages currently loads all rows; switch to keyset pagination (50 per page) with "load earlier" button.
-- **Optimistic posting** — show player's message instantly with a "sending" state, reconcile on insert echo.
-- **Realtime channel hygiene** — audit all narrative channels: define all listeners before `.subscribe()`, single channel per page, proper cleanup. (This week's bug was a symptom of this gap.)
-- **Query stale times** — bump `useNarrativeCampaign` to 30s stale, rely on realtime for freshness.
-- **Background sync** — when tab regains focus after >5 min, refetch instead of trusting stale realtime state.
-- **Image lazy-load** — narrative covers/portraits with `loading="lazy" decoding="async"` (per project standard).
-
-## 11. Privacy, Safety & Permissions
-
-- **Scope audit** — verify every query for clues/NPCs/factions/clocks/messages filters by visibility for non-GM viewers. Add RLS tests.
-- **GM-only message type enforcement** — `gm_only` messages must be filtered server-side, not client-side. Confirm policy.
-- **Safety tools** — "X card" button on composer: anonymously signals discomfort to GM, who sees a non-attributed alert.
-- **Lines & veils** — campaign setup includes a content boundaries field shared with the AI as a hard safety constraint.
-- **GM transfer** — primary GM can transfer or co-GM a campaign without recreating it.
-
-## 12. Discovery & Social
-
-- **Campaign feed on Home** — when narrative-rpg installed, surface "Next session: Friday 8pm · Flamingo Protocol · You owe a response" card in `RightNowCard`.
-- **Cross-campaign Compete entry** — Narrative gets its banner on `/compete` with current active campaigns.
-- **Public recap sharing** — auto-generate a shareable image (cover + chapter title + one-line hook) for posting in Chat or Feed.
-- **Campaign trophy case** — finished campaigns get a "case file" page (chapters, MVP moments, MVP quotes), pinned in profile.
-
-## 13. Data Model Additions
-
-New tables/columns to support the above. All idempotent migrations with RLS.
-
-- `narrative_scene_templates` (saved scene blueprints)
-- `narrative_npc_voice_examples` (per-NPC signature lines)
-- `narrative_read_marks` (per-user per-campaign last_seen_message_id)
-- `narrative_safety_signals` (anonymous X-card events)
-- `narrative_message_reactions` (lightweight emoji reactions)
-- `narrative_inventory_items` (currently lives on characters JSON; promote to a row for transferability)
-- columns: `narrative_campaigns.cover_image_url`, `narrative_npcs.portrait_url`, `narrative_locations.image_url`, `narrative_campaigns.lines_and_veils`, `narrative_campaigns.tone_examples`
+**Plugin contribution model**
+- Each plugin currently exports its own home widget directly (e.g. `NarrativeHomeWidget`) and is hand-wired in `DashboardPage`. No registry → adding plugins requires editing the dashboard. Worth a light registry, not a rewrite.
 
 ---
 
-## Technical Notes
+## Design direction
 
-- Lazy-load all new heavy components via `React.lazy` (consistent with existing routes).
-- Continue using `(supabase as any).from('...')` for new tables until types regenerate.
-- Reuse `EntityEditSheet` as the canonical inline edit primitive — extend it rather than forking sheets per entity.
-- AI calls stay in `aiService.ts`; new tools register in `GM_TOOLS` and `WRITERS_ROOM_TOOL_KEYS`.
-- Streaming requires switching `supabase.functions.invoke` to a `fetch` against the function URL with `ReadableStream`.
-- Image generation uses the existing Lovable AI Gateway with `google/gemini-2.5-flash-image`.
-- All realtime subscriptions must define listeners before `.subscribe()` and tear down via `supabase.removeChannel` on unmount.
+Replace the "stack of bordered cards" with a **three-tier surface system** used across the app:
 
----
+1. **Hero surface** — cinematic, gradient-washed, one per screen max. Houses the single most important next action.
+2. **Pulse surface** — flowing list/feed rows with subtle dividers (not borders). Houses "what's happening today."
+3. **Ambient surface** — borderless, low-contrast groupings with section headers. Houses launchers, secondary content, discovery.
 
-## Phased Rollout
-
-**Phase A — Foundation (1–2 weeks)**
-Realtime hygiene audit · GM-only ribbon · Scene Message redesign · Quick Actions bar · Player intent buttons · Message pagination.
-
-**Phase B — AI Force-Multiplier (1–2 weeks)**
-Streaming Writer's Room · Auto-recap on End Scene · NPC voice memory · Smart defaults · Auto-suggest state updates · One-tap NPC dialogue.
-
-**Phase C — World Made Visible (1–2 weeks)**
-Cover/portrait generation · World tab redesign · Clock dashboard · Faction web · Character sheet drawer · Inventory promotion.
-
-**Phase D — Live & Social (1 week)**
-Typing indicators · Read receipts · Live session mode polish · Spotlight timer · Home/Compete integration · Shareable recaps.
-
-**Phase E — Polish (1 week)**
-Dice cinematics · Chapter overlay v2 · Onboarding tours · Sample campaign · Empty states · Trophy case · Safety tools.
+Borders are reserved for interactive tiles (app dock, quick actions). Glow is reserved for the hero and live/urgent statuses only.
 
 ---
 
-## Out of Scope (for now)
+## New home structure
 
-- Full VTT (virtual tabletop) maps with tokens
-- Voice/video calls inside the app
-- Marketplace for community-published templates
-- Mobile-native gestures beyond what framer-motion gives us
+```text
+┌─────────────────────────────────────────┐
+│  Ambient Club Header                    │  ← refined HomeHero (no border, larger breathing room)
+│  Logo · Club name · greeting · avatar   │
+├─────────────────────────────────────────┤
+│                                         │
+│      HERO — Next Action                 │  ← cinematic gradient surface, 1 CTA
+│      "Your draft pick is up"            │     keyed to club accent + action type
+│      [ Make pick → ]                    │
+│                                         │
+├─────────────────────────────────────────┤
+│  Today in {Club}                        │  ← Pulse: flowing rows, dividers not borders
+│  • Draft turn · Movies of 2026          │     Mixes RightNow secondary items +
+│  • 3 picks left · NFL Week 12           │     EventsStrip + ClubPulse + Celebrations
+│  • Sarah's birthday tomorrow            │     + Narrative campaign updates
+│  • Poll closes in 4h                    │
+├─────────────────────────────────────────┤
+│  Your Apps              [ Library → ]   │  ← AppDock: refined launcher, full labels,
+│  [Drafts][Nexus][Chat][Lore][More]      │     active/live dot per tile, snap rail
+├─────────────────────────────────────────┤
+│  Featured                               │  ← FeaturedModule: rotates among
+│  ┌─────────────────────────────────┐    │     league standings / active campaign /
+│  │ Season 4 · Standings            │    │     leaderboard / event spotlight
+│  └─────────────────────────────────┘    │
+├─────────────────────────────────────────┤
+│  Members Online · Discover              │  ← ambient strips, smaller, no border
+└─────────────────────────────────────────┘
+```
+
+`QuickBar` (pinned apps) gets folded into AppDock — one launcher concept, not two.
+
+---
+
+## Files to add
+
+| File | Role |
+|---|---|
+| `src/components/home/primitives/Surface.tsx` | `<Surface variant="hero"\|"pulse"\|"ambient"\|"tile">` — central recipe so every home block uses the same vocabulary |
+| `src/components/home/HeroAction.tsx` | Cinematic primary-action card. Consumes top result from `rankNextActions`. Gradient keyed to club accent + action accent. |
+| `src/components/home/TodayFeed.tsx` + `TodayFeedItem.tsx` | Replaces `RightNowCard` secondaries + `ClubPulse` + parts of `EventsStrip`. Flowing rows with subtle leading icon, no per-row border. |
+| `src/components/home/AppDock.tsx` + `AppTile.tsx` | Replaces `AssetLauncher` + `QuickBar`. Snap rail, real labels, live/pending dot, "All apps" tail tile. |
+| `src/components/home/FeaturedModule.tsx` | Rotating spotlight (LeagueSnapshot / active campaign / leaderboard) — one richer block instead of three competing ones. |
+| `src/components/home/SectionLabel.tsx` | Calmer replacement for `SectionHeader` — sentence-case, no uppercase tracking spam. |
+| `src/lib/home/pluginHomeRegistry.ts` | Light registry: `{ slug, getPulseItems(ctx), getFeaturedCandidate(ctx) }`. Lets each plugin contribute Today/Featured content without editing `DashboardPage`. Migrate Narrative + Celebrations + Drafts as the first three. |
+
+## Files to refactor
+
+| File | Change |
+|---|---|
+| `src/pages/DashboardPage.tsx` | Rewrite composition to: Header → HeroAction → TodayFeed → AppDock → FeaturedModule → ambient strips. Drop direct imports of removed modules. |
+| `src/components/home/HomeHero.tsx` | Strip border, increase vertical breathing room, integrate notification dot on avatar, remove inline "pending" chip (moves into HeroAction). |
+| `src/components/home/RightNowCard.tsx` | Delete (logic absorbed by `HeroAction` + `TodayFeed`). Keep `rankNextActions` as-is — it's the right primitive. |
+| `src/components/home/QuickBar.tsx`, `AssetLauncher.tsx`, `ClubPulse.tsx`, `EventsStrip.tsx`, `LeagueSnapshot.tsx`, `Highlights.tsx` | Delete or convert into pulse/featured contributors via the registry. Preserve underlying hooks (`useClubAssets`, events queries, etc.). |
+| `src/components/narrative/NarrativeHomeWidget.tsx` | Register as a pulse contributor; component itself becomes thinner (one row per active campaign + one admin nudge row). |
+| `src/components/ui/card.tsx` | Leave shadcn `Card` untouched (used by plugin pages). Home stops using it directly in favor of `Surface`. |
+| `src/index.css` | Add 2 tokens: `--surface-hero-gradient`, `--surface-pulse-divider`. No palette change. |
+
+## Design tokens (additive only)
+
+```css
+:root {
+  --surface-pulse-divider: hsl(var(--border) / 0.35);
+  --surface-hero-gradient: radial-gradient(120% 80% at 0% 0%,
+    hsl(var(--primary) / 0.18), transparent 60%),
+    linear-gradient(160deg, hsl(var(--card)) 0%, hsl(var(--background)) 100%);
+}
+```
+
+All other color work goes through existing semantic tokens — no new palette.
+
+## Motion
+
+Reuse existing framer-motion patterns. New rules:
+- Hero: one-shot 400ms fade-up on mount + persistent ambient gradient drift (8s, prefers-reduced-motion respected).
+- TodayFeed rows: stagger 40ms.
+- AppTile: `active:scale-[0.96]` only, no glow on idle.
+- No new animation libraries.
+
+## Plugin contribution contract (new)
+
+```ts
+// src/lib/home/pluginHomeRegistry.ts
+export interface HomePluginContribution {
+  slug: string;
+  pulse?: (ctx: HomeCtx) => TodayFeedItemData[]; // 0-3 items
+  featured?: (ctx: HomeCtx) => FeaturedCandidate | null; // priority-scored
+}
+```
+
+Plugins not migrated keep working — the registry is opt-in. Migrate `narrative-rpg`, `birthdays-milestones`, `draft-arena`, `nfl-pickem` in this pass; the rest follow later.
+
+## What stays exactly the same
+
+- All routes, auth, RLS, plugin install/enable logic.
+- `useClubAssets`, `useNarrativeCampaigns`, `rankNextActions`, all data hooks.
+- Bottom nav (`AppLayout`), all standalone game shells (`PwLayout`, `PickemLayout`, `DraftArenaLayout`, `NexusLayout`, `RuneDelve*`).
+- Profile, settings, club admin pages.
+- All plugin pages (`/narrative`, `/drafts`, `/nexus`, `/pickem`, etc.).
+- Light/dark mode behavior — tokens only extend, never replace.
+
+## Risks
+
+- `RightNowCard` deletion: must ensure `rankNextActions` still drives HeroAction so no signals are lost. Mitigation: HeroAction takes top result, TodayFeed takes items 2…N filtered by type.
+- Plugin registry adds indirection. Mitigation: keep it tiny (one file, ~60 LOC) and only used by 4 plugins initially.
+- Removing per-module borders may make Pulse rows feel flat in light mode. Mitigation: rely on `--surface-pulse-divider` token tuned per theme.
+
+## Out of scope (explicitly)
+
+- Individual plugin page redesigns (Nexus battle, Drafts board, Chat, etc.).
+- Bottom nav changes.
+- New color palette or font changes.
+- Onboarding flow rewrite.
+- Backend / schema changes.
+
+## Verification
+
+1. `npx tsc --noEmit` clean.
+2. Build passes.
+3. Smoke check on `/` mobile viewport: hero renders, today feed shows real items, app dock scrolls, no horizontal overflow, dark+light parity.
+4. Visit `/narrative`, `/drafts`, `/celebrations` — confirm no regressions from registry changes.
+
+---
+
+Approve this plan and I'll implement in this order: primitives → HeroAction + TodayFeed → AppDock + FeaturedModule → DashboardPage rewrite → registry migration for the 4 plugins → polish pass.
