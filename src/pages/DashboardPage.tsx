@@ -16,8 +16,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Download, X, Bookmark, CalendarDays, ScrollText, Trophy, Cake,
-  Sparkles, Newspaper, MessageCircle, BarChart3, PartyPopper,
+  Download, X, Bookmark, CalendarDays, ScrollText, Cake,
+  Newspaper, MessageCircle, BarChart3, PartyPopper, Trophy,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -481,6 +481,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-// Suppress unused-import warnings — kept for future Sparkles usage.
-void Sparkles;
