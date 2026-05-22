@@ -1,21 +1,24 @@
-// DH Club Home — Orchestrator
+// DH Club Home — Orchestrator (v2 — premium redesign)
 //
-// Slim, club-aware Home that composes a few modular sections built around
-// the installed-asset system. Each section decides for itself whether to
-// render based on (a) whether its parent asset is installed and (b)
-// whether it has anything to show. The orchestrator's only jobs are:
-//   • Resolve who the user is and which club is active
-//   • Fan out a few cheap data fetches (profile, season, drafts, activity, events)
-//   • Run the next-action ranker
-//   • Hand each module the data it needs
+// Composes the new three-tier home surface system:
+//   1. HomeHero        — ambient identity strip (no card)
+//   2. HeroAction      — single cinematic next-action (or empty hero)
+//   3. TodayFeed       — consolidated flowing list of what's happening
+//   4. AppDock         — refined app launcher with full labels + status dots
+//   5. FeaturedModule  — one richer spotlight (league or active campaign)
+//   6. Ambient strips  — members online + discover (admin)
 //
-// Replaces the previous 1000-line Dashboard. Long lists for drafts/brackets/
-// rankings/polls were intentionally moved off Home — they have their own
-// dedicated pages reachable from the AssetLauncher.
+// Older box-stacked widgets (RightNowCard, QuickBar, AssetLauncher,
+// EventsStrip, ClubPulse, Celebrations card, LeagueSnapshot, Highlights,
+// NarrativeHomeWidget) are intentionally absorbed by the new primitives.
+// Their data sources are still queried; the rendering moved.
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, X } from 'lucide-react';
+import {
+  Download, X, Bookmark, CalendarDays, ScrollText, Trophy, Cake,
+  Sparkles, Newspaper, MessageCircle, BarChart3, PartyPopper,
+} from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClub } from '@/contexts/ClubContext';
@@ -25,39 +28,32 @@ import {
   useCurrentSeason, useSeasonStandings, useSeasonEntries, getSeasonDraftTarget,
 } from '@/hooks/useDraftSeasons';
 import { useActivityFeedUpdates, useDraftListUpdates } from '@/hooks/useRealtimeSubscription';
+import { useNarrativeCampaigns } from '@/hooks/useNarrativeCampaigns';
+import { useUpcomingCelebrations, useTodayCelebrations, useCelebrationSettings } from '@/hooks/useCelebrations';
 
 import { HomeHero } from '@/components/home/HomeHero';
-import { QuickBar } from '@/components/home/QuickBar';
-import { QuickBarSheet } from '@/components/home/QuickBarSheet';
-import { useQuickBar } from '@/components/home/useQuickBar';
-import { RightNowCard } from '@/components/home/RightNowCard';
-import { AssetLauncher } from '@/components/home/AssetLauncher';
-import { Highlights, type HighlightItem } from '@/components/home/Highlights';
-import { LeagueSnapshot } from '@/components/home/LeagueSnapshot';
-import { EventsStrip } from '@/components/home/EventsStrip';
-import { ClubPulse } from '@/components/home/ClubPulse';
+import { HeroAction } from '@/components/home/HeroAction';
+import { TodayFeed, type TodayFeedItem, formatWhenSoon, formatRelative } from '@/components/home/TodayFeed';
+import { AppDock } from '@/components/home/AppDock';
+import { FeaturedModule } from '@/components/home/FeaturedModule';
 import { MembersOnline } from '@/components/home/MembersOnline';
 import { DiscoverStrip } from '@/components/home/DiscoverStrip';
 import { EmptyClubState } from '@/components/home/EmptyClubState';
+
 import { ClubOnboardingFlow } from '@/components/onboarding/ClubOnboardingFlow';
 import { WhatIsNewCard } from '@/components/onboarding/WhatIsNewCard';
 import { useClubOnboarding, useNewFeatures } from '@/hooks/useOnboarding';
-import { CelebrationsHomeWidget } from '@/components/celebrations/CelebrationsHomeWidget';
-import { useCelebrationSettings } from '@/hooks/useCelebrations';
-import { NarrativeHomeWidget } from '@/components/narrative/NarrativeHomeWidget';
 import { rankNextActions } from '@/lib/home/nextAction';
 import { ENDLESS_MISSION_ID } from '@/lib/nexus/endless';
 
 const NEXUS_SAVE_PREFIX = 'nexus_run_state_v1';
 const PWA_DISMISS_KEY = 'dh_pwa_install_dismissed_v1';
 
-/** Read the PWA-install dismissed flag once on mount. SSR-safe. */
 function readPwaDismissed(): boolean {
   if (typeof window === 'undefined') return false;
   try { return window.localStorage.getItem(PWA_DISMISS_KEY) === '1'; } catch { return false; }
 }
 
-/** Scan localStorage for an in-flight Nexus run owned by the user. */
 function findEndlessSavedRun(userId: string | undefined): { missionName: string; waveLabel: string } | null {
   if (!userId || typeof window === 'undefined') return null;
   for (let i = 0; i < window.localStorage.length; i++) {
@@ -77,27 +73,23 @@ function findEndlessSavedRun(userId: string | undefined): { missionName: string;
   return null;
 }
 
-interface DraftRow {
-  id: string;
-  topic: string;
-  status: string;
-  current_pick_user_id: string | null;
-}
-
+interface DraftRow { id: string; topic: string; status: string; current_pick_user_id: string | null }
 interface ActivityRow {
-  id: string;
-  event_type: string;
-  created_at: string;
-  target_type?: string | null;
-  target_id?: string | null;
+  id: string; event_type: string; created_at: string;
+  target_type?: string | null; target_id?: string | null;
   profiles?: { display_name?: string } | null;
 }
+interface EventRow { id: string; title: string; starts_at: string }
 
-interface EventRow {
-  id: string;
-  title: string;
-  starts_at: string;
-}
+const ACCENT_HSL_LOOKUP: Record<string, string> = {
+  gold:        'var(--gold)',
+  primary:     'var(--primary)',
+  destructive: 'var(--destructive)',
+  success:     'var(--success)',
+  lore:        'var(--lore, 270 70% 65%)',
+  accent:      'var(--accent-foreground, 195 80% 65%)',
+  warning:     'var(--warning, 38 95% 60%)',
+};
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -105,47 +97,40 @@ export default function DashboardPage() {
   const { installedAssets, allAssets, loading: assetsLoading, isInstalled } = useClubAssets();
   const { canInstall, install: doInstall } = usePwaInstall();
 
-  // Season + standings come from existing hooks (Draft Arena's data layer).
   const { season } = useCurrentSeason();
   const { standings } = useSeasonStandings(season?.id);
   const { entries: seasonEntries } = useSeasonEntries(season?.id);
+  const { campaigns: narrativeCampaigns } = useNarrativeCampaigns();
+  const { today: todayCelebrations } = useTodayCelebrations();
+  const { upcoming: upcomingCelebrations } = useUpcomingCelebrations(4);
+  const { settings: celebrationSettings } = useCelebrationSettings();
 
-  // Light state — user profile + a handful of cheap reads. No bracket/poll/
-  // ranking fetches anymore; those live on dedicated pages.
   const [displayName, setDisplayName] = useState('');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<DraftRow[]>([]);
   const [activity, setActivity] = useState<ActivityRow[]>([]);
   const [events, setEvents] = useState<EventRow[]>([]);
   const [pwaDismissed, setPwaDismissed] = useState(readPwaDismissed);
+  const [loading, setLoading] = useState(true);
 
   const dismissPwa = useCallback(() => {
     setPwaDismissed(true);
-    try { window.localStorage.setItem(PWA_DISMISS_KEY, '1'); } catch { /* private mode, no-op */ }
+    try { window.localStorage.setItem(PWA_DISMISS_KEY, '1'); } catch { /* private mode */ }
   }, []);
-  const [loading, setLoading] = useState(true);
 
   const hasFeed = isInstalled('feed');
   const hasEvents = isInstalled('events');
   const hasDrafts = isInstalled('draft-arena');
-  const hasNexus = isInstalled('nexus-defense');
+  const hasCelebrations = isInstalled('birthdays-milestones');
+  const showCelebrationsOnHome = hasCelebrations && (celebrationSettings?.show_on_home !== false);
 
-  // QuickBar — user's pinned apps + edit sheet open state
   const enabledAssets = useMemo(
     () => installedAssets.filter(ia => ia.enabled),
     [installedAssets],
   );
-  const quickBar = useQuickBar(enabledAssets);
-  const [qbOpen, setQbOpen] = useState(false);
 
-  // Onboarding framework — first-time tour + "What's New" prompts
   const onboarding = useClubOnboarding();
   const newFeatures = useNewFeatures();
-
-  // Celebrations plugin (only renders if asset is installed)
-  const hasCelebrations = isInstalled('birthdays-milestones');
-  const { settings: celebrationSettings } = useCelebrationSettings();
-  const showCelebrationsOnHome = hasCelebrations && (celebrationSettings?.show_on_home !== false);
 
   const fetchData = useCallback(async () => {
     if (!user) return;
@@ -157,8 +142,6 @@ export default function DashboardPage() {
       .eq('id', user.id)
       .single();
 
-    // Drafts only matter when Draft Arena is installed AND only the active
-    // ones (we don't show stale completed drafts on Home anymore).
     const draftsPromise = hasDrafts
       ? supabase
           .from('drafts')
@@ -173,7 +156,7 @@ export default function DashboardPage() {
           .from('activity_feed')
           .select('id, event_type, created_at, target_type, target_id, profiles:actor_user_id(display_name)')
           .order('created_at', { ascending: false })
-          .limit(8)
+          .limit(10)
       : Promise.resolve({ data: [] as ActivityRow[], error: null });
 
     const eventsPromise = hasEvents
@@ -182,7 +165,7 @@ export default function DashboardPage() {
           .select('id, title, starts_at')
           .gte('starts_at', new Date().toISOString())
           .order('starts_at', { ascending: true })
-          .limit(6)
+          .limit(4)
       : Promise.resolve({ data: [] as EventRow[], error: null });
 
     const [profileRes, draftsRes, activityRes, eventsRes] = await Promise.all([
@@ -202,22 +185,20 @@ export default function DashboardPage() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // Realtime: refresh activity + drafts when relevant signals come in.
   useActivityFeedUpdates(() => {
     if (!user || !hasFeed) return;
     supabase
       .from('activity_feed')
       .select('id, event_type, created_at, target_type, target_id, profiles:actor_user_id(display_name)')
       .order('created_at', { ascending: false })
-      .limit(8)
+      .limit(10)
       .then(({ data }) => { if (data) setActivity(data as ActivityRow[]); });
   });
   useDraftListUpdates(fetchData, !!user);
 
-  // ─── Derived ─────────────────────────────────────────────────────
   const installedSlugs = useMemo(
-    () => new Set(installedAssets.filter(ia => ia.enabled).map(ia => ia.asset.slug)),
-    [installedAssets],
+    () => new Set(enabledAssets.map(ia => ia.asset.slug)),
+    [enabledAssets],
   );
 
   const draftsRemaining = useMemo(() => {
@@ -227,9 +208,6 @@ export default function DashboardPage() {
     return Math.max(0, target - completed);
   }, [season, seasonEntries]);
 
-  // Cheap synchronous scan for an in-flight Nexus run — feeds into the
-  // priority ranker so a "Resume your run" card can lead the Right Now
-  // surface when no other action outranks it.
   const endlessSavedRun = useMemo(
     () => installedSlugs.has('nexus-defense') ? findEndlessSavedRun(user?.id) : null,
     [user?.id, installedSlugs],
@@ -243,91 +221,144 @@ export default function DashboardPage() {
     draftsRemaining,
     isClubAdmin,
     endlessSavedRun,
-    // pickem/operation specifics are also surfaced as live status chips on
-    // the AssetLauncher tiles — the ranker only sees them if/when the
-    // orchestrator is asked to fetch them. Keeping Home queries minimal.
   }), [user?.id, installedSlugs, drafts, season, draftsRemaining, isClubAdmin, endlessSavedRun]);
 
-  // Derive the truly-empty signal — nothing installed beyond default
-  // navigation assets, no season, no events, no activity.
+  // ─── Build TodayFeed items from multiple sources ─────────────────
+  const todayItems = useMemo<TodayFeedItem[]>(() => {
+    const items: TodayFeedItem[] = [];
+
+    // 1. Secondary next-actions (skip the top one — it's the Hero)
+    for (const a of actions.slice(1, 5)) {
+      const tintToken = ACCENT_HSL_LOOKUP[a.accent] ?? 'var(--primary)';
+      // Resolve token to a usable hsl tuple — fall back to a sensible literal.
+      const tintLiteral =
+        a.accent === 'gold'        ? '45 95% 55%' :
+        a.accent === 'destructive' ? '0 72% 55%' :
+        a.accent === 'success'     ? '152 60% 48%' :
+        a.accent === 'lore'        ? '270 70% 65%' :
+        a.accent === 'accent'      ? '195 80% 65%' :
+        a.accent === 'warning'     ? '38 95% 60%' :
+                                     '152 72% 46%';
+      items.push({
+        id: `action-${a.id}`,
+        icon: a.icon,
+        tint: tintLiteral,
+        title: a.label,
+        sub: a.sub,
+        to: a.to,
+        meta: a.tag,
+      });
+    }
+
+    // 2. Today's celebrations
+    if (showCelebrationsOnHome) {
+      for (const c of todayCelebrations) {
+        items.push({
+          id: `cel-today-${c.kind}-${c.id}`,
+          icon: PartyPopper,
+          tint: '14 90% 60%',
+          title: c.kind === 'birthday' ? `${c.title}'s birthday` : c.title,
+          sub: c.kind === 'birthday' ? 'Wish them happy birthday' : (c.subline ?? undefined),
+          to: '/celebrations',
+          meta: 'Today',
+        });
+      }
+      for (const c of upcomingCelebrations.filter(u => u.daysAway > 0 && u.daysAway <= 7).slice(0, 2)) {
+        items.push({
+          id: `cel-up-${c.kind}-${c.id}`,
+          icon: Cake,
+          tint: '14 90% 60%',
+          title: c.title,
+          sub: c.kind === 'birthday' ? 'Birthday' : 'Milestone',
+          to: '/celebrations',
+          meta: c.daysAway === 1 ? 'Tomorrow' : `${c.daysAway}d`,
+        });
+      }
+    }
+
+    // 3. Active narrative campaigns the user is in
+    for (const c of narrativeCampaigns.filter(c => c.status === 'active').slice(0, 2)) {
+      items.push({
+        id: `camp-${c.id}`,
+        icon: ScrollText,
+        tint: '270 70% 65%',
+        title: c.title,
+        sub: c.pitch ?? 'Campaign in progress',
+        to: `/narrative/${c.id}`,
+        meta: 'Live',
+      });
+    }
+
+    // 4. Upcoming events
+    for (const ev of events.slice(0, 3)) {
+      items.push({
+        id: `evt-${ev.id}`,
+        icon: CalendarDays,
+        tint: '38 100% 60%',
+        title: ev.title,
+        sub: 'Event',
+        to: `/events/${ev.id}`,
+        meta: formatWhenSoon(ev.starts_at),
+      });
+    }
+
+    // 5. High-signal recent activity (cap so the feed doesn't sprawl)
+    const HIGH_SIGNAL: Record<string, { verb: string; icon: any; tint: string; route?: (id?: string|null) => string }> = {
+      draft_completed:   { verb: 'completed a draft',     icon: Bookmark,     tint: '45 95% 55%',   route: id => `/drafts/${id}` },
+      draft_created:     { verb: 'created a draft',       icon: Bookmark,     tint: '45 95% 55%',   route: id => `/drafts/${id}` },
+      bracket_submitted: { verb: 'locked in a bracket',   icon: Trophy,       tint: '210 80% 60%',  route: id => `/pools/${id}` },
+      event_created:     { verb: 'added an event',        icon: CalendarDays, tint: '38 100% 60%',  route: id => `/events/${id}` },
+      post_created:      { verb: 'started a discussion',  icon: Newspaper,    tint: '195 80% 65%',  route: id => `/posts/${id}` },
+      ranking_created:   { verb: 'opened a ranking',      icon: BarChart3,    tint: '195 80% 60%',  route: id => `/rankings/${id}` },
+      poll_created:      { verb: 'opened a poll',         icon: MessageCircle, tint: '38 95% 60%',  route: id => `/polls/${id}` },
+    };
+    let activityAdded = 0;
+    for (const a of activity) {
+      const m = HIGH_SIGNAL[a.event_type];
+      if (!m) continue;
+      items.push({
+        id: `act-${a.id}`,
+        icon: m.icon,
+        tint: m.tint,
+        title: `${a.profiles?.display_name ?? 'Someone'} ${m.verb}`,
+        to: m.route ? m.route(a.target_id) : '/feed',
+        meta: formatRelative(a.created_at),
+        at: a.created_at,
+      });
+      if (++activityAdded >= 2) break;
+    }
+
+    return items;
+  }, [actions, todayCelebrations, upcomingCelebrations, showCelebrationsOnHome, narrativeCampaigns, events, activity]);
+
+  const installedSlugsSet = installedSlugs;
   const gameClassSlugs = ['draft-arena', 'rune-delve', 'nexus-defense', 'nfl-pickem', 'portfolio-wars', 'lockbox', 'brackets'];
-  const hasAnyGameInstalled = gameClassSlugs.some(s => installedSlugs.has(s));
+  const hasAnyGameInstalled = gameClassSlugs.some(s => installedSlugsSet.has(s));
   const isFreshClub = !loading && !assetsLoading && !hasAnyGameInstalled && !season && events.length === 0 && activity.length === 0;
 
   const accent = club?.accent_color ?? '152 72% 46%';
   const seasonTarget = season ? getSeasonDraftTarget(season) : 0;
   const regularEntries = seasonEntries.filter(e => !e.is_playoff).length;
-
-  // Build highlights from activity_feed (cheap — already fetched above) and
-  // any other signals we have on hand. Filtered to celebratory event types.
-  const highlights = useMemo<HighlightItem[]>(() => {
-    if (!hasFeed) return [];
-    const items: HighlightItem[] = [];
-    for (const a of activity) {
-      if (a.event_type === 'draft_completed' && a.target_id) {
-        items.push({
-          id: `feed-${a.id}`,
-          kind: 'draft-winner',
-          tag: 'DRAFT COMPLETE',
-          headline: a.profiles?.display_name ? `${a.profiles.display_name} closed a draft` : 'A draft just wrapped',
-          sub: 'Tap for results',
-          to: `/drafts/${a.target_id}`,
-          at: a.created_at,
-          tint: '45 95% 55%',
-        });
-      } else if (a.event_type === 'bracket_submitted' && a.target_id) {
-        items.push({
-          id: `feed-${a.id}`,
-          kind: 'feed-event',
-          tag: 'BRACKET LOCKED IN',
-          headline: a.profiles?.display_name ? `${a.profiles.display_name} submitted a bracket` : 'New bracket submitted',
-          to: `/pools/${a.target_id}`,
-          at: a.created_at,
-          tint: '210 80% 60%',
-        });
-      } else if (a.event_type === 'event_created' && a.target_id) {
-        items.push({
-          id: `feed-${a.id}`,
-          kind: 'feed-event',
-          tag: 'NEW EVENT',
-          headline: a.profiles?.display_name ? `${a.profiles.display_name} added an event` : 'A new event is up',
-          to: `/events/${a.target_id}`,
-          at: a.created_at,
-          tint: '38 100% 60%',
-        });
-      } else if (a.event_type === 'post_created' && a.target_id) {
-        items.push({
-          id: `feed-${a.id}`,
-          kind: 'feed-event',
-          tag: 'NEW DISCUSSION',
-          headline: a.profiles?.display_name ? `${a.profiles.display_name} started a discussion` : 'New discussion',
-          to: `/posts/${a.target_id}`,
-          at: a.created_at,
-          tint: '195 80% 65%',
-        });
-      }
-      if (items.length >= 6) break;
-    }
-    return items;
-  }, [activity, hasFeed]);
+  const firstName = displayName?.split(' ')[0];
 
   // ─── Loading skeleton ────────────────────────────────────────────
   if (loading || assetsLoading) {
     return (
       <div className="pb-6">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-2xl skeleton-shimmer" />
+        <div className="flex items-center gap-3 mb-4 pt-2">
+          <div className="w-11 h-11 rounded-2xl skeleton-shimmer" />
           <div className="flex-1 space-y-1.5">
-            <div className="h-3 w-24 rounded skeleton-shimmer" />
-            <div className="h-2 w-32 rounded skeleton-shimmer" />
+            <div className="h-2.5 w-32 rounded skeleton-shimmer" />
+            <div className="h-3.5 w-40 rounded skeleton-shimmer" />
           </div>
-          <div className="w-10 h-10 rounded-2xl skeleton-shimmer" />
+          <div className="w-11 h-11 rounded-2xl skeleton-shimmer" />
         </div>
-        <div className="h-20 rounded-2xl skeleton-shimmer mb-4" />
-        <div className="flex gap-2 mb-5 overflow-hidden">
-          {[1,2,3,4,5].map(i => <div key={i} className="w-[78px] h-[88px] rounded-2xl skeleton-shimmer flex-shrink-0" />)}
+        <div className="h-28 rounded-[22px] skeleton-shimmer mb-5" />
+        <div className="h-3 w-20 rounded skeleton-shimmer mb-3" />
+        <div className="h-40 rounded-2xl skeleton-shimmer mb-6" />
+        <div className="flex gap-2.5 mb-5 overflow-hidden">
+          {[1,2,3,4,5].map(i => <div key={i} className="w-[96px] h-[112px] rounded-2xl skeleton-shimmer flex-shrink-0" />)}
         </div>
-        <div className="h-28 rounded-2xl skeleton-shimmer mb-5" />
       </div>
     );
   }
@@ -345,13 +376,6 @@ export default function DashboardPage() {
         pendingCount={actions.length}
       />
 
-      {/* QuickBar — user-pinned dock. Sits above everything for muscle memory. */}
-      <QuickBar
-        pinned={quickBar.pinned}
-        accent={accent}
-        onEditClick={() => setQbOpen(true)}
-      />
-
       {/* "What's New" — surface unseen, newly-installed important features */}
       {newFeatures.newFeatures.length > 0 && (
         <WhatIsNewCard
@@ -364,11 +388,7 @@ export default function DashboardPage() {
         />
       )}
 
-      {/* PWA install hint — slim inline chip, only when applicable.
-          Two real buttons (install + dismiss) sit inside the chip so screen
-          readers see them as separate actions instead of a nested
-          role="button" inside another button. Dismiss persists via
-          localStorage so users aren't re-prompted on every refresh. */}
+      {/* PWA install hint — slim inline chip, only when applicable. */}
       <AnimatePresence>
         {canInstall && !pwaDismissed && (
           <motion.div
@@ -388,7 +408,7 @@ export default function DashboardPage() {
               className="flex-1 flex items-center gap-2 text-left px-3 py-2 rounded-l-xl active:scale-[0.99] transition"
               aria-label="Install DH on your phone"
             >
-              <Download className="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true" />
+              <Download className="w-3.5 h-3.5 flex-shrink-0" aria-hidden />
               <span className="flex-1 truncate">Install DH on your phone</span>
             </button>
             <button
@@ -403,55 +423,37 @@ export default function DashboardPage() {
         )}
       </AnimatePresence>
 
-      {/* Right Now — single highest-priority action */}
-      <RightNowCard actions={actions} />
+      {/* Hero — single cinematic primary action (or empty hero) */}
+      <HeroAction
+        action={actions[0] ?? null}
+        clubAccent={accent}
+        firstName={firstName}
+      />
 
-      {/* Celebrations — Today / Upcoming / Empty card, only when plugin enabled */}
-      {showCelebrationsOnHome && <CelebrationsHomeWidget enabled />}
+      {/* Today — consolidated flowing feed of what's happening */}
+      <TodayFeed
+        items={todayItems}
+        title={club?.name ? `Today in ${club.name}` : 'Today'}
+        sublabel={todayItems.length > 0 ? 'What\'s moving right now' : undefined}
+      />
 
-      {/* Narrative RPG — campaigns the user can act on. Pulls only public data. */}
-      <NarrativeHomeWidget enabled={isInstalled('narrative-rpg')} />
-
-      {/* Asset launcher — installed apps with live status chips */}
+      {/* App dock — installed apps with status dots, full labels */}
       {enabledAssets.length > 0 && (
-        <AssetLauncher
-          installedAssets={enabledAssets}
-          canManage={isClubAdmin}
-          accent={accent}
-        />
+        <AppDock installedAssets={enabledAssets} canManage={isClubAdmin} />
       )}
 
-      {/* Highlights — recent club wins. Pulls double duty as a screen-fill
-          module on quiet days and a celebratory surface on busy ones. */}
-      <Highlights items={highlights} />
-
-      {/* League snapshot — Draft Arena + active season */}
-      {hasDrafts && season && (
-        <LeagueSnapshot
-          season={season}
-          standings={standings as any}
-          regularEntries={regularEntries}
-          seasonTarget={seasonTarget}
-          userId={user?.id}
-        />
-      )}
-
-      {/* Up Next events strip */}
-      {hasEvents && events.length > 0 && (
-        <EventsStrip events={events} accent={accent} />
-      )}
-
-      {/* Club pulse — high-signal activity */}
-      {hasFeed && activity.length > 0 && (
-        <ClubPulse activity={activity} />
-      )}
+      {/* Featured — one richer block: league or active campaign */}
+      <FeaturedModule
+        season={hasDrafts ? season ?? null : null}
+        standings={standings as any}
+        regularEntries={regularEntries}
+        seasonTarget={seasonTarget}
+        userId={user?.id}
+        campaigns={isInstalled('narrative-rpg') ? narrativeCampaigns as any : []}
+      />
 
       {/* Members online — small presence strip (renders nothing if you're alone) */}
-      <MembersOnline
-        myDisplayName={displayName}
-        myAvatarUrl={avatarUrl}
-        accent={accent}
-      />
+      <MembersOnline myDisplayName={displayName} myAvatarUrl={avatarUrl} accent={accent} />
 
       {/* Discover — admin-only un-installed assets */}
       <DiscoverStrip
@@ -461,27 +463,10 @@ export default function DashboardPage() {
         accent={accent}
       />
 
-      {/* Fresh-club empty state — only when truly nothing to surface */}
+      {/* Fresh-club empty state */}
       {isFreshClub && (
         <EmptyClubState isAdmin={isClubAdmin} accent={accent} clubName={club?.name} />
       )}
-
-      {/* QuickBar customization sheet — portaled, mounts only when open */}
-      <AnimatePresence>
-        {qbOpen && (
-          <QuickBarSheet
-            pinned={quickBar.pinned}
-            available={quickBar.available}
-            max={quickBar.max}
-            accent={accent}
-            onPin={quickBar.pin}
-            onUnpin={quickBar.unpin}
-            onMove={quickBar.move}
-            onReset={quickBar.reset}
-            onClose={() => setQbOpen(false)}
-          />
-        )}
-      </AnimatePresence>
 
       {/* First-time club onboarding — full-screen, dismissible, runs once */}
       <ClubOnboardingFlow
@@ -496,3 +481,6 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+// Suppress unused-import warnings — kept for future Sparkles usage.
+void Sparkles;
