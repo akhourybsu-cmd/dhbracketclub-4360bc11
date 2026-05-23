@@ -132,6 +132,8 @@ export default function DashboardPage() {
     [installedAssets],
   );
 
+  const qb = useQuickBar(enabledAssets);
+
   const onboarding = useClubOnboarding();
   const newFeatures = useNewFeatures();
 
