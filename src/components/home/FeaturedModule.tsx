@@ -92,7 +92,7 @@ function LeagueFeatured({ season, standings, regularEntries, seasonTarget, userI
                   Playoffs
                 </span>
               ) : (
-                <span className="text-[11px] font-bold tabular-nums text-muted-foreground/75 flex-shrink-0">
+                <span className="text-[11px] font-bold tabular-nums text-muted-foreground/85 flex-shrink-0">
                   {regularEntries}/{seasonTarget}
                 </span>
               )}
