@@ -43,19 +43,33 @@ export function HeroAction({ action, clubAccent, firstName }: Props) {
         className="mb-5"
       >
         <Surface variant="hero" accent={clubAccent}>
-          <div className="relative p-5">
-            <div className="flex items-center gap-2 mb-1.5">
-              <Sparkles className="w-3.5 h-3.5" style={{ color: `hsl(${clubAccent})` }} />
-              <p className="text-[11px] font-bold text-foreground/70 tracking-wide">
-                All caught up{firstName ? `, ${firstName}` : ''}.
+          <div className="relative px-4 py-4 flex items-center gap-3.5">
+            <div
+              className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 relative"
+              style={{
+                background: `radial-gradient(circle at 30% 30%, hsl(${clubAccent} / 0.32), hsl(${clubAccent} / 0.06))`,
+                boxShadow: `inset 0 0 0 1px hsl(${clubAccent} / 0.28)`,
+              }}
+            >
+              <Sparkles className="w-5 h-5" style={{ color: `hsl(${clubAccent})` }} strokeWidth={2.2} />
+              <span
+                aria-hidden
+                className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full motion-safe:animate-[heroPulse_2.4s_ease-in-out_infinite]"
+                style={{ background: `hsl(${clubAccent})`, boxShadow: `0 0 8px hsl(${clubAccent} / 0.7)` }}
+              />
+              <style>{`@keyframes heroPulse { 0%,100% { opacity: 0.85; transform: scale(1); } 50% { opacity: 1; transform: scale(1.25); } }`}</style>
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[10.5px] font-bold uppercase tracking-[0.16em]" style={{ color: `hsl(${clubAccent})` }}>
+                All caught up{firstName ? `, ${firstName}` : ''}
+              </p>
+              <h2 className="text-[16px] font-extrabold tracking-tight leading-tight mt-0.5">
+                Nothing waiting on you
+              </h2>
+              <p className="text-[11.5px] text-muted-foreground/70 leading-snug mt-0.5">
+                Browse the club below, or open an app to start something.
               </p>
             </div>
-            <h2 className="text-[20px] font-extrabold tracking-tight leading-tight">
-              Nothing waiting on you.
-            </h2>
-            <p className="text-[12.5px] text-muted-foreground/75 mt-1 leading-snug">
-              Browse what's happening in the club below, or open an app to start something new.
-            </p>
           </div>
         </Surface>
       </motion.div>
