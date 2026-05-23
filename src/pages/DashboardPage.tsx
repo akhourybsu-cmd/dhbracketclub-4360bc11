@@ -34,7 +34,9 @@ import { useUpcomingCelebrations, useTodayCelebrations, useCelebrationSettings }
 import { HomeHero } from '@/components/home/HomeHero';
 import { HeroAction } from '@/components/home/HeroAction';
 import { TodayFeed, type TodayFeedItem, formatWhenSoon, formatRelative } from '@/components/home/TodayFeed';
-import { AppDock } from '@/components/home/AppDock';
+import { QuickBar } from '@/components/home/QuickBar';
+import { QuickBarSheet } from '@/components/home/QuickBarSheet';
+import { useQuickBar } from '@/components/home/useQuickBar';
 import { FeaturedModule } from '@/components/home/FeaturedModule';
 import { MembersOnline } from '@/components/home/MembersOnline';
 import { DiscoverStrip } from '@/components/home/DiscoverStrip';
