@@ -187,10 +187,10 @@ function CampaignFeatured({ campaign }: { campaign: CampaignLite }) {
             <div className="min-w-0 flex-1">
               <h3 className="text-[15px] font-extrabold tracking-tight leading-tight line-clamp-1">{campaign.title}</h3>
               {campaign.pitch && (
-                <p className="text-[11.5px] text-muted-foreground/75 leading-snug mt-0.5 line-clamp-2">{campaign.pitch}</p>
+                <p className="text-[11.5px] text-muted-foreground/85 leading-snug mt-0.5 line-clamp-2">{campaign.pitch}</p>
               )}
             </div>
-            <ChevronRight className="w-4 h-4 flex-shrink-0 text-muted-foreground/65" />
+            <ChevronRight className="w-4 h-4 flex-shrink-0 text-muted-foreground/75" />
           </div>
         </Surface>
       </Link>
