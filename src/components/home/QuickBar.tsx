@@ -61,35 +61,39 @@ export function QuickBar({ pinned, accent, onEditClick }: Props) {
   if (pinned.length === 0) return null;
 
   return (
-    <motion.div
+    <motion.section
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-      className="mb-4"
+      className="mb-6"
       aria-label="Pinned apps"
     >
-      <div className="flex items-center gap-2">
-        {pinned.map(ia => (
-          <QuickTile key={ia.id} slug={ia.asset.slug} name={ia.asset.name} fallbackAccent={accent} />
-        ))}
+      <div className="flex items-end justify-between gap-3 mb-2.5">
+        <h2 className="text-[14px] font-extrabold tracking-tight text-foreground/90 leading-none">
+          Quick access
+        </h2>
         <button
           type="button"
           onClick={onEditClick}
-          aria-label="Customize quick bar"
-          className="flex-shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center active:scale-95 transition text-muted-foreground/65 hover:text-foreground/85 bg-muted/20 border border-dashed border-border/45"
+          className="text-[11.5px] font-semibold text-muted-foreground/80 hover:text-foreground transition-colors inline-flex items-center gap-1 flex-shrink-0"
+          aria-label="Customize quick access"
         >
-          <Pencil className="w-3.5 h-3.5" strokeWidth={2.2} />
+          <Pencil className="w-3 h-3" strokeWidth={2.4} />
+          Edit
         </button>
       </div>
-    </motion.div>
+      <div className="flex items-start gap-1.5">
+        {pinned.map(ia => (
+          <QuickTile key={ia.id} slug={ia.asset.slug} name={ia.asset.name} fallbackAccent={accent} />
+        ))}
+      </div>
+    </motion.section>
   );
 }
 
 /**
  * Calm-shell tile: neutral glass surface that matches every other quick-action
- * tile, with the app's accent color reserved for the emblem/icon ONLY. This is
- * the design rule for the DH Club shell — the shell should feel like one
- * platform, with app personality lighting up only the brand mark on the tile.
+ * tile, with the app's accent color reserved for the emblem/icon ONLY.
  */
 function QuickTile({ slug, name, fallbackAccent }: { slug: string; name: string; fallbackAccent: string }) {
   const meta = META[slug];
@@ -99,35 +103,30 @@ function QuickTile({ slug, name, fallbackAccent }: { slug: string; name: string;
   return (
     <Link
       to={meta?.to ?? '/'}
-      className="flex-1 min-w-0 active:scale-95 transition"
+      className="flex-1 min-w-0 active:scale-95 transition flex flex-col items-center gap-1.5"
       title={name}
       aria-label={name}
     >
       <div
-        className="relative h-12 rounded-2xl flex items-center justify-center overflow-hidden bg-card border border-border/40"
-        style={{
-          /* Subtle inner highlight at the top — no app color in the surface itself. */
-          boxShadow: 'inset 0 1px 0 hsl(var(--foreground) / 0.04)',
-        }}
+        className="relative w-full h-14 rounded-2xl flex items-center justify-center overflow-hidden bg-card border border-border/40"
+        style={{ boxShadow: 'inset 0 1px 0 hsl(var(--foreground) / 0.04)' }}
       >
-        {/* Whisper-faint accent glow at the bottom edge so the tile still
-            hints at its app identity without painting the whole surface. */}
         <span
           aria-hidden
           className="absolute inset-x-3 bottom-0 h-px"
-          style={{ background: `linear-gradient(90deg, transparent, hsl(${tint} / 0.45), transparent)` }}
+          style={{ background: `linear-gradient(90deg, transparent, hsl(${tint} / 0.55), transparent)` }}
         />
         {meta?.emblem ? (
           <img
             src={meta.emblem}
             alt=""
             aria-hidden="true"
-            className="w-7 h-7 object-contain relative"
+            className="w-8 h-8 object-contain relative"
             style={{ filter: `drop-shadow(0 1px 3px hsl(${tint} / 0.45))` }}
           />
         ) : Icon ? (
           <Icon
-            className="w-5 h-5 relative"
+            className="w-[22px] h-[22px] relative"
             style={{ color: `hsl(${tint})` }}
             strokeWidth={2.2}
           />
@@ -135,6 +134,9 @@ function QuickTile({ slug, name, fallbackAccent }: { slug: string; name: string;
           <Bookmark className="w-5 h-5 text-muted-foreground" />
         )}
       </div>
+      <p className="text-[10px] font-bold tracking-tight text-foreground/75 leading-tight text-center w-full truncate px-0.5">
+        {name}
+      </p>
     </Link>
   );
 }
