@@ -371,7 +371,7 @@ export default function DashboardPage() {
   // ─── Render ──────────────────────────────────────────────────────
   return (
     <div
-      className="pb-6"
+      className="pb-6 overflow-x-hidden"
       style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom, 0px))' }}
     >
       <HomeHero

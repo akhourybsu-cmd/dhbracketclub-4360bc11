@@ -66,7 +66,7 @@ export function HeroAction({ action, clubAccent, firstName }: Props) {
               <h2 className="text-[16px] font-extrabold tracking-tight leading-tight mt-0.5">
                 Nothing waiting on you
               </h2>
-              <p className="text-[11.5px] text-muted-foreground/70 leading-snug mt-0.5">
+              <p className="text-[11.5px] text-muted-foreground/85 leading-snug mt-0.5">
                 Browse the club below, or open an app to start something.
               </p>
             </div>
@@ -121,7 +121,7 @@ export function HeroAction({ action, clubAccent, firstName }: Props) {
                 {action.label}
               </h2>
               {action.sub && (
-                <p className="text-[12.5px] text-muted-foreground/80 leading-snug mt-0.5 line-clamp-2">
+                <p className="text-[12.5px] text-muted-foreground/90 leading-snug mt-0.5 line-clamp-2">
                   {action.sub}
                 </p>
               )}

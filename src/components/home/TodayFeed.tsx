@@ -85,7 +85,7 @@ export function TodayFeed({ items, title = 'Today', sublabel }: Props) {
                     {it.title}
                   </p>
                   {it.sub && (
-                    <p className="text-[11.5px] text-muted-foreground/70 leading-snug truncate mt-0.5">
+                    <p className="text-[11.5px] text-muted-foreground/85 leading-snug truncate mt-0.5">
                       {it.sub}
                     </p>
                   )}
@@ -93,17 +93,27 @@ export function TodayFeed({ items, title = 'Today', sublabel }: Props) {
                 <div className="flex items-center gap-1.5 flex-shrink-0">
                   {it.live && (
                     <span
-                      aria-hidden
-                      className="w-1.5 h-1.5 rounded-full motion-safe:animate-[feedPulse_1.8s_ease-in-out_infinite]"
-                      style={{ background: `hsl(${it.tint})`, boxShadow: `0 0 6px hsl(${it.tint} / 0.7)` }}
-                    />
+                      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9.5px] font-extrabold uppercase tracking-[0.08em]"
+                      style={{
+                        background: `hsl(${it.tint} / 0.14)`,
+                        color: `hsl(${it.tint})`,
+                        boxShadow: `inset 0 0 0 1px hsl(${it.tint} / 0.28)`,
+                      }}
+                    >
+                      <span
+                        aria-hidden
+                        className="w-1 h-1 rounded-full motion-safe:animate-[feedPulse_1.8s_ease-in-out_infinite]"
+                        style={{ background: `hsl(${it.tint})` }}
+                      />
+                      Active
+                    </span>
                   )}
-                  {it.meta && (
-                    <span className="text-[10.5px] font-semibold tabular-nums text-muted-foreground/65">
+                  {it.meta && !it.live && (
+                    <span className="text-[10.5px] font-semibold tabular-nums text-muted-foreground/80">
                       {it.meta}
                     </span>
                   )}
-                  <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/45" />
+                  <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/55" />
                 </div>
               </Link>
             </motion.li>

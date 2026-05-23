@@ -68,7 +68,7 @@ export function HomeHero({ club, displayName, avatarUrl, pendingCount, now = new
         </div>
 
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-semibold text-muted-foreground/75 leading-tight">
+          <p className="text-[11px] font-semibold text-muted-foreground/85 leading-tight">
             {weekday} · {greeting}{firstName ? `, ${firstName}` : ''}
           </p>
           <h1 className="text-[18px] font-extrabold tracking-tight truncate leading-tight mt-0.5">
