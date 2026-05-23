@@ -6,14 +6,18 @@
 
 @layer base {
   :root {
-    /* ═══ Arena Dark Palette — Emerald + Charcoal ═══ */
-    --background: 160 10% 5%;
+    /* ═══ Arena Dark Palette — Premium Charcoal Glass ═══
+     * Layered charcoal system. Background sits as the deepest floor;
+     * surfaces lift in ~3% L* steps so cards/rows separate without
+     * relying on borders or glow. Hue stays cool emerald-tinted so it
+     * reads as premium charcoal, not pure black. */
+    --background: 160 11% 6%;
     --foreground: 150 15% 97%;
 
-    --card: 160 8% 8%;
+    --card: 160 9% 11%;                  /* primary surface — was 8% → lifted for visible separation */
     --card-foreground: 150 15% 97%;
 
-    --popover: 160 8% 9%;
+    --popover: 160 9% 13%;
     --popover-foreground: 150 15% 97%;
 
     /* Emerald green — competition accent */
@@ -21,11 +25,11 @@
     --primary-foreground: 0 0% 100%;
     --primary-glow: 152 80% 56%;
 
-    --secondary: 160 8% 12%;
-    --secondary-foreground: 155 10% 68%;
+    --secondary: 160 8% 15%;             /* secondary surface — sits above card */
+    --secondary-foreground: 155 12% 78%;
 
-    --muted: 160 8% 14%;
-    --muted-foreground: 155 12% 54%;
+    --muted: 160 8% 16%;                 /* row hover / chip bg */
+    --muted-foreground: 155 12% 66%;     /* was 54% → premium readable, not stark */
 
     /* Teal/cyan — energetic supporting */
     --accent: 172 66% 50%;
@@ -34,8 +38,8 @@
     --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 160 8% 20%;
-    --input: 160 8% 18%;
+    --border: 160 8% 22%;
+    --input: 160 8% 19%;
     --ring: 152 72% 46%;
 
     --radius: 0.75rem;
@@ -44,19 +48,21 @@
     --premium-warm: 28 80% 58%;
 
     /* Sidebar */
-    --sidebar-background: 160 10% 5%;
-    --sidebar-foreground: 155 12% 58%;
+    --sidebar-background: 160 11% 6%;
+    --sidebar-foreground: 155 12% 70%;
     --sidebar-primary: 152 72% 46%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 160 8% 10%;
-    --sidebar-accent-foreground: 150 10% 82%;
-    --sidebar-border: 160 8% 18%;
+    --sidebar-accent: 160 9% 12%;
+    --sidebar-accent-foreground: 150 12% 88%;
+    --sidebar-border: 160 8% 20%;
     --sidebar-ring: 152 72% 46%;
 
-    /* ═══ Semantic Tokens ═══ */
-    --surface: 160 10% 6%;
-    --surface-elevated: 160 8% 10%;
-    --surface-overlay: 160 8% 12%;
+    /* ═══ Semantic Tokens ═══
+     * Tiered surface scale: surface (page) → card (default) →
+     * surface-elevated (rows, hovered) → surface-overlay (sheets). */
+    --surface: 160 11% 7%;
+    --surface-elevated: 160 9% 13%;
+    --surface-overlay: 160 9% 16%;
     --success: 152 60% 48%;
     --warning: 38 92% 50%;
     --correct: 152 60% 48%;
@@ -71,32 +77,38 @@
     /* ═══ Premium Gradients ═══ */
     --gradient-primary: linear-gradient(135deg, hsl(152 72% 42%), hsl(152 80% 56%));
     --gradient-accent: linear-gradient(135deg, hsl(172 66% 44%), hsl(172 80% 58%));
-    --gradient-surface: linear-gradient(180deg, hsl(160 8% 9%), hsl(160 10% 6%));
+    --gradient-surface: linear-gradient(180deg, hsl(160 9% 12%), hsl(160 11% 7%));
     --gradient-hero: radial-gradient(ellipse 80% 50% at 50% -20%, hsl(152 72% 46% / 0.1), transparent);
     --gradient-hero-accent: radial-gradient(ellipse 60% 40% at 80% 10%, hsl(172 66% 50% / 0.06), transparent);
     --gradient-hero-warm: radial-gradient(ellipse 50% 30% at 20% 20%, hsl(28 80% 58% / 0.03), transparent);
     --gradient-hero-gold: radial-gradient(ellipse 80% 50% at 50% -20%, hsl(45 93% 52% / 0.12), transparent);
     --gradient-hero-gold-accent: radial-gradient(ellipse 60% 40% at 80% 10%, hsl(45 93% 52% / 0.06), transparent);
-    --gradient-card-shine: linear-gradient(135deg, hsl(160 8% 14% / 0.6) 0%, transparent 40%);
-    --gradient-card-shine-alt: linear-gradient(315deg, hsl(152 72% 46% / 0.03) 0%, transparent 50%);
+    --gradient-card-shine: linear-gradient(135deg, hsl(160 8% 18% / 0.55) 0%, transparent 40%);
+    --gradient-card-shine-alt: linear-gradient(315deg, hsl(152 72% 46% / 0.04) 0%, transparent 50%);
     --gradient-arena-edge: linear-gradient(180deg, hsl(152 72% 46% / 0.06) 0%, transparent 40%);
     --gradient-arena-edge-gold: linear-gradient(180deg, hsl(45 93% 52% / 0.08) 0%, transparent 40%);
     --gradient-arena-floor: linear-gradient(180deg, transparent 60%, hsl(160 10% 3% / 0.4) 100%);
+    /* Ambient page wash — radial charcoal-glass wash applied to body in
+     * dark mode for depth without brightening the overall canvas. */
+    --gradient-ambient: radial-gradient(ellipse 100% 60% at 50% 0%, hsl(160 12% 12% / 0.55), transparent 70%),
+                        radial-gradient(ellipse 80% 50% at 100% 100%, hsl(152 30% 10% / 0.35), transparent 70%);
 
-    /* ═══ Shadows ═══ */
-    --shadow-card: 0 1px 2px rgba(0,0,0,0.3), 0 4px 12px rgba(0,0,0,0.18);
-    --shadow-elevated: 0 8px 32px rgba(0,0,0,0.45), 0 2px 8px rgba(0,0,0,0.3);
+    /* ═══ Shadows ═══
+     * Dark mode shadows pair a soft inner top-highlight with a deep
+     * drop so cards float off the floor instead of sitting flat. */
+    --shadow-card: 0 1px 0 hsl(0 0% 100% / 0.03) inset, 0 1px 2px rgba(0,0,0,0.35), 0 6px 18px rgba(0,0,0,0.32);
+    --shadow-elevated: 0 1px 0 hsl(0 0% 100% / 0.04) inset, 0 10px 36px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.35);
     --shadow-glow: 0 0 20px hsl(152 72% 46% / 0.2), 0 0 40px hsl(152 72% 46% / 0.05);
     --shadow-glow-sm: 0 0 12px hsl(152 72% 46% / 0.15);
     --shadow-glow-hover: 0 8px 30px rgba(0,0,0,0.4), 0 0 20px hsl(152 72% 46% / 0.08);
     --shadow-inner: inset 0 1px 2px rgba(0,0,0,0.2);
     --shadow-gold: 0 0 16px hsl(45 93% 52% / 0.15);
-    --shadow-premium: 0 2px 8px rgba(0,0,0,0.25), 0 0 1px rgba(255,255,255,0.03);
+    --shadow-premium: 0 1px 0 hsl(0 0% 100% / 0.04) inset, 0 2px 10px rgba(0,0,0,0.32);
 
     /* ═══ Chat Bubble Tokens ═══ */
     --chat-own: 215 65% 50%;
     --chat-own-bg: 215 65% 50% / 0.18;
-    --chat-incoming: 160 8% 22%;
+    --chat-incoming: 160 8% 24%;
 
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
 
