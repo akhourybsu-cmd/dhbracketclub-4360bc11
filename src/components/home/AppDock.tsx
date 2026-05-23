@@ -96,15 +96,26 @@ export function AppDock({ installedAssets, canManage }: Props) {
       />
       <div
         className="-mx-4 sm:mx-0 flex gap-2.5 overflow-x-auto px-4 sm:px-0 pb-1.5 snap-x snap-mandatory"
-        style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
+        style={{
+          scrollbarWidth: 'none',
+          WebkitOverflowScrolling: 'touch',
+          maskImage: 'linear-gradient(to right, transparent 0, #000 16px, #000 calc(100% - 28px), transparent 100%)',
+          WebkitMaskImage: 'linear-gradient(to right, transparent 0, #000 16px, #000 calc(100% - 28px), transparent 100%)',
+        }}
       >
-        {ordered.map(ia => (
-          <AppTile
+        {ordered.map((ia, idx) => (
+          <motion.div
             key={ia.id}
-            slug={ia.asset.slug}
-            name={ia.asset.name}
-            status={statuses[ia.asset.slug] ?? null}
-          />
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: Math.min(idx, 6) * 0.035, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <AppTile
+              slug={ia.asset.slug}
+              name={ia.asset.name}
+              status={statuses[ia.asset.slug] ?? null}
+            />
+          </motion.div>
         ))}
         {canManage && <AddTile />}
       </div>
