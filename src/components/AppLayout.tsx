@@ -160,6 +160,7 @@ function AppLayoutInner({ children }: { children: ReactNode }) {
   // Mobile header is hidden inside game shells (they own the viewport) and in chat
   // (chat owns its own compact header, including a hamburger button).
   const showMobileHeader = !isGameShell && !isChatRoute;
+  const isDashboard = location.pathname === '/dashboard';
   const mobileTitle = getRouteTitle(location.pathname);
 
   return (
