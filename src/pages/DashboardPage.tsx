@@ -114,6 +114,7 @@ export default function DashboardPage() {
   const [events, setEvents] = useState<EventRow[]>([]);
   const [pwaDismissed, setPwaDismissed] = useState(readPwaDismissed);
   const [loading, setLoading] = useState(true);
+  const [qbSheetOpen, setQbSheetOpen] = useState(false);
 
   const dismissPwa = useCallback(() => {
     setPwaDismissed(true);
