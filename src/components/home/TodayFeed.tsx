@@ -27,8 +27,10 @@ export interface TodayFeedItem {
   title: string;
   /** Faint supporting line under the title. */
   sub?: string;
-  /** Right-side meta — usually a relative time. */
+  /** Right-side meta — usually a relative time or short tag. */
   meta?: string;
+  /** If true, render a small animated dot in the tint color instead of/with meta. */
+  live?: boolean;
   /** Route to navigate to. */
   to: string;
   /** ISO timestamp used for sorting if `meta` not provided. */
@@ -57,7 +59,13 @@ export function TodayFeed({ items, title = 'Today', sublabel }: Props) {
       <Surface variant="pulse">
         <ul>
           {top.map((it, idx) => (
-            <li key={it.id} style={idx > 0 ? { borderTop: '1px solid hsl(var(--border) / 0.22)' } : undefined}>
+            <motion.li
+              key={it.id}
+              initial={{ opacity: 0, x: -6 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.32, delay: idx * 0.045, ease: [0.22, 1, 0.36, 1] }}
+              style={idx > 0 ? { borderTop: '1px solid hsl(var(--border) / 0.22)' } : undefined}
+            >
               <Link
                 to={it.to}
                 className="flex items-center gap-3 px-3.5 py-3 active:bg-foreground/5 transition-colors"
@@ -67,6 +75,7 @@ export function TodayFeed({ items, title = 'Today', sublabel }: Props) {
                   style={{
                     background: `linear-gradient(135deg, hsl(${it.tint} / 0.18), hsl(${it.tint} / 0.04))`,
                     color: `hsl(${it.tint})`,
+                    boxShadow: `inset 0 0 0 1px hsl(${it.tint} / 0.16)`,
                   }}
                 >
                   <it.icon className="w-4 h-4" />
@@ -82,6 +91,13 @@ export function TodayFeed({ items, title = 'Today', sublabel }: Props) {
                   )}
                 </div>
                 <div className="flex items-center gap-1.5 flex-shrink-0">
+                  {it.live && (
+                    <span
+                      aria-hidden
+                      className="w-1.5 h-1.5 rounded-full motion-safe:animate-[feedPulse_1.8s_ease-in-out_infinite]"
+                      style={{ background: `hsl(${it.tint})`, boxShadow: `0 0 6px hsl(${it.tint} / 0.7)` }}
+                    />
+                  )}
                   {it.meta && (
                     <span className="text-[10.5px] font-semibold tabular-nums text-muted-foreground/65">
                       {it.meta}
@@ -90,9 +106,10 @@ export function TodayFeed({ items, title = 'Today', sublabel }: Props) {
                   <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/45" />
                 </div>
               </Link>
-            </li>
+            </motion.li>
           ))}
         </ul>
+        <style>{`@keyframes feedPulse { 0%,100% { opacity: 0.7; transform: scale(1); } 50% { opacity: 1; transform: scale(1.4); } }`}</style>
       </Surface>
     </motion.section>
   );
