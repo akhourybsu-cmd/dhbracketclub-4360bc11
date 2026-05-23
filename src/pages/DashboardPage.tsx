@@ -440,7 +440,25 @@ export default function DashboardPage() {
       />
 
       {/* QuickBar — user-pinned shortcut dock. Full app list lives in the side menu. */}
-      <QuickBarMount />
+      {qb.pinned.length > 0 && (
+        <QuickBar pinned={qb.pinned} accent={accent} onEditClick={() => setQbSheetOpen(true)} />
+      )}
+      <AnimatePresence>
+        {qbSheetOpen && (
+          <QuickBarSheet
+            pinned={qb.pinned}
+            available={qb.available}
+            max={qb.max}
+            accent={accent}
+            onPin={qb.pin}
+            onUnpin={qb.unpin}
+            onMove={qb.move}
+            onReset={qb.reset}
+            onClose={() => setQbSheetOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
 
 
       {/* Featured — one richer block: league or active campaign */}
