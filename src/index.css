@@ -329,15 +329,11 @@
   }
 
   /* ═══ Ambient charcoal-glass wash (dark mode only) ═══
-   * Sits behind everything as a soft top-to-bottom radial wash, giving
-   * the page depth without lifting the overall canvas brightness. */
-  .dark body::after {
-    content: '';
-    position: fixed;
-    inset: 0;
-    z-index: -1;
-    pointer-events: none;
-    background: var(--gradient-ambient);
+   * Soft radial wash on the body itself — adds depth above the flat
+   * background color without brightening the canvas. */
+  .dark body {
+    background-image: var(--gradient-ambient);
+    background-attachment: fixed;
   }
 
   /* ═══ Noise grain overlay (dark mode only) ═══ */
