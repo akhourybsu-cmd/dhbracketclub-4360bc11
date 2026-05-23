@@ -285,7 +285,7 @@ export default function DashboardPage() {
         title: c.title,
         sub: c.pitch ?? 'Campaign in progress',
         to: `/narrative/${c.id}`,
-        meta: 'Live',
+        live: true,
       });
     }
 
