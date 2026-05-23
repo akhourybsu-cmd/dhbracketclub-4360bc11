@@ -439,10 +439,9 @@ export default function DashboardPage() {
         sublabel={todayItems.length > 0 ? 'What\'s moving right now' : undefined}
       />
 
-      {/* App dock — installed apps with status dots, full labels */}
-      {enabledAssets.length > 0 && (
-        <AppDock installedAssets={enabledAssets} canManage={isClubAdmin} />
-      )}
+      {/* QuickBar — user-pinned shortcut dock. Full app list lives in the side menu. */}
+      <QuickBarMount />
+
 
       {/* Featured — one richer block: league or active campaign */}
       <FeaturedModule
