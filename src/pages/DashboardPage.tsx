@@ -34,7 +34,9 @@ import { useUpcomingCelebrations, useTodayCelebrations, useCelebrationSettings }
 import { HomeHero } from '@/components/home/HomeHero';
 import { HeroAction } from '@/components/home/HeroAction';
 import { TodayFeed, type TodayFeedItem, formatWhenSoon, formatRelative } from '@/components/home/TodayFeed';
-import { AppDock } from '@/components/home/AppDock';
+import { QuickBar } from '@/components/home/QuickBar';
+import { QuickBarSheet } from '@/components/home/QuickBarSheet';
+import { useQuickBar } from '@/components/home/useQuickBar';
 import { FeaturedModule } from '@/components/home/FeaturedModule';
 import { MembersOnline } from '@/components/home/MembersOnline';
 import { DiscoverStrip } from '@/components/home/DiscoverStrip';
@@ -112,6 +114,7 @@ export default function DashboardPage() {
   const [events, setEvents] = useState<EventRow[]>([]);
   const [pwaDismissed, setPwaDismissed] = useState(readPwaDismissed);
   const [loading, setLoading] = useState(true);
+  const [qbSheetOpen, setQbSheetOpen] = useState(false);
 
   const dismissPwa = useCallback(() => {
     setPwaDismissed(true);
@@ -128,6 +131,8 @@ export default function DashboardPage() {
     () => installedAssets.filter(ia => ia.enabled),
     [installedAssets],
   );
+
+  const qb = useQuickBar(enabledAssets);
 
   const onboarding = useClubOnboarding();
   const newFeatures = useNewFeatures();
@@ -437,10 +442,27 @@ export default function DashboardPage() {
         sublabel={todayItems.length > 0 ? 'What\'s moving right now' : undefined}
       />
 
-      {/* App dock — installed apps with status dots, full labels */}
-      {enabledAssets.length > 0 && (
-        <AppDock installedAssets={enabledAssets} canManage={isClubAdmin} />
+      {/* QuickBar — user-pinned shortcut dock. Full app list lives in the side menu. */}
+      {qb.pinned.length > 0 && (
+        <QuickBar pinned={qb.pinned} accent={accent} onEditClick={() => setQbSheetOpen(true)} />
       )}
+      <AnimatePresence>
+        {qbSheetOpen && (
+          <QuickBarSheet
+            pinned={qb.pinned}
+            available={qb.available}
+            max={qb.max}
+            accent={accent}
+            onPin={qb.pin}
+            onUnpin={qb.unpin}
+            onMove={qb.move}
+            onReset={qb.reset}
+            onClose={() => setQbSheetOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
+
 
       {/* Featured — one richer block: league or active campaign */}
       <FeaturedModule
