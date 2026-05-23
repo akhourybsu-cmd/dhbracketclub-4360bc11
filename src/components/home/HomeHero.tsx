@@ -45,9 +45,9 @@ export function HomeHero({ club, displayName, avatarUrl, pendingCount, now = new
       {/* Ambient accent glow keyed to club color */}
       <div
         aria-hidden
-        className="absolute -inset-x-8 -top-16 h-44 pointer-events-none -z-10"
+        className="absolute -inset-x-8 -top-20 h-56 pointer-events-none -z-10"
         style={{
-          background: `radial-gradient(ellipse 55% 100% at 50% 0%, hsl(${accent} / 0.22), transparent 70%)`,
+          background: `radial-gradient(ellipse 60% 100% at 50% 0%, hsl(${accent} / 0.28), transparent 72%)`,
         }}
       />
 
