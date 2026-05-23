@@ -192,7 +192,9 @@ function AppLayoutInner({ children }: { children: ReactNode }) {
             <Menu className="w-5 h-5 text-foreground/85" />
           </button>
           <div className="flex items-center gap-2 min-w-0 flex-1">
-            <h1 className="text-[15px] font-bold tracking-tight truncate">{mobileTitle}</h1>
+            {!isDashboard && (
+              <h1 className="text-[15px] font-bold tracking-tight truncate">{mobileTitle}</h1>
+            )}
           </div>
           <Link
             to="/profile"
