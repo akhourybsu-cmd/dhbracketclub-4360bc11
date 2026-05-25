@@ -1332,77 +1332,156 @@ export default function DraftsListPage() {
                 <Button className="font-bold rounded-xl gap-2 btn-press da-cta"><Plus className="w-4 h-4" /> Create Draft</Button>
               </Link>
             </motion.div>
-          ) : (
-            <motion.div className="space-y-2" initial="hidden" animate="show"
-              variants={{ hidden: {}, show: { transition: { staggerChildren: 0.05, delayChildren: 0.04 } } }}>
-              {drafts.map((d, i) => {
-                const count = participantCounts.get(d.id) || 0;
-                const sc = statusConfig[d.status] || statusConfig.setup;
-                const winner = draftWinners.get(d.id);
-                const playoffMatch = playoffMatchByDraft.get(d.id);
-                const isPlayoff = !!playoffMatch;
-                const isLive = d.status === 'in_progress';
-                const isMyTurn = isLive && d.current_pick_user_id === user?.id;
-                const staggerIdx = Math.min(i, 8);
-                return (
-                  <motion.div key={d.id} variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0, transition: { ...springSnap, delay: staggerIdx * 0.04 } } }}>
-                    <Link to={`/drafts/${d.id}`} className="block group">
-                      <div className={cn('da-glass p-4 hover-lift cursor-pointer relative overflow-hidden transition-transform',
-                        isPlayoff && 'arena-edge', isLive && !isPlayoff && 'draft-row-live', isMyTurn && !isPlayoff && 'draft-row-mine')}
-                        style={isPlayoff ? {
-                          borderLeft: '3px solid hsl(45 93% 52%)',
-                          background: 'linear-gradient(135deg, hsl(45 93% 52% / 0.08), transparent 60%), linear-gradient(180deg, hsl(160 35% 7% / 0.88), hsl(160 50% 4% / 0.94))',
-                          boxShadow: '0 0 18px -4px hsl(45 93% 52% / 0.25)',
-                        } : undefined}>
-                        {isPlayoff && <div className="absolute -right-2 -top-2 text-3xl opacity-10 select-none pointer-events-none" aria-hidden>✦</div>}
-                        {isLive && !isPlayoff && <div className="absolute -right-2 -top-2 text-2xl opacity-[0.07] select-none pointer-events-none" aria-hidden>✦</div>}
-                        <div className="flex items-center justify-between relative z-10">
-                          <div className="flex items-center gap-3 min-w-0 flex-1">
-                            <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                              style={isPlayoff ? { background: 'linear-gradient(135deg, hsl(45 93% 52% / 0.28), hsl(38 92% 50% / 0.10))', boxShadow: '0 0 10px hsl(45 93% 52% / 0.25)' } : { background: 'linear-gradient(135deg, hsl(var(--gold) / 0.15), hsl(var(--gold) / 0.04))' }}>
-                              {isPlayoff ? <Trophy className="w-5 h-5" style={{ color: 'hsl(45 93% 52%)' }} strokeWidth={2.5} /> : <Bookmark className="w-5 h-5" style={{ color: 'hsl(var(--gold))' }} />}
-                            </div>
-                            <div className="min-w-0">
-                              {isPlayoff && <div className="mb-0.5"><PlayoffBadge round={playoffMatch!.round} matchNumber={playoffMatch!.match_number} size="xs" /></div>}
-                              <h3 className="font-bold text-sm truncate">{d.topic}</h3>
-                              <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                                {isPlayoff ? (
-                                  <span className="text-[10px] font-bold tracking-wide" style={{ color: 'hsl(45 93% 52%)' }}>{getPlayoffGameLabel(playoffMatch!.round, playoffMatch!.match_number)}</span>
-                                ) : (
-                                  <span className="text-[10px] text-muted-foreground/70 font-medium">{d.num_rounds} rounds</span>
-                                )}
-                                <span className="w-0.5 h-0.5 rounded-full bg-muted-foreground/15" />
-                                <span className="text-[10px] text-muted-foreground/70 flex items-center gap-0.5 font-medium"><Users className="w-2.5 h-2.5" /> {count}</span>
-                                {seasonDraftIds.has(d.id) && !isPlayoff && (
-                                  <><span className="w-0.5 h-0.5 rounded-full bg-muted-foreground/15" /><span className="text-[9px] font-bold px-1 py-0.5 rounded" style={{ background: 'hsl(var(--gold) / 0.12)', color: 'hsl(var(--gold))' }}>S</span></>
-                                )}
-                                {winner && (
-                                  <><span className="w-0.5 h-0.5 rounded-full bg-muted-foreground/15" /><span className="text-[10px] flex items-center gap-0.5 font-semibold" style={{ color: 'hsl(var(--gold))' }}><Trophy className="w-2.5 h-2.5" /> {winner.display_name}</span></>
-                                )}
-                              </div>
-                              {d.status === 'in_progress' && d.current_pick_user_id && (
-                                <motion.p initial={isMyTurn ? { y: 0 } : false} animate={isMyTurn ? { y: [0, -2, 0] } : undefined} transition={{ duration: 0.6, ease: 'easeOut' }}
-                                  className="text-[10px] font-semibold mt-0.5" style={{ color: isMyTurn ? 'hsl(var(--gold))' : 'hsl(var(--success))' }}>
-                                  🎯 {isMyTurn ? 'Your pick!' : `${(d as any).current_pick_profiles?.display_name || 'Someone'}'s pick`}
-                                </motion.p>
+          ) : (() => {
+            // ── Group drafts by season, with a fallback "Miscellaneous" bucket ──
+            type Group = { id: string; name: string; status: string | null; startsAt: string | null; drafts: any[] };
+            const groupsMap = new Map<string, Group>();
+            for (const s of allSeasons) {
+              groupsMap.set(s.id, { id: s.id, name: s.name, status: s.status, startsAt: s.startsAt, drafts: [] });
+            }
+            const misc: Group = { id: '__misc__', name: 'Miscellaneous', status: null, startsAt: null, drafts: [] };
+            for (const d of drafts) {
+              const meta = seasonByDraft.get(d.id);
+              if (meta && groupsMap.has(meta.seasonId)) groupsMap.get(meta.seasonId)!.drafts.push(d);
+              else misc.drafts.push(d);
+            }
+            // Only show seasons that have drafts. Sort newest → oldest.
+            const seasonGroups = Array.from(groupsMap.values())
+              .filter(g => g.drafts.length > 0)
+              .sort((a, b) => (b.startsAt || '').localeCompare(a.startsAt || ''));
+            const orderedGroups: Group[] = [...seasonGroups];
+            if (misc.drafts.length > 0) orderedGroups.push(misc);
+
+            // Default-open: current/most-recent active season + misc (if no seasons present).
+            const defaultOpen = orderedGroups
+              .filter((g, idx) => idx === 0 || g.status === 'regular_season' || g.status === 'playoffs')
+              .map(g => g.id);
+
+            const statusChip = (g: Group): { label: string; cls: string; live: boolean } | null => {
+              if (g.id === '__misc__') return null;
+              switch (g.status) {
+                case 'regular_season': return { label: 'In Progress', cls: 'bg-success/15 text-success border border-success/25', live: true };
+                case 'playoffs': return { label: 'Playoffs', cls: 'bg-gold/15 text-gold border border-gold/25', live: true };
+                case 'complete': return { label: 'Complete', cls: 'bg-muted/40 text-muted-foreground border border-border/30', live: false };
+                case 'upcoming': return { label: 'Upcoming', cls: 'bg-muted/40 text-muted-foreground border border-border/30', live: false };
+                default: return null;
+              }
+            };
+
+            const renderRow = (d: any, i: number) => {
+              const count = participantCounts.get(d.id) || 0;
+              const sc = statusConfig[d.status] || statusConfig.setup;
+              const winner = draftWinners.get(d.id);
+              const playoffMatch = playoffMatchByDraft.get(d.id);
+              const isPlayoff = !!playoffMatch;
+              const isLive = d.status === 'in_progress';
+              const isMyTurn = isLive && d.current_pick_user_id === user?.id;
+              const staggerIdx = Math.min(i, 8);
+              return (
+                <motion.div key={d.id} variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0, transition: { ...springSnap, delay: staggerIdx * 0.04 } } }}>
+                  <Link to={`/drafts/${d.id}`} className="block group">
+                    <div className={cn('da-glass p-4 hover-lift cursor-pointer relative overflow-hidden transition-transform',
+                      isPlayoff && 'arena-edge', isLive && !isPlayoff && 'draft-row-live', isMyTurn && !isPlayoff && 'draft-row-mine')}
+                      style={isPlayoff ? {
+                        borderLeft: '3px solid hsl(45 93% 52%)',
+                        background: 'linear-gradient(135deg, hsl(45 93% 52% / 0.08), transparent 60%), linear-gradient(180deg, hsl(160 35% 7% / 0.88), hsl(160 50% 4% / 0.94))',
+                        boxShadow: '0 0 18px -4px hsl(45 93% 52% / 0.25)',
+                      } : undefined}>
+                      {isPlayoff && <div className="absolute -right-2 -top-2 text-3xl opacity-10 select-none pointer-events-none" aria-hidden>✦</div>}
+                      {isLive && !isPlayoff && <div className="absolute -right-2 -top-2 text-2xl opacity-[0.07] select-none pointer-events-none" aria-hidden>✦</div>}
+                      <div className="flex items-center justify-between relative z-10">
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                            style={isPlayoff ? { background: 'linear-gradient(135deg, hsl(45 93% 52% / 0.28), hsl(38 92% 50% / 0.10))', boxShadow: '0 0 10px hsl(45 93% 52% / 0.25)' } : { background: 'linear-gradient(135deg, hsl(var(--gold) / 0.15), hsl(var(--gold) / 0.04))' }}>
+                            {isPlayoff ? <Trophy className="w-5 h-5" style={{ color: 'hsl(45 93% 52%)' }} strokeWidth={2.5} /> : <Bookmark className="w-5 h-5" style={{ color: 'hsl(var(--gold))' }} />}
+                          </div>
+                          <div className="min-w-0">
+                            {isPlayoff && <div className="mb-0.5"><PlayoffBadge round={playoffMatch!.round} matchNumber={playoffMatch!.match_number} size="xs" /></div>}
+                            <h3 className="font-bold text-sm truncate">{d.topic}</h3>
+                            <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                              {isPlayoff ? (
+                                <span className="text-[10px] font-bold tracking-wide" style={{ color: 'hsl(45 93% 52%)' }}>{getPlayoffGameLabel(playoffMatch!.round, playoffMatch!.match_number)}</span>
+                              ) : (
+                                <span className="text-[10px] text-muted-foreground/70 font-medium">{d.num_rounds} rounds</span>
+                              )}
+                              <span className="w-0.5 h-0.5 rounded-full bg-muted-foreground/15" />
+                              <span className="text-[10px] text-muted-foreground/70 flex items-center gap-0.5 font-medium"><Users className="w-2.5 h-2.5" /> {count}</span>
+                              {winner && (
+                                <><span className="w-0.5 h-0.5 rounded-full bg-muted-foreground/15" /><span className="text-[10px] flex items-center gap-0.5 font-semibold" style={{ color: 'hsl(var(--gold))' }}><Trophy className="w-2.5 h-2.5" /> {winner.display_name}</span></>
                               )}
                             </div>
-                          </div>
-                          <div className="flex items-center gap-1.5 flex-shrink-0">
-                            <span className={cn(isPlayoff ? 'da-status-complete' : sc.cls)}>
-                              {d.status === 'in_progress' && <Play className="w-2.5 h-2.5 mr-0.5" />}
-                              {sc.label}
-                            </span>
-                            <ArrowRight className="w-4 h-4 text-muted-foreground/60 group-hover:text-muted-foreground draft-chevron" />
+                            {d.status === 'in_progress' && d.current_pick_user_id && (
+                              <motion.p initial={isMyTurn ? { y: 0 } : false} animate={isMyTurn ? { y: [0, -2, 0] } : undefined} transition={{ duration: 0.6, ease: 'easeOut' }}
+                                className="text-[10px] font-semibold mt-0.5" style={{ color: isMyTurn ? 'hsl(var(--gold))' : 'hsl(var(--success))' }}>
+                                🎯 {isMyTurn ? 'Your pick!' : `${(d as any).current_pick_profiles?.display_name || 'Someone'}'s pick`}
+                              </motion.p>
+                            )}
                           </div>
                         </div>
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          <span className={cn(isPlayoff ? 'da-status-complete' : sc.cls)}>
+                            {d.status === 'in_progress' && <Play className="w-2.5 h-2.5 mr-0.5" />}
+                            {sc.label}
+                          </span>
+                          <ArrowRight className="w-4 h-4 text-muted-foreground/60 group-hover:text-muted-foreground draft-chevron" />
+                        </div>
                       </div>
-                    </Link>
-                  </motion.div>
-                );
-              })}
-            </motion.div>
-          )}
+                    </div>
+                  </Link>
+                </motion.div>
+              );
+            };
+
+            return (
+              <Accordion type="multiple" defaultValue={defaultOpen} className="space-y-2.5">
+                {orderedGroups.map(g => {
+                  const chip = statusChip(g);
+                  const liveCount = g.drafts.filter(d => d.status === 'in_progress').length;
+                  return (
+                    <AccordionItem
+                      key={g.id}
+                      value={g.id}
+                      className="border-0 rounded-xl overflow-hidden da-glass"
+                    >
+                      <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                        <div className="flex items-center gap-2.5 flex-1 min-w-0 text-left">
+                          <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                            style={{ background: g.id === '__misc__' ? 'hsl(var(--muted) / 0.5)' : 'linear-gradient(135deg, hsl(var(--gold) / 0.22), hsl(var(--gold) / 0.06))' }}>
+                            {g.id === '__misc__'
+                              ? <Archive className="w-4 h-4 text-muted-foreground" />
+                              : <Trophy className="w-4 h-4" style={{ color: 'hsl(var(--gold))' }} />}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-extrabold text-[13px] truncate">{g.name}</span>
+                              {chip && (
+                                <span className={cn('inline-flex items-center gap-1 text-[9px] font-extrabold uppercase tracking-wider px-1.5 py-[2px] rounded-full', chip.cls)}>
+                                  {chip.live && <span className="w-1 h-1 rounded-full bg-current animate-pulse" />}
+                                  {chip.label}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[10px] text-muted-foreground/70 font-medium mt-0.5">
+                              {g.drafts.length} {g.drafts.length === 1 ? 'draft' : 'drafts'}
+                              {liveCount > 0 && <> · <span style={{ color: 'hsl(var(--success))' }}>{liveCount} in progress</span></>}
+                            </p>
+                          </div>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="px-2 pb-2 pt-0">
+                        <motion.div className="space-y-2" initial="hidden" animate="show"
+                          variants={{ hidden: {}, show: { transition: { staggerChildren: 0.04 } } }}>
+                          {g.drafts.map((d, i) => renderRow(d, i))}
+                        </motion.div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  );
+                })}
+              </Accordion>
+            );
+          })()}
+
+
 
           {/* Seasons archive link */}
           <div className="mt-4">
