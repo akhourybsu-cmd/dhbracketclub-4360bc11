@@ -40,6 +40,8 @@ import {
   getSeasonProgressText,
 } from '@/lib/seasonUtils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { PlayoffBadge } from '@/components/draft/PlayoffBadge';
