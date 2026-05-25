@@ -1162,10 +1162,25 @@ export default function DraftsListPage() {
     if (data) {
       const draftIds = data.map(d => d.id);
       if (draftIds.length > 0) {
-        const [{ data: parts }, { data: picks }] = await Promise.all([
+        const [{ data: parts }, { data: picks }, { data: seasonEntriesAll }, { data: seasonsAll }] = await Promise.all([
           supabase.from('draft_participants').select('draft_id, user_id, pick_order, profiles:user_id(display_name)').in('draft_id', draftIds),
           supabase.from('draft_picks').select('draft_id').in('draft_id', draftIds),
+          supabase.from('draft_season_entries' as any).select('draft_id, season_id').in('draft_id', draftIds),
+          supabase.from('draft_seasons' as any).select('id, name, starts_at, status').order('starts_at', { ascending: false }),
         ]);
+        // Build season-by-draft map and seasons list
+        const seasonsById = new Map<string, { id: string; name: string; startsAt: string; status: string }>();
+        (seasonsAll || []).forEach((s: any) => {
+          seasonsById.set(s.id, { id: s.id, name: s.name, startsAt: s.starts_at, status: s.status });
+        });
+        const sbd = new Map<string, { seasonId: string; name: string; startsAt: string; status: string }>();
+        (seasonEntriesAll || []).forEach((e: any) => {
+          const s = seasonsById.get(e.season_id);
+          if (s) sbd.set(e.draft_id, { seasonId: s.id, name: s.name, startsAt: s.startsAt, status: s.status });
+        });
+        setSeasonByDraft(sbd);
+        setAllSeasons(Array.from(seasonsById.values()));
+
         const participantsByDraft = new Map<string, any[]>();
         if (parts) {
           const counts = new Map<string, number>();
