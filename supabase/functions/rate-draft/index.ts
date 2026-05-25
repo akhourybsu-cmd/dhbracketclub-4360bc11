@@ -396,8 +396,36 @@ Use the rate_draft_results tool to return your structured analysis.`;
               standingsUpdates[i].playoff_seed = i + 1;
             }
 
+            // ── Lock playoff seeds once playoffs have started ───────────────
+            // Recomputing rank/playoff_seed after the bracket exists can swap
+            // closely-ranked users mid-bracket, causing the same player to land
+            // in two semifinal slots. Preserve existing seeds in that case.
+            const { data: seasonStatusRow } = await admin
+              .from("draft_seasons").select("status").eq("id", seasonId).single();
+            const seedsLocked =
+              seasonStatusRow?.status === "playoffs" ||
+              seasonStatusRow?.status === "complete";
+
+            let priorSeedByUser = new Map<string, { rank: number | null; playoff_seed: number | null }>();
+            if (seedsLocked) {
+              const { data: priorStandings } = await admin
+                .from("draft_season_standings")
+                .select("user_id, rank, playoff_seed")
+                .eq("season_id", seasonId);
+              for (const p of priorStandings || []) {
+                priorSeedByUser.set(p.user_id, { rank: p.rank, playoff_seed: p.playoff_seed });
+              }
+            }
+
             await admin.from("draft_season_standings").delete().eq("season_id", seasonId);
             for (const s of standingsUpdates) {
+              if (seedsLocked) {
+                const prior = priorSeedByUser.get(s.user_id);
+                if (prior) {
+                  s.rank = prior.rank ?? s.rank;
+                  s.playoff_seed = prior.playoff_seed ?? s.playoff_seed;
+                }
+              }
               await admin.from("draft_season_standings").insert(s);
             }
             console.log("Season standings recalculated:", standingsUpdates.length, "entries");
