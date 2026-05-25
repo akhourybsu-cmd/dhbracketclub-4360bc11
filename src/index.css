@@ -2708,6 +2708,71 @@
   50%      { box-shadow: 0 0 0 6px hsl(var(--primary) / 0.18), 0 0 24px -4px hsl(var(--primary) / 0.5); }
 }
 
+/* ── Draft Arena — playoff hero & on-the-clock cinematics ─────────── */
+@keyframes daAvatarRingSpin {
+  to { transform: rotate(360deg); }
+}
+.da-avatar-ring {
+  animation: daAvatarRingSpin 6s linear infinite;
+}
+
+@keyframes daLiveBreathe {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.55; transform: scale(0.92); }
+}
+.da-live-breathe { animation: daLiveBreathe 1.6s ease-in-out infinite; }
+
+@keyframes daVsShimmer {
+  0%, 100% { text-shadow: 0 0 8px hsl(45 93% 52% / 0.35); opacity: 0.9; }
+  50%      { text-shadow: 0 0 18px hsl(45 93% 52% / 0.85); opacity: 1; }
+}
+.da-vs-shimmer { animation: daVsShimmer 2.4s ease-in-out infinite; }
+
+@keyframes daBracketDrift {
+  0%, 100% { opacity: 0.6; transform: translateX(0); }
+  50%      { opacity: 1;   transform: translateX(8px); }
+}
+.da-bracket-drift { animation: daBracketDrift 8s ease-in-out infinite; }
+
+@keyframes daCrownFloat {
+  0%, 100% { transform: translateY(0) rotate(-4deg); }
+  50%      { transform: translateY(-4px) rotate(2deg); }
+}
+.da-crown-float { animation: daCrownFloat 5s ease-in-out infinite; }
+
+@keyframes daRoundChipShine {
+  0%, 100% { box-shadow: 0 0 10px hsl(45 93% 52% / 0.4); }
+  50%      { box-shadow: 0 0 18px hsl(45 93% 52% / 0.75); }
+}
+.da-round-chip { animation: daRoundChipShine 3s ease-in-out infinite; }
+
+@keyframes daUrgentPulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.04); }
+}
+.da-urgent-pulse { animation: daUrgentPulse 0.9s ease-in-out infinite; }
+
+@keyframes daStageGlint {
+  0%, 100% { opacity: 0.5; }
+  50%      { opacity: 1; }
+}
+.da-stage-glint { animation: daStageGlint 3.6s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .da-avatar-ring,
+  .da-live-breathe,
+  .da-vs-shimmer,
+  .da-bracket-drift,
+  .da-crown-float,
+  .da-round-chip,
+  .da-urgent-pulse,
+  .da-stage-glint {
+    animation: none !important;
+  }
+}
+
+
+
 /* ══════════════════════════════════════════════════════════
    DRAFT ARENA (.da-mode) — standalone shell skin
    Gold + Charcoal identity. Distinct from Pick'em (gold+emerald)
