@@ -226,16 +226,14 @@ export function useSubmitPicks() {
 export function useTickerQuote() {
   return useMutation({
     mutationFn: async (symbol: string) => {
-      const { data, error } = await supabase.functions.invoke('pw-quote', {
-        method: 'GET',
-        // supabase-js appends query params via the URL when using invoke + GET
-        headers: {},
-        body: undefined,
-        // @ts-ignore - query is supported in newer supabase-js
-        query: { symbol },
-      } as any);
-      if (error) throw error;
-      return data;
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not signed in');
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/pw-quote?symbol=${encodeURIComponent(symbol)}`;
+      const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (!res.ok) throw new Error(`Quote failed (${res.status})`);
+      return res.json();
     },
   });
 }
