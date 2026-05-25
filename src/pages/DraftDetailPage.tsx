@@ -1142,7 +1142,10 @@ export default function DraftDetailPage() {
                 <OnTheClockTimer
                   lastPickAt={picks.length > 0 ? (picks[picks.length - 1] as any)?.picked_at : null}
                   draftStartedAt={draft?.updated_at}
+                  variant="ring"
+                  size={104}
                 />
+
               </div>
             </motion.div>
           ) : (
