@@ -1091,6 +1091,10 @@ export default function DraftsListPage() {
   const [draftWinners, setDraftWinners] = useState<Map<string, { user_id: string; display_name: string }>>(new Map());
   const [myDraftStats, setMyDraftStats] = useState({ totalPoints: 0, wins: 0, draftsRated: 0, podiums: 0, bestFinish: 0, avgScore: 0 });
   const [loading, setLoading] = useState(true);
+  // Season grouping: map every draft id → { seasonId, seasonName, startsAt, status }
+  const [seasonByDraft, setSeasonByDraft] = useState<Map<string, { seasonId: string; name: string; startsAt: string; status: string }>>(new Map());
+  const [allSeasons, setAllSeasons] = useState<Array<{ id: string; name: string; startsAt: string; status: string }>>([]);
+
 
   // Season state
   const { season, loading: seasonLoading, refetch: refetchSeason } = useCurrentSeason();
