@@ -48,7 +48,9 @@ import { PlayoffBadge } from '@/components/draft/PlayoffBadge';
 import { getPlayoffGameLabel } from '@/lib/playoffStyle';
 import { StartNextSeasonSheet } from '@/components/draft/StartNextSeasonSheet';
 
-import { forwardRef } from 'react';
+import { forwardRef, lazy, Suspense } from 'react';
+
+const DraftStatsHub = lazy(() => import('@/components/draft/stats/DraftStatsHub'));
 
 const CountedNumber = forwardRef<HTMLSpanElement, { value: number }>(function CountedNumber({ value }, ref) {
   const animated = useCountUp(value);
@@ -1262,6 +1264,10 @@ export default function DraftsListPage() {
               className="text-[10px] font-bold px-3 py-1.5 rounded-lg data-[state=active]:text-[hsl(160_30%_6%)] data-[state=inactive]:text-white/60">
               Season
             </TabsTrigger>
+            <TabsTrigger value="stats"
+              className="text-[10px] font-bold px-3 py-1.5 rounded-lg data-[state=active]:text-[hsl(160_30%_6%)] data-[state=inactive]:text-white/60">
+              Stats
+            </TabsTrigger>
             {canSeeCommissioner && (
               <TabsTrigger value="commissioner"
                 className="text-[10px] font-bold px-3 py-1.5 rounded-lg data-[state=active]:text-[hsl(160_30%_6%)] data-[state=inactive]:text-white/60">
@@ -1569,6 +1575,22 @@ export default function DraftsListPage() {
           ) : (
             <NoSeasonState />
           )}
+        </TabsContent>
+
+        {/* ── STATS TAB ── */}
+        <TabsContent value="stats" className="mt-0">
+          <Suspense fallback={
+            <div className="space-y-3">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="da-glass p-5">
+                  <div className="h-4 rounded-lg w-1/3 mb-2.5 skeleton-shimmer" />
+                  <div className="h-3 rounded-lg w-1/2 skeleton-shimmer" />
+                </div>
+              ))}
+            </div>
+          }>
+            <DraftStatsHub />
+          </Suspense>
         </TabsContent>
 
         {/* ── COMMISSIONER TAB ── */}
