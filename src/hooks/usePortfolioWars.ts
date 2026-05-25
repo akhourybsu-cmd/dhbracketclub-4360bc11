@@ -226,9 +226,11 @@ export function useSubmitPicks() {
 export function useTickerQuote() {
   return useMutation({
     mutationFn: async (symbol: string) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not signed in');
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/pw-quote?symbol=${encodeURIComponent(symbol)}`;
       const res = await fetch(url, {
-        headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+        headers: { Authorization: `Bearer ${session.access_token}` },
       });
       if (!res.ok) throw new Error(`Quote failed (${res.status})`);
       return res.json();
