@@ -48,7 +48,9 @@ import { PlayoffBadge } from '@/components/draft/PlayoffBadge';
 import { getPlayoffGameLabel } from '@/lib/playoffStyle';
 import { StartNextSeasonSheet } from '@/components/draft/StartNextSeasonSheet';
 
-import { forwardRef } from 'react';
+import { forwardRef, lazy, Suspense } from 'react';
+
+const DraftStatsHub = lazy(() => import('@/components/draft/stats/DraftStatsHub'));
 
 const CountedNumber = forwardRef<HTMLSpanElement, { value: number }>(function CountedNumber({ value }, ref) {
   const animated = useCountUp(value);
