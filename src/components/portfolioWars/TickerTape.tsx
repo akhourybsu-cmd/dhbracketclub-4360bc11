@@ -21,9 +21,11 @@ const FALLBACK: { symbol: string; pct: number }[] = [
 
 async function fetchQuote(symbol: string) {
   try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return null;
     const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/pw-quote?symbol=${symbol}`;
     const res = await fetch(url, {
-      headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+      headers: { Authorization: `Bearer ${session.access_token}` },
     });
     if (!res.ok) return null;
     const j = await res.json();
