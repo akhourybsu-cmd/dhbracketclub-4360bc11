@@ -1577,6 +1577,22 @@ export default function DraftsListPage() {
           )}
         </TabsContent>
 
+        {/* ── STATS TAB ── */}
+        <TabsContent value="stats" className="mt-0">
+          <Suspense fallback={
+            <div className="space-y-3">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="da-glass p-5">
+                  <div className="h-4 rounded-lg w-1/3 mb-2.5 skeleton-shimmer" />
+                  <div className="h-3 rounded-lg w-1/2 skeleton-shimmer" />
+                </div>
+              ))}
+            </div>
+          }>
+            <DraftStatsHub />
+          </Suspense>
+        </TabsContent>
+
         {/* ── COMMISSIONER TAB ── */}
         {canSeeCommissioner && (
           <TabsContent value="commissioner" className="mt-0">
