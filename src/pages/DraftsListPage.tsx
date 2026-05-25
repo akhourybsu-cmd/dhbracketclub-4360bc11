@@ -1264,6 +1264,10 @@ export default function DraftsListPage() {
               className="text-[10px] font-bold px-3 py-1.5 rounded-lg data-[state=active]:text-[hsl(160_30%_6%)] data-[state=inactive]:text-white/60">
               Season
             </TabsTrigger>
+            <TabsTrigger value="stats"
+              className="text-[10px] font-bold px-3 py-1.5 rounded-lg data-[state=active]:text-[hsl(160_30%_6%)] data-[state=inactive]:text-white/60">
+              Stats
+            </TabsTrigger>
             {canSeeCommissioner && (
               <TabsTrigger value="commissioner"
                 className="text-[10px] font-bold px-3 py-1.5 rounded-lg data-[state=active]:text-[hsl(160_30%_6%)] data-[state=inactive]:text-white/60">
