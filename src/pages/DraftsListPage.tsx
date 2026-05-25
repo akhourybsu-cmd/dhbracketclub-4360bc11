@@ -337,18 +337,28 @@ function TopicPickerDialog({ open, onOpenChange, seasonId, match, onStarted }: {
   const [topics, setTopics] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState<string | null>(null);
+  const [rerollsUsed, setRerollsUsed] = useState(0);
+  const MAX_REROLLS = 1;
 
-  const fetchTopics = useCallback(async () => {
+  const fetchTopics = useCallback(async (isReroll = false) => {
     setLoading(true); setTopics([]);
     try {
       const list = await suggestPlayoffTopics(seasonId, match.id);
       setTopics(list);
+      if (isReroll) setRerollsUsed(n => n + 1);
     } catch (err: any) {
       toast.error(err.message || 'Failed to get suggestions');
     } finally { setLoading(false); }
   }, [seasonId, match.id]);
 
-  useEffect(() => { if (open) fetchTopics(); }, [open, fetchTopics]);
+  // Reset re-roll counter whenever the dialog opens for this match
+  useEffect(() => {
+    if (open) {
+      setRerollsUsed(0);
+      fetchTopics(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, match.id]);
 
   const handlePick = async (topic: string) => {
     setSubmitting(topic);
@@ -360,6 +370,9 @@ function TopicPickerDialog({ open, onOpenChange, seasonId, match, onStarted }: {
       toast.error(err.message || 'Failed to start matchup');
     } finally { setSubmitting(null); }
   };
+
+  const rerollsRemaining = MAX_REROLLS - rerollsUsed;
+  const canReroll = rerollsRemaining > 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -393,10 +406,20 @@ function TopicPickerDialog({ open, onOpenChange, seasonId, match, onStarted }: {
                   )}
                 </button>
               ))}
-              <button onClick={fetchTopics} disabled={loading || !!submitting}
-                className="w-full mt-2 h-9 rounded-lg bg-muted/50 text-[11px] font-bold text-foreground/80 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-40">
-                <RefreshCw className="w-3 h-3" /> Regenerate options
+              <button
+                onClick={() => fetchTopics(true)}
+                disabled={loading || !!submitting || !canReroll}
+                className="w-full mt-2 h-9 rounded-lg bg-muted/50 text-[11px] font-bold text-foreground/80 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-40"
+                title={canReroll ? 'Get a fresh set of 3 topics' : 'You have used your re-roll for this round'}
+              >
+                <RefreshCw className="w-3 h-3" />
+                {canReroll
+                  ? `Re-roll options (${rerollsRemaining} left)`
+                  : 'Re-roll used — pick one above'}
               </button>
+              <p className="text-[9.5px] text-muted-foreground/60 text-center font-medium pt-0.5">
+                One re-roll per matchup to keep things fair.
+              </p>
             </>
           )}
         </div>
