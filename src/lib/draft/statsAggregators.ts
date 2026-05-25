@@ -1,0 +1,645 @@
+// Aggregators for the Draft Stats hub. Pure functions over normalised
+// arrays — no Supabase, no React. Build memoised views on top.
+
+export interface StatsPick {
+  id: string;
+  draft_id: string;
+  user_id: string;
+  round: number;
+  pick_number: number;
+  pick_text: string;
+  picked_at: string | null;
+}
+
+export interface StatsPickRating {
+  pick_id: string;
+  pick_text: string;
+  score: number;
+}
+
+export interface StatsResult {
+  id: string;
+  draft_id: string;
+  user_id: string;
+  rank: number;
+  total_score: number;
+  points_awarded: number;
+  pick_ratings: StatsPickRating[];
+}
+
+export interface StatsDraft {
+  id: string;
+  topic: string;
+  category: string | null;
+  created_by: string;
+  created_at: string;
+  num_rounds: number;
+  status: string;
+}
+
+export interface StatsSeason {
+  id: string;
+  name: string;
+  status: string;
+  starts_at: string;
+  champion_user_id: string | null;
+  runner_up_user_id: string | null;
+  third_place_user_id: string | null;
+  regular_season_champion_user_id: string | null;
+}
+
+export interface StatsStanding {
+  season_id: string;
+  user_id: string;
+  season_points: number;
+  drafts_played: number;
+  wins: number;
+  podiums: number;
+  avg_finish: number;
+  avg_score: number;
+  best_score: number;
+  worst_score: number;
+  consistency: number;
+  rank: number | null;
+  playoff_seed: number | null;
+}
+
+export interface StatsPlayoffMatch {
+  season_id: string;
+  round: string;
+  winner_user_id: string | null;
+  user_a: string | null;
+  user_b: string | null;
+}
+
+export interface StatsSeasonEntry {
+  season_id: string;
+  draft_id: string;
+  is_playoff: boolean;
+}
+
+export interface StatsProfile {
+  id: string;
+  display_name: string;
+  avatar_url: string | null;
+}
+
+export interface StatsDataset {
+  picks: StatsPick[];
+  results: StatsResult[];
+  drafts: StatsDraft[];
+  seasons: StatsSeason[];
+  standings: StatsStanding[];
+  matches: StatsPlayoffMatch[];
+  seasonEntries: StatsSeasonEntry[];
+  profiles: Map<string, StatsProfile>;
+}
+
+export const displayName = (uid: string, d: StatsDataset) =>
+  d.profiles.get(uid)?.display_name || 'Unknown';
+
+export const avatarUrl = (uid: string, d: StatsDataset) =>
+  d.profiles.get(uid)?.avatar_url || null;
+
+/* ───── Per-user aggregate ───── */
+
+export interface UserAggregate {
+  userId: string;
+  draftsPlayed: number;
+  wins: number;
+  podiums: number;
+  totalSeasonPoints: number;
+  avgFinish: number;
+  avgScore: number;
+  bestFinish: number;
+  bestScore: number;
+  worstScore: number;
+  consistency: number; // std dev of total_score
+  winRate: number;
+  podiumRate: number;
+  championships: number;
+  finalsAppearances: number;
+  regularSeasonTitles: number;
+  thirdPlaceMedals: number;
+}
+
+export function computeChampionshipsByUser(d: StatsDataset): Map<string, number> {
+  // best-of-3 series clinches: 2+ final game wins in same season
+  const finalsBySeason = new Map<string, Map<string, number>>();
+  for (const m of d.matches) {
+    if (m.round !== 'final' || !m.winner_user_id) continue;
+    const seasonMap = finalsBySeason.get(m.season_id) || new Map();
+    seasonMap.set(m.winner_user_id, (seasonMap.get(m.winner_user_id) || 0) + 1);
+    finalsBySeason.set(m.season_id, seasonMap);
+  }
+  const champCount = new Map<string, number>();
+  for (const [, sm] of finalsBySeason) {
+    for (const [uid, wins] of sm) {
+      if (wins >= 2) champCount.set(uid, (champCount.get(uid) || 0) + 1);
+    }
+  }
+  return champCount;
+}
+
+export function computeFinalsAppearancesByUser(d: StatsDataset): Map<string, number> {
+  // distinct seasons where user appeared in any final-round match
+  const seasonsByUser = new Map<string, Set<string>>();
+  for (const m of d.matches) {
+    if (m.round !== 'final') continue;
+    for (const uid of [m.user_a, m.user_b]) {
+      if (!uid) continue;
+      const s = seasonsByUser.get(uid) || new Set();
+      s.add(m.season_id);
+      seasonsByUser.set(uid, s);
+    }
+  }
+  const out = new Map<string, number>();
+  for (const [uid, set] of seasonsByUser) out.set(uid, set.size);
+  return out;
+}
+
+export function computeUserAggregate(userId: string, d: StatsDataset): UserAggregate | null {
+  const mine = d.results.filter(r => r.user_id === userId);
+  if (mine.length === 0) {
+    return {
+      userId, draftsPlayed: 0, wins: 0, podiums: 0, totalSeasonPoints: 0,
+      avgFinish: 0, avgScore: 0, bestFinish: 0, bestScore: 0, worstScore: 0,
+      consistency: 0, winRate: 0, podiumRate: 0,
+      championships: 0, finalsAppearances: 0, regularSeasonTitles: 0, thirdPlaceMedals: 0,
+    };
+  }
+  const wins = mine.filter(r => r.rank === 1).length;
+  const podiums = mine.filter(r => r.rank <= 3).length;
+  const scores = mine.map(r => Number(r.total_score) || 0);
+  const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;
+  const variance = scores.reduce((s, v) => s + (v - avgScore) ** 2, 0) / scores.length;
+  const consistency = Math.sqrt(variance);
+  const totalPoints = mine.reduce((s, r) => s + (r.points_awarded || 0), 0);
+  const ranks = mine.map(r => r.rank);
+  const champs = computeChampionshipsByUser(d).get(userId) || 0;
+  const finals = computeFinalsAppearancesByUser(d).get(userId) || 0;
+  const regTitles = d.seasons.filter(s => s.regular_season_champion_user_id === userId).length;
+  const thirds = d.seasons.filter(s => s.third_place_user_id === userId).length;
+
+  return {
+    userId,
+    draftsPlayed: mine.length,
+    wins,
+    podiums,
+    totalSeasonPoints: totalPoints,
+    avgFinish: ranks.reduce((a, b) => a + b, 0) / ranks.length,
+    avgScore,
+    bestFinish: Math.min(...ranks),
+    bestScore: Math.max(...scores),
+    worstScore: Math.min(...scores),
+    consistency,
+    winRate: wins / mine.length,
+    podiumRate: podiums / mine.length,
+    championships: champs,
+    finalsAppearances: finals,
+    regularSeasonTitles: regTitles,
+    thirdPlaceMedals: thirds,
+  };
+}
+
+/* ───── Pick quality ───── */
+
+export interface PickQuality {
+  totalRated: number;
+  avgPickScore: number;
+  histogram: number[]; // length 10, buckets 0-0.99, 1-1.99, ..., 9-10
+  bestPick: { text: string; score: number; draftTopic: string } | null;
+  worstPick: { text: string; score: number; draftTopic: string } | null;
+  earlyAvg: number; // first-half rounds
+  lateAvg: number;  // second-half rounds
+  stealRate: number; // late-round picks with score ≥ 7.5
+  bustRate: number;  // picks ≤ 4
+  topMvpPicks: number; // picks scoring ≥ 9
+}
+
+export function computePickQuality(userId: string, d: StatsDataset): PickQuality {
+  const myResults = d.results.filter(r => r.user_id === userId);
+  const myPickIdMap = new Map<string, { round: number; draftId: string; pickText: string }>();
+  for (const p of d.picks) {
+    if (p.user_id !== userId) continue;
+    myPickIdMap.set(p.id, { round: p.round, draftId: p.draft_id, pickText: p.pick_text });
+  }
+
+  const ratings: { score: number; round: number; text: string; draftId: string; totalRounds: number }[] = [];
+  const draftRounds = new Map(d.drafts.map(x => [x.id, x.num_rounds]));
+  for (const r of myResults) {
+    for (const pr of r.pick_ratings || []) {
+      const meta = myPickIdMap.get(pr.pick_id);
+      if (!meta) continue;
+      ratings.push({
+        score: Number(pr.score) || 0,
+        round: meta.round,
+        text: meta.pickText || pr.pick_text,
+        draftId: meta.draftId,
+        totalRounds: draftRounds.get(meta.draftId) || 5,
+      });
+    }
+  }
+
+  const histogram = new Array(10).fill(0);
+  for (const r of ratings) {
+    const idx = Math.max(0, Math.min(9, Math.floor(r.score)));
+    histogram[idx]++;
+  }
+  const draftTopic = (id: string) => d.drafts.find(x => x.id === id)?.topic || 'Unknown';
+
+  let best: PickQuality['bestPick'] = null;
+  let worst: PickQuality['worstPick'] = null;
+  for (const r of ratings) {
+    if (!best || r.score > best.score) best = { text: r.text, score: r.score, draftTopic: draftTopic(r.draftId) };
+    if (!worst || r.score < worst.score) worst = { text: r.text, score: r.score, draftTopic: draftTopic(r.draftId) };
+  }
+
+  const early = ratings.filter(r => r.round <= Math.ceil(r.totalRounds / 2));
+  const late = ratings.filter(r => r.round > Math.ceil(r.totalRounds / 2));
+  const avg = (arr: typeof ratings) => arr.length ? arr.reduce((s, r) => s + r.score, 0) / arr.length : 0;
+  const stealCandidates = late;
+  const stealHits = stealCandidates.filter(r => r.score >= 7.5).length;
+  const busts = ratings.filter(r => r.score <= 4).length;
+
+  return {
+    totalRated: ratings.length,
+    avgPickScore: avg(ratings),
+    histogram,
+    bestPick: best,
+    worstPick: worst,
+    earlyAvg: avg(early),
+    lateAvg: avg(late),
+    stealRate: stealCandidates.length ? stealHits / stealCandidates.length : 0,
+    bustRate: ratings.length ? busts / ratings.length : 0,
+    topMvpPicks: ratings.filter(r => r.score >= 9).length,
+  };
+}
+
+/* ───── Timing ───── */
+
+export interface TimingProfile {
+  avgMs: number;
+  fastestMs: number;
+  slowestMs: number;
+  totalMs: number;
+  sampleCount: number;
+}
+
+export function computeTiming(userId: string, d: StatsDataset): TimingProfile {
+  // Group picks per draft, sort by pick_number, compute delta vs previous pick (any user) for this user's picks
+  const byDraft = new Map<string, StatsPick[]>();
+  for (const p of d.picks) {
+    const arr = byDraft.get(p.draft_id) || [];
+    arr.push(p);
+    byDraft.set(p.draft_id, arr);
+  }
+  const deltas: number[] = [];
+  for (const [, arr] of byDraft) {
+    const sorted = [...arr].sort((a, b) => a.pick_number - b.pick_number);
+    for (let i = 1; i < sorted.length; i++) {
+      const prev = sorted[i - 1], cur = sorted[i];
+      if (cur.user_id !== userId) continue;
+      if (!prev.picked_at || !cur.picked_at) continue;
+      const dt = new Date(cur.picked_at).getTime() - new Date(prev.picked_at).getTime();
+      if (dt > 500 && dt < 24 * 60 * 60 * 1000) deltas.push(dt);
+    }
+  }
+  if (deltas.length === 0) {
+    return { avgMs: 0, fastestMs: 0, slowestMs: 0, totalMs: 0, sampleCount: 0 };
+  }
+  const total = deltas.reduce((a, b) => a + b, 0);
+  return {
+    avgMs: total / deltas.length,
+    fastestMs: Math.min(...deltas),
+    slowestMs: Math.max(...deltas),
+    totalMs: total,
+    sampleCount: deltas.length,
+  };
+}
+
+export function fmtDuration(ms: number): string {
+  if (!ms) return '—';
+  if (ms < 1000) return '<1s';
+  const s = Math.floor(ms / 1000);
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ${s % 60}s`;
+  const h = Math.floor(m / 60);
+  return `${h}h ${m % 60}m`;
+}
+
+/* ───── Career pulse (avg score per draft over time, chronological) ───── */
+
+export interface CareerPoint {
+  draftId: string;
+  topic: string;
+  date: string;
+  score: number;
+  rank: number;
+}
+
+export function computeCareerPulse(userId: string, d: StatsDataset): CareerPoint[] {
+  const draftsById = new Map(d.drafts.map(x => [x.id, x]));
+  return d.results
+    .filter(r => r.user_id === userId)
+    .map(r => {
+      const drf = draftsById.get(r.draft_id);
+      return drf ? {
+        draftId: r.draft_id,
+        topic: drf.topic,
+        date: drf.created_at,
+        score: Number(r.total_score) || 0,
+        rank: r.rank,
+      } : null;
+    })
+    .filter((x): x is CareerPoint => !!x)
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/* ───── Streaks (consecutive picks ≥ threshold within same draft) ───── */
+
+export function computeLongestStreak(userId: string, d: StatsDataset, threshold = 7.5): number {
+  const myResults = d.results.filter(r => r.user_id === userId);
+  const picksByDraftUser = new Map<string, StatsPick[]>();
+  for (const p of d.picks) {
+    if (p.user_id !== userId) continue;
+    const arr = picksByDraftUser.get(p.draft_id) || [];
+    arr.push(p);
+    picksByDraftUser.set(p.draft_id, arr);
+  }
+  let best = 0;
+  for (const r of myResults) {
+    const arr = (picksByDraftUser.get(r.draft_id) || []).sort((a, b) => a.pick_number - b.pick_number);
+    const scoreById = new Map((r.pick_ratings || []).map(pr => [pr.pick_id, Number(pr.score) || 0]));
+    let cur = 0;
+    for (const p of arr) {
+      const s = scoreById.get(p.id);
+      if (s !== undefined && s >= threshold) {
+        cur++;
+        if (cur > best) best = cur;
+      } else {
+        cur = 0;
+      }
+    }
+  }
+  return best;
+}
+
+/* ───── Topic tendencies ───── */
+
+export interface TopicTendencies {
+  totalDraftsPlayed: number;
+  draftsCreated: number;
+  byCategory: { category: string; count: number; avgScore: number }[];
+  bestCategory: { category: string; avgScore: number } | null;
+  worstCategory: { category: string; avgScore: number } | null;
+}
+
+export function computeTopicTendencies(userId: string, d: StatsDataset): TopicTendencies {
+  const draftsById = new Map(d.drafts.map(x => [x.id, x]));
+  const mine = d.results.filter(r => r.user_id === userId);
+  const map = new Map<string, { count: number; scoreSum: number }>();
+  for (const r of mine) {
+    const drf = draftsById.get(r.draft_id);
+    const cat = drf?.category || 'Other';
+    const entry = map.get(cat) || { count: 0, scoreSum: 0 };
+    entry.count++;
+    entry.scoreSum += Number(r.total_score) || 0;
+    map.set(cat, entry);
+  }
+  const byCategory = Array.from(map.entries())
+    .map(([category, v]) => ({ category, count: v.count, avgScore: v.count ? v.scoreSum / v.count : 0 }))
+    .sort((a, b) => b.count - a.count);
+  const eligible = byCategory.filter(c => c.count >= 1);
+  const bestCategory = eligible.length ? [...eligible].sort((a, b) => b.avgScore - a.avgScore)[0] : null;
+  const worstCategory = eligible.length > 1 ? [...eligible].sort((a, b) => a.avgScore - b.avgScore)[0] : null;
+  const draftsCreated = d.drafts.filter(x => x.created_by === userId).length;
+  return {
+    totalDraftsPlayed: mine.length,
+    draftsCreated,
+    byCategory: byCategory.slice(0, 5),
+    bestCategory,
+    worstCategory,
+  };
+}
+
+/* ───── Leaderboards ───── */
+
+export type LeaderMetric =
+  | 'wins' | 'podiums' | 'draftsPlayed' | 'avgScore' | 'consistency'
+  | 'mvpPicks' | 'highestSingleScore' | 'longestStreak' | 'fastestAvg' | 'championships';
+
+export interface LeaderRow {
+  userId: string;
+  name: string;
+  avatar: string | null;
+  value: number;
+  display: string;
+}
+
+export function computeLeaderboard(
+  metric: LeaderMetric,
+  d: StatsDataset,
+  highlightUserId?: string,
+): LeaderRow[] {
+  // collect users with any results
+  const userIds = new Set<string>();
+  for (const r of d.results) userIds.add(r.user_id);
+
+  const champByUser = computeChampionshipsByUser(d);
+
+  const rows: LeaderRow[] = [];
+  for (const uid of userIds) {
+    const agg = computeUserAggregate(uid, d);
+    if (!agg) continue;
+    let value = 0;
+    let display = '';
+    switch (metric) {
+      case 'wins': value = agg.wins; display = `${agg.wins}W`; break;
+      case 'podiums': value = agg.podiums; display = `${agg.podiums}`; break;
+      case 'draftsPlayed': value = agg.draftsPlayed; display = `${agg.draftsPlayed}`; break;
+      case 'avgScore': value = agg.avgScore; display = agg.avgScore.toFixed(1); break;
+      case 'consistency':
+        // lower is better → invert by negating, then re-display
+        value = agg.draftsPlayed >= 3 ? -agg.consistency : -9999;
+        display = agg.draftsPlayed >= 3 ? `σ ${agg.consistency.toFixed(2)}` : '—';
+        if (agg.draftsPlayed < 3) continue;
+        break;
+      case 'mvpPicks': {
+        const pq = computePickQuality(uid, d);
+        value = pq.topMvpPicks; display = `${pq.topMvpPicks}`;
+        break;
+      }
+      case 'highestSingleScore': value = agg.bestScore; display = agg.bestScore.toFixed(1); break;
+      case 'longestStreak': {
+        const st = computeLongestStreak(uid, d);
+        value = st; display = `${st}`;
+        if (st === 0) continue;
+        break;
+      }
+      case 'fastestAvg': {
+        const t = computeTiming(uid, d);
+        if (t.sampleCount < 5) continue;
+        value = -t.avgMs;
+        display = fmtDuration(t.avgMs);
+        break;
+      }
+      case 'championships':
+        value = champByUser.get(uid) || 0;
+        display = `${value}`;
+        if (value === 0) continue;
+        break;
+    }
+    rows.push({
+      userId: uid,
+      name: displayName(uid, d),
+      avatar: avatarUrl(uid, d),
+      value,
+      display,
+    });
+  }
+  rows.sort((a, b) => b.value - a.value);
+  return rows;
+}
+
+/* ───── Fun awards ───── */
+
+export interface FunAward {
+  key: string;
+  icon: string;
+  title: string;
+  caption: string;
+  winnerId: string | null;
+  winnerName: string;
+  value: string;
+}
+
+export function computeFunAwards(d: StatsDataset): FunAward[] {
+  const awards: FunAward[] = [];
+
+  const championships = computeLeaderboard('championships', d)[0];
+  if (championships) awards.push({
+    key: 'goat', icon: '🏆', title: 'G.O.A.T.', caption: 'Most championships',
+    winnerId: championships.userId, winnerName: championships.name, value: `${championships.display} title${championships.value === 1 ? '' : 's'}`,
+  });
+
+  const streak = computeLeaderboard('longestStreak', d)[0];
+  if (streak) awards.push({
+    key: 'streak', icon: '🔥', title: 'Streak King', caption: 'Longest 7.5+ run',
+    winnerId: streak.userId, winnerName: streak.name, value: `${streak.display} picks`,
+  });
+
+  // Sniper: highest single pick across history
+  let snipe: { uid: string; score: number; text: string } | null = null;
+  for (const r of d.results) {
+    for (const pr of r.pick_ratings || []) {
+      const s = Number(pr.score) || 0;
+      if (!snipe || s > snipe.score) snipe = { uid: r.user_id, score: s, text: pr.pick_text };
+    }
+  }
+  if (snipe) awards.push({
+    key: 'sniper', icon: '🎯', title: 'The Sniper', caption: 'Highest single pick',
+    winnerId: snipe.uid, winnerName: displayName(snipe.uid, d), value: `${snipe.score.toFixed(1)} · ${snipe.text}`,
+  });
+
+  // Fastest avg
+  const fastest = computeLeaderboard('fastestAvg', d)[0];
+  if (fastest) awards.push({
+    key: 'fastest', icon: '⚡', title: 'Quickdraw', caption: 'Fastest avg pick',
+    winnerId: fastest.userId, winnerName: fastest.name, value: fastest.display,
+  });
+
+  // Deliberator — slowest avg
+  const allTiming = Array.from(new Set(d.results.map(r => r.user_id))).map(uid => ({
+    uid, t: computeTiming(uid, d),
+  })).filter(x => x.t.sampleCount >= 5);
+  allTiming.sort((a, b) => b.t.avgMs - a.t.avgMs);
+  const slow = allTiming[0];
+  if (slow) awards.push({
+    key: 'slow', icon: '🐢', title: 'The Deliberator', caption: 'Slowest avg pick',
+    winnerId: slow.uid, winnerName: displayName(slow.uid, d), value: fmtDuration(slow.t.avgMs),
+  });
+
+  // The Closer — highest avg score in final round across drafts
+  const closerMap = new Map<string, { sum: number; count: number }>();
+  const draftsById = new Map(d.drafts.map(x => [x.id, x]));
+  const lastPickById = new Map<string, StatsPick>();
+  for (const p of d.picks) {
+    const drf = draftsById.get(p.draft_id);
+    if (!drf) continue;
+    if (p.round === drf.num_rounds) lastPickById.set(p.id, p);
+  }
+  for (const r of d.results) {
+    for (const pr of r.pick_ratings || []) {
+      const p = lastPickById.get(pr.pick_id);
+      if (!p) continue;
+      const e = closerMap.get(p.user_id) || { sum: 0, count: 0 };
+      e.sum += Number(pr.score) || 0;
+      e.count++;
+      closerMap.set(p.user_id, e);
+    }
+  }
+  let closer: { uid: string; avg: number; count: number } | null = null;
+  for (const [uid, e] of closerMap) {
+    if (e.count < 2) continue;
+    const avg = e.sum / e.count;
+    if (!closer || avg > closer.avg) closer = { uid, avg, count: e.count };
+  }
+  if (closer) awards.push({
+    key: 'closer', icon: '💎', title: 'The Closer', caption: 'Best final-round avg',
+    winnerId: closer.uid, winnerName: displayName(closer.uid, d), value: `${closer.avg.toFixed(1)} avg`,
+  });
+
+  // Rock Steady — lowest consistency with ≥5 drafts
+  const steadyCandidates = Array.from(new Set(d.results.map(r => r.user_id)))
+    .map(uid => computeUserAggregate(uid, d)!)
+    .filter(a => a.draftsPlayed >= 5)
+    .sort((a, b) => a.consistency - b.consistency);
+  if (steadyCandidates[0]) awards.push({
+    key: 'steady', icon: '🪨', title: 'Rock Steady', caption: 'Most consistent scorer',
+    winnerId: steadyCandidates[0].userId, winnerName: displayName(steadyCandidates[0].userId, d),
+    value: `σ ${steadyCandidates[0].consistency.toFixed(2)}`,
+  });
+
+  // Most podiums
+  const podiums = computeLeaderboard('podiums', d)[0];
+  if (podiums && podiums.value > 0) awards.push({
+    key: 'podiums', icon: '🥇', title: 'Podium Magnet', caption: 'Most top-3 finishes',
+    winnerId: podiums.userId, winnerName: podiums.name, value: `${podiums.display} podium${podiums.value === 1 ? '' : 's'}`,
+  });
+
+  return awards;
+}
+
+/* ───── Identity nickname ───── */
+
+export function computeIdentity(agg: UserAggregate, pq: PickQuality, t: TimingProfile): string {
+  if (agg.championships > 0) return 'Champion';
+  if (agg.wins >= 3) return 'Closer';
+  if (pq.totalRated >= 10 && pq.stealRate >= 0.35) return 'Late Bloomer';
+  if (pq.totalRated >= 10 && pq.earlyAvg - pq.lateAvg >= 1.5) return 'Sniper';
+  if (agg.draftsPlayed >= 3 && agg.consistency <= 4) return 'Steady Hand';
+  if (t.sampleCount >= 8 && t.avgMs < 60_000) return 'Quickdraw';
+  if (t.sampleCount >= 8 && t.avgMs > 5 * 60_000) return 'Slow Burner';
+  if (agg.podiums >= 2) return 'Contender';
+  if (agg.draftsPlayed === 0) return 'Rookie';
+  return 'Drafter';
+}
+
+/* ───── Scope filtering ───── */
+
+export type ScopeKey = 'all' | string; // 'all' or seasonId
+
+export function filterDatasetByScope(d: StatsDataset, scope: ScopeKey): StatsDataset {
+  if (scope === 'all') return d;
+  const draftIds = new Set(d.seasonEntries.filter(e => e.season_id === scope).map(e => e.draft_id));
+  const drafts = d.drafts.filter(x => draftIds.has(x.id));
+  const results = d.results.filter(r => draftIds.has(r.draft_id));
+  const picks = d.picks.filter(p => draftIds.has(p.draft_id));
+  const matches = d.matches.filter(m => m.season_id === scope);
+  const standings = d.standings.filter(s => s.season_id === scope);
+  const seasons = d.seasons.filter(s => s.id === scope);
+  const seasonEntries = d.seasonEntries.filter(e => e.season_id === scope);
+  return { ...d, drafts, results, picks, matches, standings, seasons, seasonEntries };
+}
