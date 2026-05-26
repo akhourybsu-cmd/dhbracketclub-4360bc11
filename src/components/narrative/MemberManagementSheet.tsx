@@ -25,6 +25,7 @@ import { useNarrativeCampaigns } from '@/hooks/useNarrativeCampaigns';
 import { Input } from '@/components/ui/input';
 import { StatusPill } from '@/components/ui/status-pill';
 import type { Campaign, CampaignMember, MemberRole } from '@/lib/narrative/types';
+import { notify } from '@/lib/notify';
 
 interface Props {
   open: boolean;
@@ -156,6 +157,14 @@ export function MemberManagementSheet({ open, onClose, campaign, members, onChan
     setBusyUserId(null);
     if (error) { toast.error(`Couldn't invite member: ${error.message}`); return; }
     toast.success(`Invite sent — ${ROLE_LABEL[role]}.`);
+    notify({
+      type: 'narrative',
+      title: `You're invited to "${campaign.title}"`,
+      message: `Join as ${ROLE_LABEL[role]}`,
+      tag: `dh-narrative-invite-${campaign.id}-${userId}`,
+      url: `/narrative/${campaign.id}`,
+      targetUserId: userId,
+    });
     onChanged?.();
   };
 

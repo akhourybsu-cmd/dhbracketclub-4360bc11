@@ -1,124 +1,117 @@
-## Goal
+# Notification Systems Audit & Gap Fill
 
-Add a fourth tab — **Stats** — to the slider at the top of the Drafts app (next to Drafts / Season / Commissioner). It will aggregate every available statistic across all drafts (current and historical) into a fun, scannable, mobile-native page. No backend schema changes — everything is computed client-side from existing tables that already store full history.
+## What exists today
 
-## Data inventory (what we can mine)
+**Infrastructure (solid):**
+- `send-push-notification` edge function with VAPID, expired-subscription cleanup, throttling (60s/channel), active-viewer suppression (30s), per-type preference gating, mentions override.
+- 6 preference toggles in `notification_preferences`: `chat_messages`, `mentions`, `polls`, `events`, `drafts`, `lockbox`.
+- Service worker tag-coalescing for bursts (per-message, per-thread).
+- Test push from Profile + Admin Diagnostics.
 
-| Source | Fields used |
-|---|---|
-| `drafts` | topic, status, num_rounds, created_at, created_by |
-| `draft_participants` | user_id, pick_order per draft |
-| `draft_picks` | user_id, round, pick_number, pick_text, picked_at |
-| `draft_results` | rank, total_score, points_awarded, pick_ratings[{pick_id, score, explanation}], summary |
-| `draft_season_standings` | season_points, drafts_played, wins, podiums, avg_finish, avg_score, best/worst_score, consistency, rank, playoff_seed |
-| `draft_seasons` | name, status, champion_user_id, runner_up_user_id, third_place_user_id, regular_season_champion_user_id |
-| `draft_playoff_matches` | round, winner_user_id (for series clinches → championships) |
-| `draft_season_entries` | which drafts belong to which season |
+**Modules currently firing pushes:**
+| Module | Trigger | Pref gate |
+|---|---|---|
+| Chat messages | message insert | `chat_messages` |
+| Chat mentions | @name parse | `mentions` (bypasses throttle/active) |
+| Thread replies | reply insert | `chat_messages` |
+| Reactions | emoji react | `chat_messages` |
+| Polls | new poll | `polls` |
+| Events | new event | `events` |
+| Drafts | turn alerts | `drafts` |
+| Lockbox | Lock Ready / Cracked / reminder | `lockbox` |
+| Portfolio Wars | week lock / finalize | ❌ no pref (uses generic) |
 
-This covers every numeric and qualitative stat the app currently tracks. All old drafts are already in these tables — no backfill needed.
+## Identified gaps
 
-## Tab UX
+### A. Modules with zero push coverage
+1. **Portfolio Wars** — has server pushes but no preference toggle and no client-side triggers for milestones.
+2. **NFL Pick'em** — week open, T-1h before first kickoff, results posted, weekly winner.
+3. **Rankings** — new ranking created, ranking finalized.
+4. **Posts / Feed** — comments on your post, reactions to your post.
+5. **Lore** — contribution added to your entry, reaction on your entry.
+6. **Birthdays & Milestones** — daily morning push for today's celebrations.
+7. **Narrative RPG** — campaign invite, GM scene posted, your turn, approval state changes (pending → approved / needs_changes).
+8. **Brackets / Pools** — new pool invite, bracket lock T-1h, bracket scored.
+9. **Nexus Defense** — operation phase advanced, operation completed/rewards distributed.
+10. **Rune Delve** — daily challenge available, class mastery unlocked.
+11. **Club admin** — new club join request (for admins), new member joined.
+12. **Changelog** — push when a new changelog post is published.
 
-```
-[ Drafts ] [ Season ] [ Stats ] [ Commissioner? ]
-```
+### B. Existing-module gaps (more triggers needed)
+- **Drafts:** draft created (invite all), draft completed + results, dispute filed/resolved, season playoffs starting, semifinal/final scheduled, season champion crowned.
+- **Events:** RSVP T-24h reminder, T-1h reminder, event canceled/rescheduled, new comment on event thread you RSVP'd to.
+- **Polls:** poll closing in 1h, results published.
+- **Chat:** added to a new channel, message pinned in a channel you follow.
 
-`Stats` is visible to all users. Inside it: a horizontal scope chip selector (All-Time · Current Season · Last Season · By Season ▾) and a fixed "You vs Club" toggle. Everything below re-aggregates from one in-memory dataset, so toggles are instant.
+### C. Plumbing gaps
+- No `portfolio_wars`, `pickem`, `rankings`, `posts`, `lore`, `celebrations`, `narrative`, `brackets`, `nexus`, `runedelve`, `system` columns in `notification_preferences` — but `send-push-notification`'s `prefColumn` switch only knows the original 6 types.
+- No scheduled-reminder infrastructure for events / pickem / poll closing (lockbox has `pg_cron` reminder — pattern to copy).
+- No "digest" notifications (weekly draft standings, monthly leaderboard).
+- VAPID subject hardcoded to `https://dryhorse.app` — fine, just noting.
 
-## Stats page modules (top → bottom)
+## Plan
 
-1. **Headline Hero Card** — "Your Draft Identity"
-   - Title (auto-generated nickname from style: e.g. *Closer*, *Steady Hand*, *Slow Burner*, *Sniper*, *Champion*) derived from rank distribution + consistency + speed.
-   - Big metrics: Lifetime Points · Drafts Played · Win Rate %.
-   - Animated counters (reuse `useCountUp`).
+### 1. Expand notification preferences schema
+Migration adds columns to `notification_preferences` (default `true`):
+`portfolio_wars`, `pickem`, `rankings`, `posts`, `lore`, `celebrations`, `narrative`, `brackets`, `nexus`, `runedelve`, `system`.
 
-2. **Trophy Case** — championship/podium chips
-   - Championships (best-of series clinches) · Regular-season titles · Finals appearances · 3rd-place medals · Total podiums · MVP picks owned · Longest hot streak.
-   - Gold/silver/bronze styling, tappable to scroll to detail rows below.
+Update `useNotificationPreferences` + `NotificationPreferencesSection` to render grouped toggles (Competition / Social / Games / System) so the list stays scannable.
 
-3. **Career Pulse** — sparkline of average score per draft over time + best-finish trend. Renders as inline SVG (no chart lib needed).
+### 2. Extend `send-push-notification`
+- Add the new types to the allowed-type switch and `prefColumn` map.
+- Keep tag-coalescing convention (`dh-<type>-<entityId>`).
+- No breaking change for existing callers.
 
-4. **Pick Quality Breakdown** (from `pick_ratings`)
-   - Score distribution histogram (0–10 buckets).
-   - Average pick score, highest single pick (with text + draft topic), lowest single pick.
-   - First-round avg vs last-round avg ("Early vs Late" comparison) → reveals if you peak early or steal late.
-   - "Steal rate" — % of picks in second half of draft scoring ≥7.5.
-   - "Bust rate" — % of picks scoring ≤4.
+### 3. New triggers (client + edge)
+| Module | Where | Trigger added |
+|---|---|---|
+| Drafts | `rate-draft` edge fn (already runs on finalize) | broadcast "Draft complete + podium" to participants |
+| Drafts | `DraftsListPage` create flow | "New draft started — join now" to all club members |
+| Drafts | `start-playoff-match`, `advance-playoffs` | semifinal/final scheduled + season champion |
+| Drafts | `resolve-pick-dispute` | "Your pick was approved/rejected" |
+| Events | new `pg_cron` job + `event-reminder` edge fn | T-24h / T-1h to RSVPs |
+| Events | EventDetailPage thread insert | reply notify to RSVPs (reuses thread fan-out) |
+| Events | EventsPage cancel/reschedule path | "Event updated" |
+| Polls | new `pg_cron` `poll-closing-reminder` | T-1h before close + results on close |
+| Pick'em | `sync-nfl-week` + new `nfl-week-reminder` cron | week open / T-1h / results |
+| Rankings | CreateRankingPage submit | "New ranking, cast your votes" |
+| Posts | PostDetailPage comment insert + reaction | notify post author |
+| Lore | useLoreContributions insert / reaction | notify lore author |
+| Celebrations | new `celebrations-daily` cron at 8am club-local | today's birthdays/anniversaries |
+| Narrative | `transition_narrative_campaign` RPC + scene insert + invite insert | matching narrative push |
+| Brackets | bracket entry deadline cron + scoring edge fn | reminders + results |
+| Nexus | `submit_operation_contribution` phase-advance branch + `award_operation_rewards` | phase advanced + rewards ready |
+| Rune Delve | `useDailyChallenge` rotation + `detectMasteryUnlock` | daily available + mastery unlock |
+| Club admin | `upsert_club_request` (RPC) | notify platform owners + club admins |
+| Changelog | ChatPage when posting in changelog channel | broadcast to club |
+| Portfolio Wars | existing `pw-week-action` | gate on new `portfolio_wars` pref |
 
-5. **Timing & Tempo** (from `picked_at`)
-   - Avg time per pick · Fastest pick ever · Slowest pick ever · Total time on the clock lifetime.
-   - "Decisive" or "Deliberator" label based on percentile.
+For triggers that fire from inside the DB (RPCs / cron), use a small `notify-push` invocation helper (HTTP from `pg_net` if available, else schedule via an `events_queue` table polled by an edge fn — pattern lockbox already uses).
 
-6. **Head-to-Head Leaderboards** — club-wide ranked lists, with your row highlighted:
-   - Most Wins · Most Podiums · Most Drafts · Highest Avg Score · Most Consistent (lowest σ) · Most MVP Picks · Highest Single Score · Longest Hot Streak · Fastest Average · Most Championships.
+### 4. Reminder cron jobs
+Add `pg_cron` schedules (mirroring `lockbox-daily-reminder`):
+- `events-reminder-hourly` — checks `events.start_at` for T-24h / T-1h.
+- `polls-closing-hourly` — checks `polls.closes_at`.
+- `pickem-week-reminder` — every 30 min while a week is open.
+- `celebrations-daily` — 8am club timezone (use club setting or UTC default).
+- `brackets-entry-reminder` — hourly.
 
-7. **Season-by-Season Table** — collapsible. Per season: your rank, points, wins, podiums, avg finish, made playoffs Y/N, finals appearance, championship.
+### 5. UI polish
+- Group toggles in `NotificationPreferences.tsx` with section headers and icons.
+- Keep "Send Test Notification" button.
+- Add "Notification activity" admin diagnostics panel showing last 24h push counts by type (read from a lightweight `push_log` table — already partial via throttle table; add `type` column).
 
-8. **Topic Tendencies**
-   - Top 5 most common categories drafted · your best category by avg score · worst category.
-   - Drafts created by you vs joined.
+## Technical notes
+- `send-push-notification` already supports `target_user_ids[]` fan-out — reuse it everywhere; avoid one-by-one invokes.
+- Use `tag: dh-<type>-<id>` for all new notifications so the SW coalesces correctly.
+- Respect active-viewer suppression where channel context exists (events, posts, lore detail pages should write to a `presence` table the function can query — optional v2).
+- All new client-side triggers use `.catch(() => {})` — push failures must never block the user action.
+- No new icon libraries; reuse `lucide-react` icons in the preferences UI.
 
-9. **Fun Awards** ("Hall of Fame & Shame")
-   - Single, club-wide superlatives auto-computed:
-     - 🏆 G.O.A.T. (most championships).
-     - 🔥 Streak King (longest 7.5+ hot streak across history).
-     - 🎯 Sniper (highest single-pick score ever).
-     - 🐢 The Deliberator (slowest avg pick time).
-     - ⚡ The Sniper Shooter (fastest avg pick time).
-     - 💎 The Closer (highest avg score in final round).
-     - 🪨 Rock Steady (lowest career consistency σ with ≥5 drafts).
-     - 😅 The Reach (lowest single-pick score, shown with humor & opt-in only).
-   - Each award is a card with avatar + the winning value.
+## Out of scope (call out, don't build)
+- Email notifications (push only for now).
+- Per-channel mute (chat already has channel mute via existing settings).
+- Quiet hours / DND scheduling (good v2 follow-up).
+- Mobile native push (PWA web-push only).
 
-10. **Footer** — last-updated timestamp + "Refresh" + link to Seasons Archive.
-
-All sections gracefully hide if no data (new clubs / first draft).
-
-## Technical implementation
-
-**New files**
-- `src/hooks/useDraftStatsHub.ts` — one hook that fetches in parallel (all guarded with `withTimeout`):
-  - all `draft_results` (with pick_ratings)
-  - all `draft_picks` (id, draft_id, user_id, round, pick_number, picked_at, pick_text)
-  - all `drafts` (id, topic, category, created_by, created_at, num_rounds)
-  - all `draft_season_standings` + `draft_seasons`
-  - all `draft_playoff_matches` (for championship counts)
-  - all `profiles` (id, display_name, avatar_url)
-  - all `draft_season_entries` (for season scoping)
-  Returns a normalised `StatsDataset` plus memoised aggregators keyed by `scope: 'all' | seasonId`.
-
-- `src/lib/draft/statsAggregators.ts` — pure functions: `computeUserAggregate`, `computeLeaderboard(metric)`, `computeFunAwards`, `computeCareerPulse`, `computePickQuality`, `computeTimingProfile`, `computeTopicTendencies`, `computeIdentity(nickname logic)`. Heavy reuse of existing helpers in `src/lib/draftStats.ts` (MVP, streaks, consistency, timings) — extend them to take cross-draft arrays instead of per-draft.
-
-- `src/components/draft/stats/` — small focused components:
-  - `StatsHero.tsx`
-  - `TrophyCase.tsx`
-  - `CareerPulseChart.tsx` (inline SVG sparkline)
-  - `PickQualityCard.tsx` (histogram + early/late)
-  - `TimingCard.tsx`
-  - `LeaderboardList.tsx` (reused for all 10 leaderboards via prop)
-  - `SeasonByLeague.tsx`
-  - `TopicTendenciesCard.tsx`
-  - `FunAwardsGrid.tsx`
-  - `StatsScopeBar.tsx` (scope + you-vs-club toggle)
-
-**Edits**
-- `src/pages/DraftsListPage.tsx`:
-  - Add `<TabsTrigger value="stats">Stats</TabsTrigger>` between Season and Commissioner.
-  - Add `<TabsContent value="stats">` rendering `<DraftStatsHub />`.
-  - Lazy-load the hub via `React.lazy` so the tab doesn't add to first paint.
-
-- `src/lib/draftStats.ts`: extract `findScoringStreaks`, MVP/steal/consistency/timing helpers so they can run over arbitrary picks+results arrays (currently scoped to one draft). Keep existing per-draft callers intact via thin wrappers.
-
-**Conventions followed**
-- All Supabase queries wrapped in `withTimeout` (project convention for hangs).
-- Tailwind semantic tokens (`hsl(var(--gold))`, `--card`, `--muted`) and existing `da-glass` / `glass-card` patterns — no new design system.
-- Mobile-first, dark mode default, animated counters via `useCountUp`, motion via `framer-motion` springSnap (already used elsewhere on the page).
-- No drag-and-drop, no new chart library — sparklines are inline SVG.
-- All historical drafts are already in the tables, so the page works retroactively from day one and keeps updating as new drafts complete.
-- Heavy memoisation with `useMemo` keyed on `(scope, datasetVersion)` so toggling scope is instant.
-
-## Out of scope
-- No DB migrations.
-- No edge function changes.
-- No changes to draft creation, pick flow, or rating engine.
-- No public/sharable stat URLs (can be a follow-up).
+After your approval I'll execute in this order: migration → edge fn update → client triggers module-by-module → cron jobs → UI grouping.

@@ -11,6 +11,7 @@ import { Link } from 'react-router-dom';
 import { useAISuggestions } from '@/hooks/useAISuggestions';
 import AISuggestions from '@/components/AISuggestions';
 import { useEnrichRanking } from '@/hooks/useItemEnrichments';
+import { notify } from '@/lib/notify';
 
 export default function CreateRankingPage() {
   const { user } = useAuth();
@@ -105,6 +106,17 @@ export default function CreateRankingPage() {
       toast.success('Ranking created!');
       // Trigger enrichment in background (fire-and-forget)
       enrichRanking(ranking.id);
+
+      // Broadcast new ranking to the club (server excludes the creator)
+      notify({
+        type: 'rankings',
+        title: 'New ranking to vote on',
+        message: topic.trim(),
+        tag: `dh-rankings-${ranking.id}`,
+        url: `/rankings/${ranking.id}`,
+        senderUserId: user.id,
+      });
+
       navigate(`/rankings/${ranking.id}`);
     } catch (err: any) {
       toast.error(err.message || 'Failed to create ranking');

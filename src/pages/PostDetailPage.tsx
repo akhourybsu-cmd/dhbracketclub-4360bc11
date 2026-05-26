@@ -12,6 +12,7 @@ import { format, formatDistanceToNow } from 'date-fns';
 import { UserAvatar } from '@/components/chat/UserAvatar';
 import { useSoundEffect } from '@/hooks/useSoundEffect';
 import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -59,6 +60,31 @@ export default function PostDetailPage() {
     await supabase.from('post_comments').insert({ post_id: postId, user_id: user.id, content });
     const { data } = await supabase.from('post_comments').select('*, profiles:user_id(display_name)').eq('post_id', postId).order('created_at');
     if (data) setComments(data as Comment[]);
+
+    // Notify post author (if not self) + prior commenters
+    if (post) {
+      const priorCommenters = (data || [])
+        .map((c: any) => c.user_id)
+        .filter((uid: string) => uid && uid !== user.id);
+      const recipients = Array.from(new Set([post.user_id, ...priorCommenters])).filter(
+        (uid) => uid && uid !== user.id,
+      );
+      if (recipients.length > 0) {
+        const senderName = user.user_metadata?.display_name || 'Someone';
+        const preview = content.length > 80 ? content.slice(0, 80) + '…' : content;
+        notify({
+          type: 'posts',
+          title: post.user_id === user.id
+            ? `${senderName} replied on their post`
+            : `${senderName} commented on "${post.title || 'your post'}"`,
+          message: preview,
+          tag: `dh-posts-${postId}`,
+          url: `/posts/${postId}`,
+          senderUserId: user.id,
+          targetUserIds: recipients,
+        });
+      }
+    }
   };
 
   const handleDelete = async () => {

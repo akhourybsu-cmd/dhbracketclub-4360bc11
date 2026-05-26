@@ -379,7 +379,7 @@ async function broadcastPush(args: { title: string; message: string; url: string
         "apikey": SUPABASE_SERVICE_ROLE_KEY,
       },
       body: JSON.stringify({
-        type: "event", // reuse the events preference toggle
+        type: "portfolio_wars",
         title: args.title,
         message: args.message,
         url: args.url,

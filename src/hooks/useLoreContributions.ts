@@ -41,6 +41,30 @@ export function useAddLoreContribution() {
         .select('*, profiles:user_id(id, display_name, avatar_url)')
         .single();
       if (error) throw error;
+
+      // Notify lore author (if not self)
+      try {
+        const { data: lore } = await (supabase as any)
+          .from('lore_entries')
+          .select('user_id, title')
+          .eq('id', loreId)
+          .single();
+        if (lore?.user_id && lore.user_id !== user.id) {
+          const { notify } = await import('@/lib/notify');
+          const senderName = (user.user_metadata as any)?.display_name || 'Someone';
+          const preview = content.length > 80 ? content.slice(0, 80) + '…' : content;
+          notify({
+            type: 'lore',
+            title: `${senderName} added to "${lore.title || 'your lore'}"`,
+            message: preview,
+            tag: `dh-lore-${loreId}`,
+            url: `/lore/${loreId}`,
+            senderUserId: user.id,
+            targetUserId: lore.user_id,
+          });
+        }
+      } catch { /* ignore */ }
+
       return data as LoreContribution;
     },
     onSuccess: (_d, vars) => {

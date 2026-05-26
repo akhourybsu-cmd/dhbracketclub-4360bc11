@@ -9,6 +9,17 @@ export interface NotificationPreferences {
   drafts: boolean;
   mentions: boolean;
   lockbox: boolean;
+  portfolio_wars: boolean;
+  pickem: boolean;
+  rankings: boolean;
+  posts: boolean;
+  lore: boolean;
+  celebrations: boolean;
+  narrative: boolean;
+  brackets: boolean;
+  nexus: boolean;
+  runedelve: boolean;
+  system: boolean;
 }
 
 const DEFAULTS: NotificationPreferences = {
@@ -18,7 +29,21 @@ const DEFAULTS: NotificationPreferences = {
   drafts: true,
   mentions: true,
   lockbox: true,
+  portfolio_wars: true,
+  pickem: true,
+  rankings: true,
+  posts: true,
+  lore: true,
+  celebrations: true,
+  narrative: true,
+  brackets: true,
+  nexus: true,
+  runedelve: true,
+  system: true,
 };
+
+const ALL_COLS =
+  'chat_messages, polls, events, drafts, mentions, lockbox, portfolio_wars, pickem, rankings, posts, lore, celebrations, narrative, brackets, nexus, runedelve, system';
 
 export function useNotificationPreferences() {
   const { user } = useAuth();
@@ -30,11 +55,11 @@ export function useNotificationPreferences() {
     const fetchPrefs = async () => {
       const { data } = await supabase
         .from('notification_preferences')
-        .select('chat_messages, polls, events, drafts, mentions, lockbox')
+        .select(ALL_COLS)
         .eq('user_id', user.id)
         .maybeSingle();
       if (data) {
-        setPrefs(data as NotificationPreferences);
+        setPrefs({ ...DEFAULTS, ...(data as Partial<NotificationPreferences>) });
       }
       setLoading(false);
     };
