@@ -6,7 +6,7 @@ import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useSoundEffect } from '@/hooks/useSoundEffect';
 import { nukeAndReload, subscribeProbeState, fetchRemoteBuildId, type ProbeState } from '@/lib/forceUpdate';
 import { toast } from 'sonner';
-import { Bell, RefreshCw, Loader2 } from 'lucide-react';
+import { Bell, RefreshCw, Loader2, Activity } from 'lucide-react';
 
 function formatRelative(ts: number | null): string {
   if (!ts) return 'never';
@@ -35,9 +35,25 @@ export default function AdminDiagnosticsPage() {
   const [testing, setTesting] = useState(false);
   const [probe, setProbe] = useState<ProbeState | null>(null);
   const [checking, setChecking] = useState(false);
+  const [activity, setActivity] = useState<Array<{ type: string; count: number }>>([]);
+  const [activityLoading, setActivityLoading] = useState(true);
   const buildId = typeof __BUILD_ID__ !== 'undefined' ? __BUILD_ID__ : 'dev';
 
   useEffect(() => subscribeProbeState(setProbe), []);
+
+  useEffect(() => {
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    (supabase as any)
+      .from('notification_sent_log')
+      .select('type')
+      .gte('sent_at', since)
+      .then(({ data }: { data: any[] | null }) => {
+        const counts = new Map<string, number>();
+        for (const r of data || []) counts.set(r.type, (counts.get(r.type) || 0) + 1);
+        setActivity([...counts.entries()].map(([type, count]) => ({ type, count })).sort((a, b) => b.count - a.count));
+        setActivityLoading(false);
+      });
+  }, []);
 
   const handleForceRefresh = async () => {
     setRefreshing(true);
