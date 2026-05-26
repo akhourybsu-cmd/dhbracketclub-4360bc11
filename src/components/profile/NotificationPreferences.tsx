@@ -1,7 +1,11 @@
 import { useState } from 'react';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
-import { MessageCircle, BarChart3, CalendarDays, Bookmark, Bell, AtSign, Lock } from 'lucide-react';
+import {
+  MessageCircle, BarChart3, CalendarDays, Bookmark, Bell, AtSign, Lock,
+  TrendingUp, Trophy, ListOrdered, FileText, ScrollText, Cake, Drama,
+  Brackets, Shield, Swords, Megaphone,
+} from 'lucide-react';
 import { useNotificationPreferences, NotificationPreferences } from '@/hooks/useNotificationPreferences';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useSoundEffect } from '@/hooks/useSoundEffect';
@@ -9,18 +13,56 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
-const PREF_ITEMS: {
+type PrefItem = {
   key: keyof NotificationPreferences;
   label: string;
   description: string;
   icon: typeof MessageCircle;
-}[] = [
-  { key: 'chat_messages', label: 'Chat Messages', description: 'New messages in chat channels', icon: MessageCircle },
-  { key: 'mentions', label: 'Mentions', description: '@mentions always break through (even when chat is off)', icon: AtSign },
-  { key: 'polls', label: 'Polls', description: 'New polls and voting updates', icon: BarChart3 },
-  { key: 'events', label: 'Events', description: 'New events and RSVPs', icon: CalendarDays },
-  { key: 'drafts', label: 'Drafts', description: 'Draft picks and turn alerts', icon: Bookmark },
-  { key: 'lockbox', label: 'Lockbox', description: 'Lock created, cracked, and daily reminders', icon: Lock },
+};
+
+type PrefGroup = {
+  title: string;
+  items: PrefItem[];
+};
+
+const GROUPS: PrefGroup[] = [
+  {
+    title: 'Social',
+    items: [
+      { key: 'chat_messages', label: 'Chat Messages', description: 'New messages, thread replies, reactions', icon: MessageCircle },
+      { key: 'mentions', label: 'Mentions', description: '@mentions always break through', icon: AtSign },
+      { key: 'posts', label: 'Posts & Feed', description: 'Comments and reactions on your posts', icon: FileText },
+      { key: 'lore', label: 'Lore', description: 'Contributions and reactions on your lore', icon: ScrollText },
+      { key: 'celebrations', label: 'Birthdays & Milestones', description: 'Daily celebrations digest', icon: Cake },
+    ],
+  },
+  {
+    title: 'Competition',
+    items: [
+      { key: 'drafts', label: 'Drafts', description: 'Turn alerts, podium, season updates', icon: Bookmark },
+      { key: 'pickem', label: 'NFL Pick\'em', description: 'Week open, lock reminders, weekly winners', icon: Trophy },
+      { key: 'brackets', label: 'Brackets', description: 'Invites, lock reminders, results', icon: Brackets },
+      { key: 'portfolio_wars', label: 'Portfolio Wars', description: 'Weekly lock, results, leaderboard', icon: TrendingUp },
+      { key: 'polls', label: 'Polls', description: 'New polls and closing reminders', icon: BarChart3 },
+      { key: 'rankings', label: 'Rankings', description: 'New rankings to vote on', icon: ListOrdered },
+      { key: 'events', label: 'Events', description: 'New events, RSVPs, and reminders', icon: CalendarDays },
+    ],
+  },
+  {
+    title: 'Games',
+    items: [
+      { key: 'lockbox', label: 'Lockbox', description: 'Lock created, cracked, and daily reminders', icon: Lock },
+      { key: 'nexus', label: 'Nexus Defense', description: 'Operation phases and rewards', icon: Shield },
+      { key: 'runedelve', label: 'Rune Delve', description: 'Daily challenge and mastery unlocks', icon: Swords },
+      { key: 'narrative', label: 'Narrative RPG', description: 'Invites, scenes, and approvals', icon: Drama },
+    ],
+  },
+  {
+    title: 'System',
+    items: [
+      { key: 'system', label: 'Announcements', description: 'Club news and app updates', icon: Megaphone },
+    ],
+  },
 ];
 
 export default function NotificationPreferencesSection() {
@@ -63,32 +105,40 @@ export default function NotificationPreferencesSection() {
   };
 
   return (
-    <div className="glass-card p-5 mb-4 space-y-4">
-      <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-3">
+    <div className="glass-card p-5 mb-4 space-y-5">
+      <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
         Notification Preferences
       </h3>
-      {PREF_ITEMS.map(({ key, label, description, icon: Icon }) => (
-        <div key={key} className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Icon className="w-4 h-4 text-primary" />
-            <div>
-              <p className="text-[13px] font-semibold">{label}</p>
-              <p className="text-[10px] text-muted-foreground">{description}</p>
+
+      {GROUPS.map((group) => (
+        <div key={group.title} className="space-y-3">
+          <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-muted-foreground/50">
+            {group.title}
+          </p>
+          {group.items.map(({ key, label, description, icon: Icon }) => (
+            <div key={key} className="flex items-center justify-between">
+              <div className="flex items-center gap-3 min-w-0 flex-1 pr-3">
+                <Icon className="w-4 h-4 text-primary shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-[13px] font-semibold leading-tight">{label}</p>
+                  <p className="text-[10px] text-muted-foreground">{description}</p>
+                </div>
+              </div>
+              <Switch
+                checked={prefs[key]}
+                onCheckedChange={async (checked) => {
+                  await update(key, checked);
+                  play('tap');
+                  toast.success(`${label} ${checked ? 'enabled' : 'disabled'}`);
+                }}
+              />
             </div>
-          </div>
-          <Switch
-            checked={prefs[key]}
-            onCheckedChange={async (checked) => {
-              await update(key, checked);
-              play('tap');
-              toast.success(`${label} notifications ${checked ? 'enabled' : 'disabled'}`);
-            }}
-          />
+          ))}
         </div>
       ))}
 
       {isSupported && (
-        <div className="pt-2 border-t border-border/40">
+        <div className="pt-3 border-t border-border/40">
           <Button
             variant="outline"
             size="sm"
