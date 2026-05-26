@@ -11,6 +11,7 @@ import { Link } from 'react-router-dom';
 import { useAISuggestions } from '@/hooks/useAISuggestions';
 import AISuggestions from '@/components/AISuggestions';
 import { useEnrichRanking } from '@/hooks/useItemEnrichments';
+import { notify } from '@/lib/notify';
 
 export default function CreateRankingPage() {
   const { user } = useAuth();
