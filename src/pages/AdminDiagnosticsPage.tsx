@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Fragment } from 'react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,7 +6,7 @@ import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useSoundEffect } from '@/hooks/useSoundEffect';
 import { nukeAndReload, subscribeProbeState, fetchRemoteBuildId, type ProbeState } from '@/lib/forceUpdate';
 import { toast } from 'sonner';
-import { Bell, RefreshCw, Loader2 } from 'lucide-react';
+import { Bell, RefreshCw, Loader2, Activity } from 'lucide-react';
 
 function formatRelative(ts: number | null): string {
   if (!ts) return 'never';
@@ -35,9 +35,25 @@ export default function AdminDiagnosticsPage() {
   const [testing, setTesting] = useState(false);
   const [probe, setProbe] = useState<ProbeState | null>(null);
   const [checking, setChecking] = useState(false);
+  const [activity, setActivity] = useState<Array<{ type: string; count: number }>>([]);
+  const [activityLoading, setActivityLoading] = useState(true);
   const buildId = typeof __BUILD_ID__ !== 'undefined' ? __BUILD_ID__ : 'dev';
 
   useEffect(() => subscribeProbeState(setProbe), []);
+
+  useEffect(() => {
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    (supabase as any)
+      .from('notification_sent_log')
+      .select('type')
+      .gte('sent_at', since)
+      .then(({ data }: { data: any[] | null }) => {
+        const counts = new Map<string, number>();
+        for (const r of data || []) counts.set(r.type, (counts.get(r.type) || 0) + 1);
+        setActivity([...counts.entries()].map(([type, count]) => ({ type, count })).sort((a, b) => b.count - a.count));
+        setActivityLoading(false);
+      });
+  }, []);
 
   const handleForceRefresh = async () => {
     setRefreshing(true);
@@ -168,6 +184,29 @@ export default function AdminDiagnosticsPage() {
           <span className="text-muted-foreground/70">probes ok / fail</span>
           <span className="text-right">{probe?.successes ?? 0} / {probe?.failures ?? 0}</span>
         </div>
+      </div>
+
+      <div className="mt-4 glass-card p-4 space-y-2">
+        <div className="flex items-center gap-2">
+          <Activity className="w-3 h-3 text-primary" />
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground/80">
+            Notification Activity (24h)
+          </p>
+        </div>
+        {activityLoading ? (
+          <p className="text-[11px] text-muted-foreground/70">Loading…</p>
+        ) : activity.length === 0 ? (
+          <p className="text-[11px] text-muted-foreground/70">No scheduled pushes in last 24h.</p>
+        ) : (
+          <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] font-mono">
+            {activity.map((a) => (
+              <Fragment key={a.type}>
+                <span className="text-muted-foreground/70">{a.type}</span>
+                <span className="text-right">{a.count}</span>
+              </Fragment>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="mt-3 px-1 flex items-center justify-between text-[9px] font-mono text-muted-foreground/60">
