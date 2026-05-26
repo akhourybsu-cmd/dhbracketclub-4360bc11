@@ -11,3 +11,18 @@ verify_jwt = false
 
 [functions.advance-playoffs]
 verify_jwt = false
+
+[functions.events-reminder]
+verify_jwt = false
+
+[functions.polls-closing-reminder]
+verify_jwt = false
+
+[functions.pickem-week-reminder]
+verify_jwt = false
+
+[functions.celebrations-daily]
+verify_jwt = false
+
+[functions.brackets-entry-reminder]
+verify_jwt = false
