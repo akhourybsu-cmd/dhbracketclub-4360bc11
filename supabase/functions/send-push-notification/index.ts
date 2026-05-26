@@ -189,14 +189,17 @@ Deno.serve(async (req) => {
 
     // ══════════════════════════════════════════
     // ── PERSONAL / TARGETED NOTIFICATIONS ──
-    //   types: poll | event | draft | lockbox | thread_reply | reaction
+    //   See ALLOWED_TYPES below for the full list of supported types.
     //   single recipient: target_user_id
     //   multi recipient:  target_user_ids[]   (deduped, sender excluded)
     // ══════════════════════════════════════════
-    if (
-      body.type &&
-      ["poll", "event", "draft", "lockbox", "thread_reply", "reaction"].includes(body.type)
-    ) {
+    const ALLOWED_TYPES = new Set([
+      "poll", "event", "draft", "lockbox", "thread_reply", "reaction",
+      "portfolio_wars", "pickem", "rankings", "posts", "lore",
+      "celebrations", "narrative", "brackets", "nexus", "runedelve", "system",
+    ]);
+
+    if (body.type && ALLOWED_TYPES.has(body.type)) {
       const {
         type,
         title,
@@ -213,8 +216,6 @@ Deno.serve(async (req) => {
         .select("endpoint, p256dh, auth, user_id");
 
       if (Array.isArray(target_user_ids) && target_user_ids.length > 0) {
-        // Multi-recipient personal push (thread reply, reaction fan-out, etc.)
-        // Dedupe + always exclude the sender.
         const recipients = [...new Set(
           target_user_ids.filter((u: any) => typeof u === "string" && u && u !== sender_user_id)
         )];
@@ -223,9 +224,6 @@ Deno.serve(async (req) => {
         }
         query = query.in("user_id", recipients);
       } else if (target_user_id) {
-        // Self-push guard: never push the actor for their own action,
-        // even when a target_user_id is supplied (e.g. snake-draft turn
-        // where the same user is on the clock again).
         if (sender_user_id && target_user_id === sender_user_id) {
           return jsonResponse({ sent: 0, filtered: 0, reason: "self_target" });
         }
@@ -237,15 +235,24 @@ Deno.serve(async (req) => {
       const { data: subscriptions } = await query;
       if (!subscriptions || subscriptions.length === 0) return jsonResponse({ sent: 0 });
 
-      // Map type -> notification_preferences column.
-      // thread_reply + reaction reuse the chat_messages toggle so users have
-      // a single switch to mute all chat-derived push notifications.
       const userIds = [...new Set(subscriptions.map((s: any) => s.user_id))];
+      // Map type -> notification_preferences column.
       const prefColumn =
         type === "poll" ? "polls" :
         type === "event" ? "events" :
         type === "lockbox" ? "lockbox" :
         type === "thread_reply" || type === "reaction" ? "chat_messages" :
+        type === "portfolio_wars" ? "portfolio_wars" :
+        type === "pickem" ? "pickem" :
+        type === "rankings" ? "rankings" :
+        type === "posts" ? "posts" :
+        type === "lore" ? "lore" :
+        type === "celebrations" ? "celebrations" :
+        type === "narrative" ? "narrative" :
+        type === "brackets" ? "brackets" :
+        type === "nexus" ? "nexus" :
+        type === "runedelve" ? "runedelve" :
+        type === "system" ? "system" :
         "drafts";
 
       const { data: prefRows } = await supabase
