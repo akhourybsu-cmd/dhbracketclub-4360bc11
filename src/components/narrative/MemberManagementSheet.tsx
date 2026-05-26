@@ -157,6 +157,14 @@ export function MemberManagementSheet({ open, onClose, campaign, members, onChan
     setBusyUserId(null);
     if (error) { toast.error(`Couldn't invite member: ${error.message}`); return; }
     toast.success(`Invite sent — ${ROLE_LABEL[role]}.`);
+    notify({
+      type: 'narrative',
+      title: `You're invited to "${campaign.title}"`,
+      message: `Join as ${ROLE_LABEL[role]}`,
+      tag: `dh-narrative-invite-${campaign.id}-${userId}`,
+      url: `/narrative/${campaign.id}`,
+      targetUserId: userId,
+    });
     onChanged?.();
   };
 
