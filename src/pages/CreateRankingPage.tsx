@@ -106,6 +106,17 @@ export default function CreateRankingPage() {
       toast.success('Ranking created!');
       // Trigger enrichment in background (fire-and-forget)
       enrichRanking(ranking.id);
+
+      // Broadcast new ranking to the club (server excludes the creator)
+      notify({
+        type: 'rankings',
+        title: 'New ranking to vote on',
+        message: topic.trim(),
+        tag: `dh-rankings-${ranking.id}`,
+        url: `/rankings/${ranking.id}`,
+        senderUserId: user.id,
+      });
+
       navigate(`/rankings/${ranking.id}`);
     } catch (err: any) {
       toast.error(err.message || 'Failed to create ranking');
