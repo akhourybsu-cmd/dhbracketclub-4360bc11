@@ -25,6 +25,7 @@ import { useNarrativeCampaigns } from '@/hooks/useNarrativeCampaigns';
 import { Input } from '@/components/ui/input';
 import { StatusPill } from '@/components/ui/status-pill';
 import type { Campaign, CampaignMember, MemberRole } from '@/lib/narrative/types';
+import { notify } from '@/lib/notify';
 
 interface Props {
   open: boolean;
