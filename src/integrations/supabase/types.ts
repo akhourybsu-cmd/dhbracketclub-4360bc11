@@ -4884,6 +4884,8 @@ export type Database = {
       }
       notification_preferences: {
         Row: {
+          brackets: boolean
+          celebrations: boolean
           chat_messages: boolean
           club_id: string
           created_at: string
@@ -4891,12 +4893,23 @@ export type Database = {
           events: boolean
           id: string
           lockbox: boolean
+          lore: boolean
           mentions: boolean
+          narrative: boolean
+          nexus: boolean
+          pickem: boolean
           polls: boolean
+          portfolio_wars: boolean
+          posts: boolean
+          rankings: boolean
+          runedelve: boolean
+          system: boolean
           updated_at: string
           user_id: string
         }
         Insert: {
+          brackets?: boolean
+          celebrations?: boolean
           chat_messages?: boolean
           club_id?: string
           created_at?: string
@@ -4904,12 +4917,23 @@ export type Database = {
           events?: boolean
           id?: string
           lockbox?: boolean
+          lore?: boolean
           mentions?: boolean
+          narrative?: boolean
+          nexus?: boolean
+          pickem?: boolean
           polls?: boolean
+          portfolio_wars?: boolean
+          posts?: boolean
+          rankings?: boolean
+          runedelve?: boolean
+          system?: boolean
           updated_at?: string
           user_id: string
         }
         Update: {
+          brackets?: boolean
+          celebrations?: boolean
           chat_messages?: boolean
           club_id?: string
           created_at?: string
@@ -4917,8 +4941,17 @@ export type Database = {
           events?: boolean
           id?: string
           lockbox?: boolean
+          lore?: boolean
           mentions?: boolean
+          narrative?: boolean
+          nexus?: boolean
+          pickem?: boolean
           polls?: boolean
+          portfolio_wars?: boolean
+          posts?: boolean
+          rankings?: boolean
+          runedelve?: boolean
+          system?: boolean
           updated_at?: string
           user_id?: string
         }
