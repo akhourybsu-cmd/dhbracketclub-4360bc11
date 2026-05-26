@@ -305,6 +305,29 @@ Use the rate_draft_results tool to return your structured analysis.`;
       return new Response(JSON.stringify({ error: "Failed to save results" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // ── Push: "Draft complete" to all participants (fire-and-forget) ──
+    try {
+      const draftTitle = (draft as any)?.topic || (draft as any)?.title || "Your draft";
+      const recipients = inserts.map((r) => r.user_id);
+      await fetch(`${supabaseUrl}/functions/v1/send-push-notification`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-cron-secret": Deno.env.get("CRON_SHARED_SECRET") || "",
+        },
+        body: JSON.stringify({
+          type: "draft",
+          title: "Draft complete — see the podium",
+          message: `Results are in for "${draftTitle}".`,
+          url: `/drafts/${draft_id}`,
+          tag: `dh-draft-${draft_id}-complete`,
+          target_user_ids: recipients,
+        }),
+      });
+    } catch (pushErr) {
+      console.error("draft-complete push error (non-fatal):", pushErr);
+    }
+
     // ── Auto-recalculate season standings if draft belongs to a season ──
     try {
       const { data: seasonEntry } = await admin
