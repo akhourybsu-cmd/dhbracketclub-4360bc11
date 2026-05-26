@@ -12,6 +12,7 @@ import { format, formatDistanceToNow } from 'date-fns';
 import { UserAvatar } from '@/components/chat/UserAvatar';
 import { useSoundEffect } from '@/hooks/useSoundEffect';
 import { toast } from 'sonner';
+import { notify } from '@/lib/notify';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
