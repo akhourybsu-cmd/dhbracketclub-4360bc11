@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Fragment } from 'react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -200,10 +200,10 @@ export default function AdminDiagnosticsPage() {
         ) : (
           <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] font-mono">
             {activity.map((a) => (
-              <>
+              <Fragment key={a.type}>
                 <span className="text-muted-foreground/70">{a.type}</span>
                 <span className="text-right">{a.count}</span>
-              </>
+              </Fragment>
             ))}
           </div>
         )}
