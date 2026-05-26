@@ -186,6 +186,29 @@ export default function AdminDiagnosticsPage() {
         </div>
       </div>
 
+      <div className="mt-4 glass-card p-4 space-y-2">
+        <div className="flex items-center gap-2">
+          <Activity className="w-3 h-3 text-primary" />
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground/80">
+            Notification Activity (24h)
+          </p>
+        </div>
+        {activityLoading ? (
+          <p className="text-[11px] text-muted-foreground/70">Loading…</p>
+        ) : activity.length === 0 ? (
+          <p className="text-[11px] text-muted-foreground/70">No scheduled pushes in last 24h.</p>
+        ) : (
+          <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] font-mono">
+            {activity.map((a) => (
+              <>
+                <span className="text-muted-foreground/70">{a.type}</span>
+                <span className="text-right">{a.count}</span>
+              </>
+            ))}
+          </div>
+        )}
+      </div>
+
       <div className="mt-3 px-1 flex items-center justify-between text-[9px] font-mono text-muted-foreground/60">
         <span>build {localShort}</span>
         <span className="truncate max-w-[160px]">uid {user?.id.slice(0, 8)}…</span>
