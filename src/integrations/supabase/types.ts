@@ -4965,6 +4965,30 @@ export type Database = {
           },
         ]
       }
+      notification_sent_log: {
+        Row: {
+          entity_id: string
+          id: string
+          sent_at: string
+          type: string
+          variant: string
+        }
+        Insert: {
+          entity_id: string
+          id?: string
+          sent_at?: string
+          type: string
+          variant?: string
+        }
+        Update: {
+          entity_id?: string
+          id?: string
+          sent_at?: string
+          type?: string
+          variant?: string
+        }
+        Relationships: []
+      }
       platform_assets: {
         Row: {
           category: string
