@@ -427,22 +427,25 @@ export default function NexusBattlePage() {
                 setExitOpen(true);
               }
             }}
-            aria-label="Exit mission"
-            className="relative w-12 h-12 nx-clip-sm flex items-center justify-center active:scale-95 transition"
+            aria-label="Exit or abandon mission"
+            className="relative w-14 h-12 nx-clip-sm flex flex-col items-center justify-center gap-0.5 active:scale-95 transition"
             style={{
-              background: 'linear-gradient(180deg, hsl(218 50% 11%), hsl(218 55% 7%))',
-              border: '1px solid hsl(var(--nx-cyan) / 0.55)',
+              background: 'linear-gradient(180deg, hsl(0 60% 14%), hsl(0 65% 8%))',
+              border: '1px solid hsl(0 80% 60% / 0.7)',
               boxShadow:
-                '0 0 12px -2px hsl(var(--nx-cyan) / 0.5), inset 0 1px 0 hsl(0 0% 100% / 0.08)',
-              color: 'hsl(var(--nx-cyan))',
+                '0 0 12px -2px hsl(0 80% 60% / 0.55), inset 0 1px 0 hsl(0 0% 100% / 0.08)',
+              color: 'hsl(0 90% 75%)',
             }}
           >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" style={{ filter: 'drop-shadow(0 0 4px hsl(var(--nx-cyan)))' }}>
-              <path d="M12 2 L21 7 V17 L12 22 L3 17 V7 Z" stroke="currentColor" strokeWidth="1.6" />
-              <path d="M9 9 L15 9 L15 15 L9 15 Z" stroke="currentColor" strokeWidth="1.4" fill="currentColor" fillOpacity="0.25" />
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ filter: 'drop-shadow(0 0 4px hsl(0 80% 60%))' }}>
+              <path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+              <path d="M10 8l-4 4 4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M6 12h10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
             </svg>
-            <span aria-hidden className="absolute top-0.5 left-0.5 w-1.5 h-1.5 border-l border-t" style={{ borderColor: 'hsl(var(--nx-cyan))' }} />
-            <span aria-hidden className="absolute bottom-0.5 right-0.5 w-1.5 h-1.5 border-r border-b" style={{ borderColor: 'hsl(var(--nx-cyan))' }} />
+            <span className="text-[8px] font-black tracking-[0.18em] leading-none" style={{ color: 'hsl(0 90% 80%)' }}>EXIT</span>
+            <span aria-hidden className="absolute top-0.5 left-0.5 w-1.5 h-1.5 border-l border-t" style={{ borderColor: 'hsl(0 80% 60%)' }} />
+            <span aria-hidden className="absolute bottom-0.5 right-0.5 w-1.5 h-1.5 border-r border-b" style={{ borderColor: 'hsl(0 80% 60%)' }} />
+
           </button>
 
           {/* Center frame: mission title */}
