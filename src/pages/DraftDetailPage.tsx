@@ -135,6 +135,10 @@ export default function DraftDetailPage() {
   const [disputeReason, setDisputeReason] = useState('');
   const [submittingDispute, setSubmittingDispute] = useState(false);
   const [resolvingDisputeId, setResolvingDisputeId] = useState<string | null>(null);
+  const [rejectDialog, setRejectDialog] = useState<{ id: string; pickText: string; reason: string } | null>(null);
+  const [rejectRationale, setRejectRationale] = useState('');
+  const [rejectingDispute, setRejectingDispute] = useState(false);
+  const [expandedRationales, setExpandedRationales] = useState<Set<string>>(new Set());
   const pickIds = picks.map(p => p.id);
   const freshPickIds = useFirstSeen(pickIds);
   const { enrichments, loading: enrichmentsLoading, fetchEnrichments } = useItemEnrichments(pickIds, 'draft_pick');
@@ -324,7 +328,7 @@ export default function DraftDetailPage() {
     try {
       const { error } = await supabase
         .from('draft_pick_disputes' as any)
-        .update({ status: 'dismissed', resolved_at: new Date().toISOString() } as any)
+        .update({ status: 'dismissed', resolved_at: new Date().toISOString(), resolved_by: user?.id } as any)
         .eq('id', disputeId);
       if (error) throw error;
       toast.success('Dispute dismissed');
@@ -332,6 +336,40 @@ export default function DraftDetailPage() {
     } catch (err: any) {
       toast.error(err.message || 'Failed to dismiss dispute');
     }
+  };
+
+  const handleConfirmReject = async () => {
+    if (!rejectDialog || !rejectRationale.trim()) return;
+    setRejectingDispute(true);
+    try {
+      const { error } = await supabase
+        .from('draft_pick_disputes' as any)
+        .update({
+          status: 'rejected',
+          resolved_at: new Date().toISOString(),
+          resolved_by: user?.id,
+          commissioner_rationale: rejectRationale.trim(),
+        } as any)
+        .eq('id', rejectDialog.id);
+      if (error) throw error;
+      toast.success('Dispute rejected');
+      setRejectDialog(null);
+      setRejectRationale('');
+      fetchDisputes();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to reject dispute');
+    } finally {
+      setRejectingDispute(false);
+    }
+  };
+
+  const toggleRationale = (id: string) => {
+    setExpandedRationales(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   };
 
 
@@ -1731,42 +1769,90 @@ export default function DraftDetailPage() {
                             )}
                             <div className="divide-y divide-border/15 border-t border-border/25">
                               {pickRatings.map((pr) => {
-                                const pickDisputes = disputes.filter(d => d.pick_id === pr.pick_id && d.status === 'pending');
+                                const pickAllDisputes = disputes.filter(d => d.pick_id === pr.pick_id);
+                                const pendingDispute = pickAllDisputes.find(d => d.status === 'pending');
+                                // Latest non-pending dispute for status pill (rejected/resolved/dismissed)
+                                const latestClosed = pickAllDisputes
+                                  .filter(d => d.status !== 'pending')
+                                  .sort((a, b) => (b.resolved_at || b.created_at || '').localeCompare(a.resolved_at || a.created_at || ''))[0];
+                                const rejectedDispute = pickAllDisputes.find(d => d.status === 'rejected' && d.commissioner_rationale);
+                                const rationaleOpen = rejectedDispute ? expandedRationales.has(rejectedDispute.id) : false;
                                 return (
-                                <div key={pr.pick_id} className="px-4 py-2.5 flex items-start gap-3">
-                                  <div className={cn(
-                                    "flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center text-[12px] font-extrabold border",
-                                    pr.score >= 8 && "bg-gold/15 text-gold border-gold/40",
-                                    pr.score >= 6 && pr.score < 8 && "bg-success/15 text-success border-success/30",
-                                    pr.score >= 4 && pr.score < 6 && "bg-warning/15 text-warning border-warning/30",
-                                    pr.score < 4 && "bg-destructive/15 text-destructive border-destructive/30",
-                                  )}>
-                                    {pr.score.toFixed(1)}
+                                <div key={pr.pick_id} className="px-4 py-2.5">
+                                  <div className="flex items-start gap-3">
+                                    <div className={cn(
+                                      "flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center text-[12px] font-extrabold border",
+                                      pr.score >= 8 && "bg-gold/15 text-gold border-gold/40",
+                                      pr.score >= 6 && pr.score < 8 && "bg-success/15 text-success border-success/30",
+                                      pr.score >= 4 && pr.score < 6 && "bg-warning/15 text-warning border-warning/30",
+                                      pr.score < 4 && "bg-destructive/15 text-destructive border-destructive/30",
+                                    )}>
+                                      {pr.score.toFixed(1)}
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <p className="text-[12px] font-semibold">{pr.pick_text}</p>
+                                      <p className="text-[10px] text-muted-foreground/70 mt-0.5">{pr.explanation}</p>
+                                      {(pendingDispute || latestClosed) && (
+                                        <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                                          {pendingDispute && (
+                                            <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-5 border-warning/60 text-warning bg-warning/10">
+                                              Disputed
+                                            </Badge>
+                                          )}
+                                          {!pendingDispute && latestClosed?.status === 'resolved' && (
+                                            <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-5 border-success/60 text-success bg-success/10">
+                                              Dispute Resolved
+                                            </Badge>
+                                          )}
+                                          {!pendingDispute && latestClosed?.status === 'dismissed' && (
+                                            <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-5 border-muted-foreground/40 text-muted-foreground bg-muted/30">
+                                              Dispute Dismissed
+                                            </Badge>
+                                          )}
+                                          {!pendingDispute && latestClosed?.status === 'rejected' && (
+                                            <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-5 border-warning/50 text-warning bg-warning/5">
+                                              Dispute Rejected
+                                            </Badge>
+                                          )}
+                                          {rejectedDispute && (
+                                            <button
+                                              onClick={(e) => { e.stopPropagation(); toggleRationale(rejectedDispute.id); }}
+                                              className="text-[9px] font-semibold text-muted-foreground/80 hover:text-foreground underline-offset-2 hover:underline"
+                                            >
+                                              {rationaleOpen ? 'Hide' : 'View'} Commissioner Rationale
+                                            </button>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                    <div className="flex items-center gap-1 flex-shrink-0">
+                                      {isParticipant && !pendingDispute && (
+                                        <button
+                                          onClick={(e) => { e.stopPropagation(); setDisputeDialogPick(pr); }}
+                                          className="p-2.5 -m-1 rounded-md text-muted-foreground/40 hover:text-warning active:text-warning transition-colors"
+                                          aria-label="Dispute this rating"
+                                        >
+                                          <Flag className="w-3.5 h-3.5" />
+                                        </button>
+                                      )}
+                                    </div>
                                   </div>
-                                  <div className="min-w-0 flex-1">
-                                    <p className="text-[12px] font-semibold">{pr.pick_text}</p>
-                                    <p className="text-[10px] text-muted-foreground/70 mt-0.5">{pr.explanation}</p>
-                                  </div>
-                                  <div className="flex items-center gap-1 flex-shrink-0">
-                                    {pickDisputes.length > 0 && (
-                                      <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-5 border-warning text-warning">
-                                        Disputed
-                                      </Badge>
-                                    )}
-                                    {isParticipant && (
-                                      <button
-                                        onClick={(e) => { e.stopPropagation(); setDisputeDialogPick(pr); }}
-                                        className="p-2.5 -m-1 rounded-md text-muted-foreground/40 hover:text-warning active:text-warning transition-colors"
-                                        aria-label="Dispute this rating"
-                                      >
-                                        <Flag className="w-3.5 h-3.5" />
-                                      </button>
-                                    )}
-                                  </div>
+                                  {rejectedDispute && rationaleOpen && (
+                                    <div className="mt-2 ml-12 p-2.5 rounded-lg bg-muted/40 border border-border/40">
+                                      <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/70 mb-1">
+                                        Commissioner Rationale
+                                      </p>
+                                      <p className="text-[11px] leading-snug whitespace-pre-wrap">{rejectedDispute.commissioner_rationale}</p>
+                                      {rejectedDispute.reason && (
+                                        <p className="text-[9px] text-muted-foreground/60 mt-2 italic">Original dispute: "{rejectedDispute.reason}"</p>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
                                 );
                               })}
                             </div>
+
                           </motion.div>
                         )}
                       </AnimatePresence>
@@ -1775,26 +1861,30 @@ export default function DraftDetailPage() {
                 })}
               </div>
 
-              {/* Admin Dispute Resolution Panel */}
-              {isAppAdmin && disputes.filter(d => d.status === 'pending').length > 0 && (
+              {/* Commissioner Dispute Resolution Panel */}
+              {canManage && disputes.filter(d => d.status === 'pending').length > 0 && (
                 <div className="glass-card p-4 mt-4">
                   <h3 className="text-[13px] font-bold mb-3 flex items-center gap-2">
                     <Flag className="w-4 h-4 text-warning" /> Pending Disputes ({disputes.filter(d => d.status === 'pending').length})
                   </h3>
                   <div className="space-y-3">
                     {disputes.filter(d => d.status === 'pending').map(dispute => {
-                      // Find the pick text from results
                       const pickInfo = draftResults.flatMap(r => (r.pick_ratings as any[]).map((pr: any) => pr)).find((pr: any) => pr.pick_id === dispute.pick_id);
                       return (
                         <div key={dispute.id} className="da-subcard p-3 space-y-2">
                           <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0 flex-1">
                               <p className="text-[11px] font-semibold">{pickInfo?.pick_text || 'Unknown pick'}</p>
-                              <p className="text-[10px] text-muted-foreground">Current score: {pickInfo?.score?.toFixed(1) || '?'}</p>
+                              <p className="text-[10px] text-muted-foreground">
+                                {draft?.topic}{draft?.category ? ` · ${draft.category}` : ''} · Current score: {pickInfo?.score?.toFixed(1) || '?'}
+                              </p>
                             </div>
                           </div>
-                          <p className="text-[10px] text-muted-foreground/80 italic">"{dispute.reason}"</p>
-                          <div className="flex gap-2">
+                          {pickInfo?.explanation && (
+                            <p className="text-[10px] text-muted-foreground/70">AI rationale: {pickInfo.explanation}</p>
+                          )}
+                          <p className="text-[10px] text-muted-foreground/80 italic">User dispute: "{dispute.reason}"</p>
+                          <div className="flex flex-wrap gap-2">
                             <Button
                               size="sm"
                               onClick={() => handleResolveDispute(dispute.id)}
@@ -1802,9 +1892,9 @@ export default function DraftDetailPage() {
                               className="h-7 text-[10px] gap-1"
                             >
                               {resolvingDisputeId === dispute.id ? (
-                                <><RefreshCw className="w-3 h-3 animate-spin" /> Re-evaluating…</>
+                                <><RefreshCw className="w-3 h-3 animate-spin" /> Resolving…</>
                               ) : (
-                                <><Sparkles className="w-3 h-3" /> Re-evaluate</>
+                                <><Sparkles className="w-3 h-3" /> Resolve</>
                               )}
                             </Button>
                             <Button
@@ -1815,6 +1905,14 @@ export default function DraftDetailPage() {
                             >
                               Dismiss
                             </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => { setRejectDialog({ id: dispute.id, pickText: pickInfo?.pick_text || 'Unknown pick', reason: dispute.reason }); setRejectRationale(''); }}
+                              className="h-7 text-[10px] border-warning/50 text-warning hover:bg-warning/10"
+                            >
+                              Reject
+                            </Button>
                           </div>
                         </div>
                       );
@@ -1822,6 +1920,7 @@ export default function DraftDetailPage() {
                   </div>
                 </div>
               )}
+
 
               {/* Regenerate button — admin only */}
               {isAppAdmin && (
@@ -2027,6 +2126,44 @@ export default function DraftDetailPage() {
             <Button variant="outline" onClick={() => { setDisputeDialogPick(null); setDisputeReason(''); }}>Cancel</Button>
             <Button onClick={handleSubmitDispute} disabled={submittingDispute || !disputeReason.trim()}>
               {submittingDispute ? 'Submitting…' : 'Submit Dispute'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reject Dispute Dialog */}
+      <Dialog open={!!rejectDialog} onOpenChange={(open) => { if (!open) { setRejectDialog(null); setRejectRationale(''); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject Dispute</DialogTitle>
+            <DialogDescription>
+              Provide a rationale that explains why this dispute is being rejected. It will be visible to the participant on their pick.
+            </DialogDescription>
+          </DialogHeader>
+          {rejectDialog && (
+            <div className="space-y-4">
+              <div className="da-subcard p-3">
+                <p className="text-[13px] font-semibold">{rejectDialog.pickText}</p>
+                <p className="text-[11px] text-muted-foreground mt-1 italic">User dispute: "{rejectDialog.reason}"</p>
+              </div>
+              <Textarea
+                placeholder="Explain why the dispute is being rejected (visible to the participant)…"
+                value={rejectRationale}
+                onChange={(e) => setRejectRationale(e.target.value)}
+                className="min-h-[110px]"
+                maxLength={1000}
+              />
+              <p className="text-[10px] text-muted-foreground text-right">{rejectRationale.length}/1000</p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setRejectDialog(null); setRejectRationale(''); }}>Cancel</Button>
+            <Button
+              onClick={handleConfirmReject}
+              disabled={rejectingDispute || !rejectRationale.trim()}
+              className="bg-warning text-warning-foreground hover:bg-warning/90"
+            >
+              {rejectingDispute ? 'Rejecting…' : 'Confirm Reject'}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -112,21 +112,29 @@ serve(async (req) => {
       : `\n\n=== JUDGING SCOPE ===\nNo explicit scope was set. Interpret the category broadly across all relevant media (film, TV, video games, comics, anime, books, mythology, etc.) unless the title clearly limits it.\n`;
 
     // Build AI prompt for re-evaluation
-    const prompt = `You are an expert draft analyst for DH Bracket Club. You previously scored a pick in a "${draft.topic}"${draft.category ? ` (Category: ${draft.category})` : ""} draft.${ctxBlock}
+    const prompt = `You are an impartial draft judge for DH Bracket Club re-evaluating a single pick from a "${draft.topic}"${draft.category ? ` (Category: ${draft.category})` : ""} draft.${ctxBlock}
+
+CORE JUDGING PHILOSOPHY (NON-NEGOTIABLE):
+Judge this pick INDEPENDENTLY and IN A VACUUM. Score only on its standalone merit within the category. Do NOT penalize the pick for redundancy, similarity, lack of synergy, lack of variety, or lack of balance with the user's other picks. Do NOT penalize for draft "timing" or "slot value". Unless the JUDGING SCOPE above explicitly requires team-building / synergy, ignore the rest of the user's draft entirely.
 
 The pick: "${pick.pick_text}" (Round ${pick.round}, Pick #${pick.pick_number})
 
 Your original score: ${currentPickRating.score}/10
 Your original explanation: "${currentPickRating.explanation}"
 
-A participant has disputed this rating with the following reasoning:
+The participant has disputed this rating with the following reasoning:
 "${dispute.reason}"
 
-Please re-evaluate this pick considering their argument. Apply the same 8-factor evaluation framework (Category Fit, Standalone Strength, Draft Timing, Scarcity, Board Synergy, Upside vs Safety, Distinctiveness, Alternative Cost).
+Re-evaluate using only these factors:
+1. CATEGORY FIT — does it belong in this category as scoped?
+2. STANDALONE QUALITY — recognition, influence, impact, originality, consistency, cultural weight.
+3. DEFENSIBILITY — could a knowledgeable fan defend this as a strong category entrant?
+4. RANKING WITHIN THE CATEGORY — where does it sit vs. known top-tier candidates?
+5. VALIDITY — legitimate entrant for the category?
 
-If the dispute raises a valid point (e.g., factual error, overlooked quality, incorrect assumption), adjust the score accordingly. If the original rating was fair, you may keep it the same or make minor adjustments. Be honest and fair.
+If the dispute raises a valid point (factual error, overlooked quality, incorrect assumption about the category), adjust the score. If the original was fair, keep it or adjust slightly. Be honest. Frame the explanation around the pick itself — no commentary on the user's other picks, no "redundancy", no "synergy", no "slot value".
 
-IMPORTANT: Score using tenth-of-a-point precision (e.g. 7.3, 8.7, 6.1). Do NOT round to whole numbers or half-points.
+Score using tenth-of-a-point precision (e.g. 7.3, 8.7, 6.1). Do NOT round to whole or half-points.
 
 Use the re_evaluate_pick tool to return your updated assessment.`;
 
@@ -149,7 +157,7 @@ Use the re_evaluate_pick tool to return your updated assessment.`;
       body: JSON.stringify({
         model: "google/gemini-2.5-pro",
         messages: [
-          { role: "system", content: `Today's date is ${new Date().toISOString().split('T')[0]}. You are a fair draft competition judge. Evaluate all picks based on their current real-world status as of today — do not treat released content as unreleased. Re-evaluate picks when presented with valid arguments.` },
+          { role: "system", content: `Today's date is ${new Date().toISOString().split('T')[0]}. You are an impartial draft judge. Evaluate every pick independently and in a vacuum. Never penalize redundancy, similarity, lack of variety, or lack of synergy with the user's other picks. Score only on the pick's standalone strength, category fit, defensibility, and ranking within the category. Use today's real-world status — do not treat released content as unreleased.` },
           { role: "user", content: prompt },
         ],
         tools: [
