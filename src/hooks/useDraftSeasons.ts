@@ -218,6 +218,7 @@ export function useAllSeasons() {
       const { data } = await supabase
         .from('draft_seasons' as any)
         .select('*')
+        .order('season_number', { ascending: false, nullsFirst: false })
         .order('starts_at', { ascending: false });
       setSeasons((data || []) as unknown as DraftSeason[]);
       setLoading(false);
