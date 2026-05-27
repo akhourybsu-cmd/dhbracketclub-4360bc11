@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import { DraftArenaHUD } from './DraftArenaHUD';
 import { DraftArenaBoot } from './DraftArenaBoot';
+import { DraftSeasonWelcomeController } from './DraftSeasonWelcomeController';
 
 /**
  * Full-screen standalone shell for the Draft Arena. Applies the `.da-mode`
@@ -24,6 +25,8 @@ export function DraftArenaLayout({ children }: { children: ReactNode }) {
       </main>
 
       <DraftArenaBoot />
+      <DraftSeasonWelcomeController />
     </div>
   );
 }
+

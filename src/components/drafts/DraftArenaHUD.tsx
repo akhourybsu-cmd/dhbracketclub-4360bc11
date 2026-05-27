@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useLocation, useNavigate, Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Trophy } from 'lucide-react';
+import { ArrowLeft, Info, Trophy } from 'lucide-react';
 import draftEmblem from '@/assets/draft-emblem.png';
 import { useCurrentSeason } from '@/hooks/useDraftSeasons';
 import { DraftArenaExitDialog } from './DraftArenaExitDialog';
+import { openSeasonWelcome } from './seasonWelcomeBus';
+
 
 /**
  * Sticky in-game HUD for the Draft Arena standalone shell.
@@ -80,9 +82,26 @@ export function DraftArenaHUD() {
           </Link>
 
           {seasonChip && (
-            <span className="da-hud-chip h-9 px-2.5 rounded-lg flex items-center text-[11px] font-black tabular-nums uppercase">
+            <button
+              type="button"
+              onClick={openSeasonWelcome}
+              aria-label={`Season info — ${seasonChip}`}
+              className="da-hud-chip h-9 px-2.5 rounded-lg flex items-center gap-1.5 text-[11px] font-black tabular-nums uppercase btn-press"
+            >
+              <Info className="w-3.5 h-3.5 opacity-80" />
               {seasonChip}
-            </span>
+            </button>
+          )}
+
+          {!seasonChip && season && (
+            <button
+              type="button"
+              onClick={openSeasonWelcome}
+              aria-label="Season info"
+              className="da-hud-action w-9 h-9 rounded-lg flex items-center justify-center btn-press"
+            >
+              <Info className="w-4 h-4" />
+            </button>
           )}
 
           {!isHub && (
@@ -94,6 +113,7 @@ export function DraftArenaHUD() {
               <Trophy className="w-4 h-4" />
             </Link>
           )}
+
         </div>
       </header>
 
