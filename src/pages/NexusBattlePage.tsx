@@ -126,6 +126,7 @@ export default function NexusBattlePage() {
   useEffect(() => {
     if (!mission) return;
     const flush = () => {
+      if (clearedRef.current) return;
       const cur = stateRef.current;
       if (cur) saveBattle(user?.id, mission.id, abilities, cur);
     };
