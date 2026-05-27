@@ -97,6 +97,10 @@ export default function NexusBattlePage() {
   const prevStatusRef = useRef<BattleState['status']>('pre');
   const prevAbilityCdRef = useRef<Record<AbilityKind, number>>({ orbital: -1, emp: -1 });
   const lastSaveAtRef = useRef(0);
+  // Once a run is abandoned (or otherwise terminally cleared), suppress all
+  // further checkpoint writes so the unmount/blur flush can't resurrect the
+  // saved key we just deleted.
+  const clearedRef = useRef(false);
 
   // Game loop
   useEffect(() => {
@@ -109,7 +113,7 @@ export default function NexusBattlePage() {
       setState(next);
       // Throttled checkpoint so a tab-close keeps progress within ~1.5s.
       const now = Date.now();
-      if (now - lastSaveAtRef.current >= SAVE_THROTTLE_MS) {
+      if (!clearedRef.current && now - lastSaveAtRef.current >= SAVE_THROTTLE_MS) {
         lastSaveAtRef.current = now;
         saveBattle(user?.id, mission.id, abilities, next);
       }
@@ -122,6 +126,7 @@ export default function NexusBattlePage() {
   useEffect(() => {
     if (!mission) return;
     const flush = () => {
+      if (clearedRef.current) return;
       const cur = stateRef.current;
       if (cur) saveBattle(user?.id, mission.id, abilities, cur);
     };
@@ -185,7 +190,8 @@ export default function NexusBattlePage() {
     if (!state || !mission || savedRef.current) return;
     if (state.status === 'victory' || state.status === 'defeat') {
       savedRef.current = true;
-      // Run is terminal — drop any in-flight checkpoint.
+      // Run is terminal — drop any in-flight checkpoint and lock out future saves.
+      clearedRef.current = true;
       clearBattle(user?.id, mission.id);
       const won = state.status === 'victory';
       const endless = isEndlessMission(mission.id);
@@ -571,6 +577,7 @@ export default function NexusBattlePage() {
             <AlertDialogCancel>Keep playing</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
+                clearedRef.current = true;
                 if (mission) clearBattle(user?.id, mission.id);
                 navigate('/nexus');
               }}
