@@ -135,6 +135,10 @@ export default function DraftDetailPage() {
   const [disputeReason, setDisputeReason] = useState('');
   const [submittingDispute, setSubmittingDispute] = useState(false);
   const [resolvingDisputeId, setResolvingDisputeId] = useState<string | null>(null);
+  const [rejectDialog, setRejectDialog] = useState<{ id: string; pickText: string; reason: string } | null>(null);
+  const [rejectRationale, setRejectRationale] = useState('');
+  const [rejectingDispute, setRejectingDispute] = useState(false);
+  const [expandedRationales, setExpandedRationales] = useState<Set<string>>(new Set());
   const pickIds = picks.map(p => p.id);
   const freshPickIds = useFirstSeen(pickIds);
   const { enrichments, loading: enrichmentsLoading, fetchEnrichments } = useItemEnrichments(pickIds, 'draft_pick');
