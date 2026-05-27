@@ -328,7 +328,7 @@ export default function DraftDetailPage() {
     try {
       const { error } = await supabase
         .from('draft_pick_disputes' as any)
-        .update({ status: 'dismissed', resolved_at: new Date().toISOString() } as any)
+        .update({ status: 'dismissed', resolved_at: new Date().toISOString(), resolved_by: user?.id } as any)
         .eq('id', disputeId);
       if (error) throw error;
       toast.success('Dispute dismissed');
@@ -336,6 +336,40 @@ export default function DraftDetailPage() {
     } catch (err: any) {
       toast.error(err.message || 'Failed to dismiss dispute');
     }
+  };
+
+  const handleConfirmReject = async () => {
+    if (!rejectDialog || !rejectRationale.trim()) return;
+    setRejectingDispute(true);
+    try {
+      const { error } = await supabase
+        .from('draft_pick_disputes' as any)
+        .update({
+          status: 'rejected',
+          resolved_at: new Date().toISOString(),
+          resolved_by: user?.id,
+          commissioner_rationale: rejectRationale.trim(),
+        } as any)
+        .eq('id', rejectDialog.id);
+      if (error) throw error;
+      toast.success('Dispute rejected');
+      setRejectDialog(null);
+      setRejectRationale('');
+      fetchDisputes();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to reject dispute');
+    } finally {
+      setRejectingDispute(false);
+    }
+  };
+
+  const toggleRationale = (id: string) => {
+    setExpandedRationales(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   };
 
 
