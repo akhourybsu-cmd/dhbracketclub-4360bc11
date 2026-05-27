@@ -10,6 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { useCountUp } from '@/lib/draft/animations';
 import { useDraftStatsHub } from '@/hooks/useDraftStatsHub';
+import { formatSeasonTitle } from '@/hooks/useDraftSeasons';
 import {
   filterDatasetByScope,
   computeUserAggregate,
