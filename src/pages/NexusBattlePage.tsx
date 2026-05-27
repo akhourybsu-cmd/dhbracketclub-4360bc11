@@ -113,7 +113,7 @@ export default function NexusBattlePage() {
       setState(next);
       // Throttled checkpoint so a tab-close keeps progress within ~1.5s.
       const now = Date.now();
-      if (now - lastSaveAtRef.current >= SAVE_THROTTLE_MS) {
+      if (!clearedRef.current && now - lastSaveAtRef.current >= SAVE_THROTTLE_MS) {
         lastSaveAtRef.current = now;
         saveBattle(user?.id, mission.id, abilities, next);
       }
