@@ -6,8 +6,10 @@ import { useAuth } from '@/contexts/AuthContext';
 export interface DraftSeason {
   id: string;
   name: string;
-  year: number;
-  season_label: string;
+  year: number | null;
+  season_label: string | null;
+  season_number: number | null;
+  subtitle: string | null;
   starts_at: string;
   ends_at: string;
   status: string;
@@ -27,6 +29,27 @@ export interface DraftSeason {
     finals?: Array<{ game: number; winner: string; draft_id: string | null }>;
     third_place_match_id?: string | null;
   } | null;
+}
+
+/**
+ * Display helper: "Season {N}" when season_number is set, else fall back to the
+ * stored name (preserves legacy custom-named seasons).
+ */
+export function formatSeasonTitle(s: Pick<DraftSeason, 'season_number' | 'name'> | null | undefined): string {
+  if (!s) return '';
+  if (typeof s.season_number === 'number' && s.season_number > 0) return `Season ${s.season_number}`;
+  return s.name || '';
+}
+
+/** Short chip label, e.g. "S4". Falls back to legacy formatting. */
+export function formatSeasonChip(
+  s: Pick<DraftSeason, 'season_number' | 'season_label' | 'year'> | null | undefined,
+): string | null {
+  if (!s) return null;
+  if (typeof s.season_number === 'number' && s.season_number > 0) return `S${s.season_number}`;
+  if (s.season_label) return s.season_label;
+  if (s.year) return `'${String(s.year).slice(-2)}`;
+  return null;
 }
 
 export interface SeasonStanding {
