@@ -173,7 +173,7 @@ export function DraftSeasonWelcome({ open, season, intro, isFirstView = false, o
                       className="w-full flex items-center gap-3 p-4 btn-press text-left min-h-[56px]"
                     >
                       <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                        <Icon className="w-4.5 h-4.5 text-primary" />
+                        <Icon className="w-4 h-4 text-primary" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-[14px] font-bold leading-tight">{s.title}</p>
