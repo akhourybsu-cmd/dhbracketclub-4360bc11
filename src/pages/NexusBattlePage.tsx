@@ -190,7 +190,8 @@ export default function NexusBattlePage() {
     if (!state || !mission || savedRef.current) return;
     if (state.status === 'victory' || state.status === 'defeat') {
       savedRef.current = true;
-      // Run is terminal — drop any in-flight checkpoint.
+      // Run is terminal — drop any in-flight checkpoint and lock out future saves.
+      clearedRef.current = true;
       clearBattle(user?.id, mission.id);
       const won = state.status === 'victory';
       const endless = isEndlessMission(mission.id);
