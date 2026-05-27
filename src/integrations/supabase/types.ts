@@ -1169,6 +1169,48 @@ export type Database = {
           },
         ]
       }
+      draft_season_acknowledgements: {
+        Row: {
+          acknowledged_at: string
+          club_id: string
+          created_at: string
+          id: string
+          season_id: string
+          user_id: string
+        }
+        Insert: {
+          acknowledged_at?: string
+          club_id: string
+          created_at?: string
+          id?: string
+          season_id: string
+          user_id: string
+        }
+        Update: {
+          acknowledged_at?: string
+          club_id?: string
+          created_at?: string
+          id?: string
+          season_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "draft_season_acknowledgements_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "draft_season_acknowledgements_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "draft_seasons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       draft_season_entries: {
         Row: {
           club_id: string
@@ -1219,6 +1261,81 @@ export type Database = {
             foreignKeyName: "draft_season_entries_season_id_fkey"
             columns: ["season_id"]
             isOneToOne: false
+            referencedRelation: "draft_seasons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      draft_season_intros: {
+        Row: {
+          ai_judging_notes: Json
+          call_to_action_label: string
+          changes: Json
+          club_id: string
+          commissioner_message: string | null
+          created_at: string
+          dispute_notes: Json
+          hero_summary: string | null
+          id: string
+          important_dates: Json
+          is_active: boolean
+          scoring_notes: Json
+          season_format: Json
+          season_id: string
+          season_subtitle: string | null
+          season_theme: string | null
+          updated_at: string
+        }
+        Insert: {
+          ai_judging_notes?: Json
+          call_to_action_label?: string
+          changes?: Json
+          club_id: string
+          commissioner_message?: string | null
+          created_at?: string
+          dispute_notes?: Json
+          hero_summary?: string | null
+          id?: string
+          important_dates?: Json
+          is_active?: boolean
+          scoring_notes?: Json
+          season_format?: Json
+          season_id: string
+          season_subtitle?: string | null
+          season_theme?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ai_judging_notes?: Json
+          call_to_action_label?: string
+          changes?: Json
+          club_id?: string
+          commissioner_message?: string | null
+          created_at?: string
+          dispute_notes?: Json
+          hero_summary?: string | null
+          id?: string
+          important_dates?: Json
+          is_active?: boolean
+          scoring_notes?: Json
+          season_format?: Json
+          season_id?: string
+          season_subtitle?: string | null
+          season_theme?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "draft_season_intros_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "draft_season_intros_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: true
             referencedRelation: "draft_seasons"
             referencedColumns: ["id"]
           },
