@@ -427,22 +427,38 @@ export async function recalculateSeasonStandings(seasonId: string) {
   }
 }
 
-/** Create a new season (draft-count based) */
+/** Create a new season (draft-count based). Auto-assigns the next per-club season_number. */
 export async function createSeason(params: {
-  name: string;
-  year: number;
-  seasonLabel: string;
   startsAt: string;
   endsAt: string;
+  subtitle?: string | null;
   regularSeasonDrafts?: number;
   bestOf?: number;
 }) {
+  // Resolve current user's club to compute next season_number per club.
+  const { data: clubRow } = await supabase.rpc('current_user_club_id' as any);
+  const clubId = (clubRow as unknown as string) || null;
+
+  let nextNumber = 1;
+  if (clubId) {
+    const { data: maxRow } = await supabase
+      .from('draft_seasons' as any)
+      .select('season_number')
+      .eq('club_id', clubId)
+      .order('season_number', { ascending: false, nullsFirst: false })
+      .limit(1);
+    const cur = (maxRow && (maxRow as any[])[0]?.season_number) as number | null | undefined;
+    nextNumber = (cur || 0) + 1;
+  }
+
+  const cleanSubtitle = (params.subtitle || '').trim() || null;
+
   const { data, error } = await supabase
     .from('draft_seasons' as any)
     .insert({
-      name: params.name,
-      year: params.year,
-      season_label: params.seasonLabel,
+      name: `Season ${nextNumber}`,
+      season_number: nextNumber,
+      subtitle: cleanSubtitle,
       starts_at: params.startsAt,
       ends_at: params.endsAt,
       regular_season_drafts: params.regularSeasonDrafts || 12,
