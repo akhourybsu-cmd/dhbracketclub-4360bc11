@@ -934,6 +934,7 @@ export type Database = {
       draft_pick_disputes: {
         Row: {
           club_id: string
+          commissioner_rationale: string | null
           created_at: string
           draft_id: string
           id: string
@@ -941,11 +942,13 @@ export type Database = {
           reason: string
           resolution: string | null
           resolved_at: string | null
+          resolved_by: string | null
           status: string
           user_id: string
         }
         Insert: {
           club_id?: string
+          commissioner_rationale?: string | null
           created_at?: string
           draft_id: string
           id?: string
@@ -953,11 +956,13 @@ export type Database = {
           reason: string
           resolution?: string | null
           resolved_at?: string | null
+          resolved_by?: string | null
           status?: string
           user_id: string
         }
         Update: {
           club_id?: string
+          commissioner_rationale?: string | null
           created_at?: string
           draft_id?: string
           id?: string
@@ -965,6 +970,7 @@ export type Database = {
           reason?: string
           resolution?: string | null
           resolved_at?: string | null
+          resolved_by?: string | null
           status?: string
           user_id?: string
         }
