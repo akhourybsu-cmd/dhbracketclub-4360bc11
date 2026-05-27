@@ -1769,42 +1769,90 @@ export default function DraftDetailPage() {
                             )}
                             <div className="divide-y divide-border/15 border-t border-border/25">
                               {pickRatings.map((pr) => {
-                                const pickDisputes = disputes.filter(d => d.pick_id === pr.pick_id && d.status === 'pending');
+                                const pickAllDisputes = disputes.filter(d => d.pick_id === pr.pick_id);
+                                const pendingDispute = pickAllDisputes.find(d => d.status === 'pending');
+                                // Latest non-pending dispute for status pill (rejected/resolved/dismissed)
+                                const latestClosed = pickAllDisputes
+                                  .filter(d => d.status !== 'pending')
+                                  .sort((a, b) => (b.resolved_at || b.created_at || '').localeCompare(a.resolved_at || a.created_at || ''))[0];
+                                const rejectedDispute = pickAllDisputes.find(d => d.status === 'rejected' && d.commissioner_rationale);
+                                const rationaleOpen = rejectedDispute ? expandedRationales.has(rejectedDispute.id) : false;
                                 return (
-                                <div key={pr.pick_id} className="px-4 py-2.5 flex items-start gap-3">
-                                  <div className={cn(
-                                    "flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center text-[12px] font-extrabold border",
-                                    pr.score >= 8 && "bg-gold/15 text-gold border-gold/40",
-                                    pr.score >= 6 && pr.score < 8 && "bg-success/15 text-success border-success/30",
-                                    pr.score >= 4 && pr.score < 6 && "bg-warning/15 text-warning border-warning/30",
-                                    pr.score < 4 && "bg-destructive/15 text-destructive border-destructive/30",
-                                  )}>
-                                    {pr.score.toFixed(1)}
+                                <div key={pr.pick_id} className="px-4 py-2.5">
+                                  <div className="flex items-start gap-3">
+                                    <div className={cn(
+                                      "flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center text-[12px] font-extrabold border",
+                                      pr.score >= 8 && "bg-gold/15 text-gold border-gold/40",
+                                      pr.score >= 6 && pr.score < 8 && "bg-success/15 text-success border-success/30",
+                                      pr.score >= 4 && pr.score < 6 && "bg-warning/15 text-warning border-warning/30",
+                                      pr.score < 4 && "bg-destructive/15 text-destructive border-destructive/30",
+                                    )}>
+                                      {pr.score.toFixed(1)}
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <p className="text-[12px] font-semibold">{pr.pick_text}</p>
+                                      <p className="text-[10px] text-muted-foreground/70 mt-0.5">{pr.explanation}</p>
+                                      {(pendingDispute || latestClosed) && (
+                                        <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                                          {pendingDispute && (
+                                            <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-5 border-warning/60 text-warning bg-warning/10">
+                                              Disputed
+                                            </Badge>
+                                          )}
+                                          {!pendingDispute && latestClosed?.status === 'resolved' && (
+                                            <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-5 border-success/60 text-success bg-success/10">
+                                              Dispute Resolved
+                                            </Badge>
+                                          )}
+                                          {!pendingDispute && latestClosed?.status === 'dismissed' && (
+                                            <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-5 border-muted-foreground/40 text-muted-foreground bg-muted/30">
+                                              Dispute Dismissed
+                                            </Badge>
+                                          )}
+                                          {!pendingDispute && latestClosed?.status === 'rejected' && (
+                                            <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-5 border-warning/50 text-warning bg-warning/5">
+                                              Dispute Rejected
+                                            </Badge>
+                                          )}
+                                          {rejectedDispute && (
+                                            <button
+                                              onClick={(e) => { e.stopPropagation(); toggleRationale(rejectedDispute.id); }}
+                                              className="text-[9px] font-semibold text-muted-foreground/80 hover:text-foreground underline-offset-2 hover:underline"
+                                            >
+                                              {rationaleOpen ? 'Hide' : 'View'} Commissioner Rationale
+                                            </button>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                    <div className="flex items-center gap-1 flex-shrink-0">
+                                      {isParticipant && !pendingDispute && (
+                                        <button
+                                          onClick={(e) => { e.stopPropagation(); setDisputeDialogPick(pr); }}
+                                          className="p-2.5 -m-1 rounded-md text-muted-foreground/40 hover:text-warning active:text-warning transition-colors"
+                                          aria-label="Dispute this rating"
+                                        >
+                                          <Flag className="w-3.5 h-3.5" />
+                                        </button>
+                                      )}
+                                    </div>
                                   </div>
-                                  <div className="min-w-0 flex-1">
-                                    <p className="text-[12px] font-semibold">{pr.pick_text}</p>
-                                    <p className="text-[10px] text-muted-foreground/70 mt-0.5">{pr.explanation}</p>
-                                  </div>
-                                  <div className="flex items-center gap-1 flex-shrink-0">
-                                    {pickDisputes.length > 0 && (
-                                      <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-5 border-warning text-warning">
-                                        Disputed
-                                      </Badge>
-                                    )}
-                                    {isParticipant && (
-                                      <button
-                                        onClick={(e) => { e.stopPropagation(); setDisputeDialogPick(pr); }}
-                                        className="p-2.5 -m-1 rounded-md text-muted-foreground/40 hover:text-warning active:text-warning transition-colors"
-                                        aria-label="Dispute this rating"
-                                      >
-                                        <Flag className="w-3.5 h-3.5" />
-                                      </button>
-                                    )}
-                                  </div>
+                                  {rejectedDispute && rationaleOpen && (
+                                    <div className="mt-2 ml-12 p-2.5 rounded-lg bg-muted/40 border border-border/40">
+                                      <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/70 mb-1">
+                                        Commissioner Rationale
+                                      </p>
+                                      <p className="text-[11px] leading-snug whitespace-pre-wrap">{rejectedDispute.commissioner_rationale}</p>
+                                      {rejectedDispute.reason && (
+                                        <p className="text-[9px] text-muted-foreground/60 mt-2 italic">Original dispute: "{rejectedDispute.reason}"</p>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
                                 );
                               })}
                             </div>
+
                           </motion.div>
                         )}
                       </AnimatePresence>
