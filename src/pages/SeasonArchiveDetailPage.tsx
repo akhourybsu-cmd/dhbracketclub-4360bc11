@@ -9,6 +9,7 @@ import {
   usePlayoffMatches,
   useProfilesByIds,
   getSeasonDraftTarget,
+  formatSeasonTitle,
 } from '@/hooks/useDraftSeasons';
 import { SeasonPodium } from '@/components/draft/SeasonPodium';
 import { getPlayoffRoundLabel } from '@/lib/seasonUtils';
