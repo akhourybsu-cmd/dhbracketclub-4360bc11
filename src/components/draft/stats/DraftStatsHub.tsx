@@ -540,7 +540,14 @@ export default function DraftStatsHub() {
   const nickname = useMemo(() => (agg && pq && timing) ? computeIdentity(agg, pq, timing) : 'Drafter', [agg, pq, timing]);
 
   const seasonChips = useMemo(() =>
-    [...dataset.seasons].sort((a, b) => b.starts_at.localeCompare(a.starts_at)).map(s => ({ id: s.id, name: s.name })),
+    [...dataset.seasons]
+      .sort((a, b) => {
+        const an = a.season_number ?? -1;
+        const bn = b.season_number ?? -1;
+        if (an !== bn) return bn - an;
+        return b.starts_at.localeCompare(a.starts_at);
+      })
+      .map(s => ({ id: s.id, name: formatSeasonTitle({ season_number: s.season_number, name: s.name }) })),
     [dataset.seasons],
   );
 
