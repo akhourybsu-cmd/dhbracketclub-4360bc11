@@ -131,8 +131,11 @@ function SeasonCard({
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 mb-1">
-                <h3 className="font-extrabold text-[14px] truncate">{season.name}</h3>
+                <h3 className="font-extrabold text-[14px] truncate">{formatSeasonTitle(season)}</h3>
               </div>
+              {season.subtitle && (
+                <p className="text-[11px] font-semibold text-muted-foreground/80 truncate mb-1">{season.subtitle}</p>
+              )}
               <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/70 font-medium">
                 <Calendar className="w-2.5 h-2.5" />
                 <span>
