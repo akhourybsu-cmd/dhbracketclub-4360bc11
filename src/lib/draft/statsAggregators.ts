@@ -40,6 +40,8 @@ export interface StatsDraft {
 export interface StatsSeason {
   id: string;
   name: string;
+  season_number: number | null;
+  subtitle: string | null;
   status: string;
   starts_at: string;
   champion_user_id: string | null;
