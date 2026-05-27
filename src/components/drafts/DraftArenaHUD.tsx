@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useLocation, useNavigate, Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Info, Trophy } from 'lucide-react';
 import draftEmblem from '@/assets/draft-emblem.png';
-import { useCurrentSeason } from '@/hooks/useDraftSeasons';
+import { useCurrentSeason, formatSeasonChip } from '@/hooks/useDraftSeasons';
 import { DraftArenaExitDialog } from './DraftArenaExitDialog';
 import { openSeasonWelcome } from './seasonWelcomeBus';
 
@@ -32,10 +32,8 @@ export function DraftArenaHUD() {
     return 'Draft Arena';
   })();
 
-  // Season chip — short tag (uses season_label like "S4" if available, else year)
-  const seasonChip = season
-    ? (season.season_label || (season.year ? `'${String(season.year).slice(-2)}` : null))
-    : null;
+  // Season chip — short tag (e.g. "S4")
+  const seasonChip = formatSeasonChip(season);
 
   const handleBack = () => {
     if (isHub) {

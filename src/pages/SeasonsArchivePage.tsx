@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Trophy, ArrowLeft, ChevronRight, Archive, Sparkles, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
-import { useAllSeasons, useProfilesByIds, type DraftSeason } from '@/hooks/useDraftSeasons';
+import { useAllSeasons, useProfilesByIds, formatSeasonTitle, type DraftSeason } from '@/hooks/useDraftSeasons';
 import { cn } from '@/lib/utils';
 
 const STATUS_PRESET: Record<string, { label: string; cls: string; live: boolean }> = {
@@ -131,8 +131,11 @@ function SeasonCard({
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 mb-1">
-                <h3 className="font-extrabold text-[14px] truncate">{season.name}</h3>
+                <h3 className="font-extrabold text-[14px] truncate">{formatSeasonTitle(season)}</h3>
               </div>
+              {season.subtitle && (
+                <p className="text-[11px] font-semibold text-muted-foreground/80 truncate mb-1">{season.subtitle}</p>
+              )}
               <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/70 font-medium">
                 <Calendar className="w-2.5 h-2.5" />
                 <span>

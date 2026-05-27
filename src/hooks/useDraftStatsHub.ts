@@ -31,7 +31,7 @@ export function useDraftStatsHub() {
           q<any[]>(supabase.from('draft_picks').select('id, draft_id, user_id, round, pick_number, pick_text, picked_at') as any, 'draft_picks'),
           q<any[]>(supabase.from('draft_results' as any).select('id, draft_id, user_id, rank, total_score, points_awarded, pick_ratings') as any, 'draft_results'),
           q<any[]>(supabase.from('drafts').select('id, topic, category, created_by, created_at, num_rounds, status') as any, 'drafts'),
-          q<any[]>(supabase.from('draft_seasons' as any).select('id, name, status, starts_at, champion_user_id, runner_up_user_id, third_place_user_id, regular_season_champion_user_id') as any, 'draft_seasons'),
+          q<any[]>(supabase.from('draft_seasons' as any).select('id, name, season_number, subtitle, status, starts_at, champion_user_id, runner_up_user_id, third_place_user_id, regular_season_champion_user_id') as any, 'draft_seasons'),
           q<any[]>(supabase.from('draft_season_standings' as any).select('season_id, user_id, season_points, drafts_played, wins, podiums, avg_finish, avg_score, best_score, worst_score, consistency, rank, playoff_seed') as any, 'draft_season_standings'),
           q<any[]>(supabase.from('draft_playoff_matches' as any).select('season_id, round, winner_user_id, user_a, user_b') as any, 'draft_playoff_matches'),
           q<any[]>(supabase.from('draft_season_entries' as any).select('season_id, draft_id, is_playoff') as any, 'draft_season_entries'),

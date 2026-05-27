@@ -31,6 +31,7 @@ import {
   suggestPlayoffTopics,
   startPlayoffMatch,
   getSeasonDraftTarget,
+  formatSeasonTitle,
   type SeasonStanding,
   type PlayoffMatch,
 } from '@/hooks/useDraftSeasons';
@@ -86,7 +87,10 @@ function SeasonHeaderCard({ season, entries }: { season: any; entries: any[] }) 
           <div className="relative z-10 p-5 pb-4">
             <div className="flex items-start justify-between mb-3">
               <div>
-                <h2 className="font-extrabold text-xl tracking-tight leading-tight">{season.name}</h2>
+                <h2 className="font-extrabold text-xl tracking-tight leading-tight">{formatSeasonTitle(season)}</h2>
+                {season.subtitle && (
+                  <p className="text-[12px] font-semibold text-muted-foreground/85 mt-0.5 leading-snug">{season.subtitle}</p>
+                )}
                 <p className="text-[11px] text-muted-foreground/70 mt-0.5">
                   {format(new Date(season.starts_at), 'MMM d')} — {format(new Date(season.ends_at), 'MMM d, yyyy')}
                 </p>
@@ -1193,12 +1197,13 @@ export default function DraftsListPage() {
           supabase.from('draft_participants').select('draft_id, user_id, pick_order, profiles:user_id(display_name)').in('draft_id', draftIds),
           supabase.from('draft_picks').select('draft_id').in('draft_id', draftIds),
           supabase.from('draft_season_entries' as any).select('draft_id, season_id').in('draft_id', draftIds),
-          supabase.from('draft_seasons' as any).select('id, name, starts_at, status').order('starts_at', { ascending: false }),
+          supabase.from('draft_seasons' as any).select('id, name, season_number, subtitle, starts_at, status').order('season_number', { ascending: false, nullsFirst: false }).order('starts_at', { ascending: false }),
         ]);
         // Build season-by-draft map and seasons list
         const seasonsById = new Map<string, { id: string; name: string; startsAt: string; status: string }>();
         (seasonsAll || []).forEach((s: any) => {
-          seasonsById.set(s.id, { id: s.id, name: s.name, startsAt: s.starts_at, status: s.status });
+          const display = formatSeasonTitle({ season_number: s.season_number, name: s.name });
+          seasonsById.set(s.id, { id: s.id, name: display, startsAt: s.starts_at, status: s.status });
         });
         const sbd = new Map<string, { seasonId: string; name: string; startsAt: string; status: string }>();
         (seasonEntriesAll || []).forEach((e: any) => {
@@ -1563,7 +1568,7 @@ export default function DraftsListPage() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-[13px] font-extrabold">Ready for the next season?</p>
-                          <p className="text-[10px] text-muted-foreground/70 mt-0.5 leading-snug">Archive {season.name} and open fresh standings.</p>
+                          <p className="text-[10px] text-muted-foreground/70 mt-0.5 leading-snug">Archive {formatSeasonTitle(season)} and open fresh standings.</p>
                         </div>
                         <button onClick={() => setStartNextOpen(true)}
                           className="h-9 px-3 rounded-lg text-[11px] font-extrabold btn-press flex items-center gap-1.5 flex-shrink-0"
@@ -1630,7 +1635,7 @@ export default function DraftsListPage() {
                   </div>
                   <div>
                     <p className="text-[11px] font-extrabold" style={{ color: 'hsl(var(--gold))' }}>Commissioner Tools</p>
-                    <p className="text-[10px] text-muted-foreground/70">{season.name}</p>
+                    <p className="text-[10px] text-muted-foreground/70">{formatSeasonTitle(season)}{season.subtitle ? ` · ${season.subtitle}` : ''}</p>
                   </div>
                 </div>
                 <CommissionerPanel season={season} entries={entries} onUpdate={handleSeasonUpdate} />
@@ -1657,7 +1662,7 @@ export default function DraftsListPage() {
                     <Sparkles className="w-5 h-5 flex-shrink-0" style={{ color: 'hsl(var(--gold))' }} />
                     <div className="flex-1 min-w-0">
                       <p className="text-[13px] font-extrabold">Start a new season?</p>
-                      <p className="text-[10px] text-muted-foreground/70 mt-0.5">Archive {season.name} and open fresh standings.</p>
+                      <p className="text-[10px] text-muted-foreground/70 mt-0.5">Archive {formatSeasonTitle(season)} and open fresh standings.</p>
                     </div>
                     <button onClick={() => setStartNextOpen(true)}
                       className="h-9 px-3 rounded-lg text-[11px] font-extrabold btn-press flex items-center gap-1.5 flex-shrink-0"

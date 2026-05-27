@@ -6,8 +6,10 @@ import { useAuth } from '@/contexts/AuthContext';
 export interface DraftSeason {
   id: string;
   name: string;
-  year: number;
-  season_label: string;
+  year: number | null;
+  season_label: string | null;
+  season_number: number | null;
+  subtitle: string | null;
   starts_at: string;
   ends_at: string;
   status: string;
@@ -27,6 +29,27 @@ export interface DraftSeason {
     finals?: Array<{ game: number; winner: string; draft_id: string | null }>;
     third_place_match_id?: string | null;
   } | null;
+}
+
+/**
+ * Display helper: "Season {N}" when season_number is set, else fall back to the
+ * stored name (preserves legacy custom-named seasons).
+ */
+export function formatSeasonTitle(s: Pick<DraftSeason, 'season_number' | 'name'> | null | undefined): string {
+  if (!s) return '';
+  if (typeof s.season_number === 'number' && s.season_number > 0) return `Season ${s.season_number}`;
+  return s.name || '';
+}
+
+/** Short chip label, e.g. "S4". Falls back to legacy formatting. */
+export function formatSeasonChip(
+  s: Pick<DraftSeason, 'season_number' | 'season_label' | 'year'> | null | undefined,
+): string | null {
+  if (!s) return null;
+  if (typeof s.season_number === 'number' && s.season_number > 0) return `S${s.season_number}`;
+  if (s.season_label) return s.season_label;
+  if (s.year) return `'${String(s.year).slice(-2)}`;
+  return null;
 }
 
 export interface SeasonStanding {
@@ -195,6 +218,7 @@ export function useAllSeasons() {
       const { data } = await supabase
         .from('draft_seasons' as any)
         .select('*')
+        .order('season_number', { ascending: false, nullsFirst: false })
         .order('starts_at', { ascending: false });
       setSeasons((data || []) as unknown as DraftSeason[]);
       setLoading(false);
@@ -403,22 +427,38 @@ export async function recalculateSeasonStandings(seasonId: string) {
   }
 }
 
-/** Create a new season (draft-count based) */
+/** Create a new season (draft-count based). Auto-assigns the next per-club season_number. */
 export async function createSeason(params: {
-  name: string;
-  year: number;
-  seasonLabel: string;
   startsAt: string;
   endsAt: string;
+  subtitle?: string | null;
   regularSeasonDrafts?: number;
   bestOf?: number;
 }) {
+  // Resolve current user's club to compute next season_number per club.
+  const { data: clubRow } = await supabase.rpc('current_user_club_id' as any);
+  const clubId = (clubRow as unknown as string) || null;
+
+  let nextNumber = 1;
+  if (clubId) {
+    const { data: maxRow } = await supabase
+      .from('draft_seasons' as any)
+      .select('season_number')
+      .eq('club_id', clubId)
+      .order('season_number', { ascending: false, nullsFirst: false })
+      .limit(1);
+    const cur = (maxRow && (maxRow as any[])[0]?.season_number) as number | null | undefined;
+    nextNumber = (cur || 0) + 1;
+  }
+
+  const cleanSubtitle = (params.subtitle || '').trim() || null;
+
   const { data, error } = await supabase
     .from('draft_seasons' as any)
     .insert({
-      name: params.name,
-      year: params.year,
-      season_label: params.seasonLabel,
+      name: `Season ${nextNumber}`,
+      season_number: nextNumber,
+      subtitle: cleanSubtitle,
       starts_at: params.startsAt,
       ends_at: params.endsAt,
       regular_season_drafts: params.regularSeasonDrafts || 12,
