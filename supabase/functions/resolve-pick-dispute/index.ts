@@ -157,7 +157,7 @@ Use the re_evaluate_pick tool to return your updated assessment.`;
       body: JSON.stringify({
         model: "google/gemini-2.5-pro",
         messages: [
-          { role: "system", content: `Today's date is ${new Date().toISOString().split('T')[0]}. You are a fair draft competition judge. Evaluate all picks based on their current real-world status as of today — do not treat released content as unreleased. Re-evaluate picks when presented with valid arguments.` },
+          { role: "system", content: `Today's date is ${new Date().toISOString().split('T')[0]}. You are an impartial draft judge. Evaluate every pick independently and in a vacuum. Never penalize redundancy, similarity, lack of variety, or lack of synergy with the user's other picks. Score only on the pick's standalone strength, category fit, defensibility, and ranking within the category. Use today's real-world status — do not treat released content as unreleased.` },
           { role: "user", content: prompt },
         ],
         tools: [
