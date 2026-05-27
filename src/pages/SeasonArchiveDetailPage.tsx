@@ -139,7 +139,7 @@ export default function SeasonArchiveDetailPage() {
             champion={champion}
             runnerUp={runnerUp}
             thirdPlace={thirdPlace}
-            seasonName={season.name}
+            seasonName={formatSeasonTitle(season)}
           />
         )}
 
