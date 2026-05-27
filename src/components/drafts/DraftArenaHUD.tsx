@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useLocation, useNavigate, Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Trophy } from 'lucide-react';
+import { ArrowLeft, Info, Trophy } from 'lucide-react';
 import draftEmblem from '@/assets/draft-emblem.png';
 import { useCurrentSeason } from '@/hooks/useDraftSeasons';
 import { DraftArenaExitDialog } from './DraftArenaExitDialog';
+import { openSeasonWelcome } from './seasonWelcomeBus';
+
 
 /**
  * Sticky in-game HUD for the Draft Arena standalone shell.
