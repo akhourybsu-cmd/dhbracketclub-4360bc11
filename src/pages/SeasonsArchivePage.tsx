@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Trophy, ArrowLeft, ChevronRight, Archive, Sparkles, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
-import { useAllSeasons, useProfilesByIds, type DraftSeason } from '@/hooks/useDraftSeasons';
+import { useAllSeasons, useProfilesByIds, formatSeasonTitle, type DraftSeason } from '@/hooks/useDraftSeasons';
 import { cn } from '@/lib/utils';
 
 const STATUS_PRESET: Record<string, { label: string; cls: string; live: boolean }> = {
