@@ -2130,6 +2130,44 @@ export default function DraftDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Reject Dispute Dialog */}
+      <Dialog open={!!rejectDialog} onOpenChange={(open) => { if (!open) { setRejectDialog(null); setRejectRationale(''); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject Dispute</DialogTitle>
+            <DialogDescription>
+              Provide a rationale that explains why this dispute is being rejected. It will be visible to the participant on their pick.
+            </DialogDescription>
+          </DialogHeader>
+          {rejectDialog && (
+            <div className="space-y-4">
+              <div className="da-subcard p-3">
+                <p className="text-[13px] font-semibold">{rejectDialog.pickText}</p>
+                <p className="text-[11px] text-muted-foreground mt-1 italic">User dispute: "{rejectDialog.reason}"</p>
+              </div>
+              <Textarea
+                placeholder="Explain why the dispute is being rejected (visible to the participant)…"
+                value={rejectRationale}
+                onChange={(e) => setRejectRationale(e.target.value)}
+                className="min-h-[110px]"
+                maxLength={1000}
+              />
+              <p className="text-[10px] text-muted-foreground text-right">{rejectRationale.length}/1000</p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setRejectDialog(null); setRejectRationale(''); }}>Cancel</Button>
+            <Button
+              onClick={handleConfirmReject}
+              disabled={rejectingDispute || !rejectRationale.trim()}
+              className="bg-warning text-warning-foreground hover:bg-warning/90"
+            >
+              {rejectingDispute ? 'Rejecting…' : 'Confirm Reject'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
