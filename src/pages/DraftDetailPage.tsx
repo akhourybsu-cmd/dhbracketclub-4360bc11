@@ -1861,26 +1861,30 @@ export default function DraftDetailPage() {
                 })}
               </div>
 
-              {/* Admin Dispute Resolution Panel */}
-              {isAppAdmin && disputes.filter(d => d.status === 'pending').length > 0 && (
+              {/* Commissioner Dispute Resolution Panel */}
+              {canManage && disputes.filter(d => d.status === 'pending').length > 0 && (
                 <div className="glass-card p-4 mt-4">
                   <h3 className="text-[13px] font-bold mb-3 flex items-center gap-2">
                     <Flag className="w-4 h-4 text-warning" /> Pending Disputes ({disputes.filter(d => d.status === 'pending').length})
                   </h3>
                   <div className="space-y-3">
                     {disputes.filter(d => d.status === 'pending').map(dispute => {
-                      // Find the pick text from results
                       const pickInfo = draftResults.flatMap(r => (r.pick_ratings as any[]).map((pr: any) => pr)).find((pr: any) => pr.pick_id === dispute.pick_id);
                       return (
                         <div key={dispute.id} className="da-subcard p-3 space-y-2">
                           <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0 flex-1">
                               <p className="text-[11px] font-semibold">{pickInfo?.pick_text || 'Unknown pick'}</p>
-                              <p className="text-[10px] text-muted-foreground">Current score: {pickInfo?.score?.toFixed(1) || '?'}</p>
+                              <p className="text-[10px] text-muted-foreground">
+                                {draft?.topic}{draft?.category ? ` · ${draft.category}` : ''} · Current score: {pickInfo?.score?.toFixed(1) || '?'}
+                              </p>
                             </div>
                           </div>
-                          <p className="text-[10px] text-muted-foreground/80 italic">"{dispute.reason}"</p>
-                          <div className="flex gap-2">
+                          {pickInfo?.explanation && (
+                            <p className="text-[10px] text-muted-foreground/70">AI rationale: {pickInfo.explanation}</p>
+                          )}
+                          <p className="text-[10px] text-muted-foreground/80 italic">User dispute: "{dispute.reason}"</p>
+                          <div className="flex flex-wrap gap-2">
                             <Button
                               size="sm"
                               onClick={() => handleResolveDispute(dispute.id)}
@@ -1888,9 +1892,9 @@ export default function DraftDetailPage() {
                               className="h-7 text-[10px] gap-1"
                             >
                               {resolvingDisputeId === dispute.id ? (
-                                <><RefreshCw className="w-3 h-3 animate-spin" /> Re-evaluating…</>
+                                <><RefreshCw className="w-3 h-3 animate-spin" /> Resolving…</>
                               ) : (
-                                <><Sparkles className="w-3 h-3" /> Re-evaluate</>
+                                <><Sparkles className="w-3 h-3" /> Resolve</>
                               )}
                             </Button>
                             <Button
@@ -1901,6 +1905,14 @@ export default function DraftDetailPage() {
                             >
                               Dismiss
                             </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => { setRejectDialog({ id: dispute.id, pickText: pickInfo?.pick_text || 'Unknown pick', reason: dispute.reason }); setRejectRationale(''); }}
+                              className="h-7 text-[10px] border-warning/50 text-warning hover:bg-warning/10"
+                            >
+                              Reject
+                            </Button>
                           </div>
                         </div>
                       );
@@ -1908,6 +1920,7 @@ export default function DraftDetailPage() {
                   </div>
                 </div>
               )}
+
 
               {/* Regenerate button — admin only */}
               {isAppAdmin && (
