@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useLocation, useNavigate, Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Info, Trophy } from 'lucide-react';
 import draftEmblem from '@/assets/draft-emblem.png';
-import { useCurrentSeason } from '@/hooks/useDraftSeasons';
+import { useCurrentSeason, formatSeasonChip } from '@/hooks/useDraftSeasons';
 import { DraftArenaExitDialog } from './DraftArenaExitDialog';
 import { openSeasonWelcome } from './seasonWelcomeBus';
 
