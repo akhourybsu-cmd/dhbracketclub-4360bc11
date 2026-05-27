@@ -97,6 +97,10 @@ export default function NexusBattlePage() {
   const prevStatusRef = useRef<BattleState['status']>('pre');
   const prevAbilityCdRef = useRef<Record<AbilityKind, number>>({ orbital: -1, emp: -1 });
   const lastSaveAtRef = useRef(0);
+  // Once a run is abandoned (or otherwise terminally cleared), suppress all
+  // further checkpoint writes so the unmount/blur flush can't resurrect the
+  // saved key we just deleted.
+  const clearedRef = useRef(false);
 
   // Game loop
   useEffect(() => {
