@@ -1197,12 +1197,13 @@ export default function DraftsListPage() {
           supabase.from('draft_participants').select('draft_id, user_id, pick_order, profiles:user_id(display_name)').in('draft_id', draftIds),
           supabase.from('draft_picks').select('draft_id').in('draft_id', draftIds),
           supabase.from('draft_season_entries' as any).select('draft_id, season_id').in('draft_id', draftIds),
-          supabase.from('draft_seasons' as any).select('id, name, starts_at, status').order('starts_at', { ascending: false }),
+          supabase.from('draft_seasons' as any).select('id, name, season_number, subtitle, starts_at, status').order('season_number', { ascending: false, nullsFirst: false }).order('starts_at', { ascending: false }),
         ]);
         // Build season-by-draft map and seasons list
         const seasonsById = new Map<string, { id: string; name: string; startsAt: string; status: string }>();
         (seasonsAll || []).forEach((s: any) => {
-          seasonsById.set(s.id, { id: s.id, name: s.name, startsAt: s.starts_at, status: s.status });
+          const display = formatSeasonTitle({ season_number: s.season_number, name: s.name });
+          seasonsById.set(s.id, { id: s.id, name: display, startsAt: s.starts_at, status: s.status });
         });
         const sbd = new Map<string, { seasonId: string; name: string; startsAt: string; status: string }>();
         (seasonEntriesAll || []).forEach((e: any) => {
