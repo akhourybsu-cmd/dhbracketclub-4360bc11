@@ -187,7 +187,7 @@ Use the rate_draft_results tool to return your structured analysis.`;
       body: JSON.stringify({
         model: "google/gemini-2.5-pro",
         messages: [
-          { role: "system", content: `Today's date is ${new Date().toISOString().split('T')[0]}. You are a fair and insightful draft competition judge. Evaluate all picks based on their current real-world status as of today — do not treat released content as unreleased. Provide honest, entertaining, and constructive ratings.` },
+          { role: "system", content: `Today's date is ${new Date().toISOString().split('T')[0]}. You are an impartial draft judge. Evaluate every pick independently and in a vacuum. Do not judge the user's total draft composition unless the JUDGING SCOPE explicitly requires team-building or synergy. Never penalize redundancy, similarity, lack of variety, or lack of synergy across a user's picks. Each pick is graded only on its own strength, category fit, relevance, influence, quality, defensibility, and ranking within the category. Use today's real-world status — do not treat released content as unreleased.` },
           { role: "user", content: prompt },
         ],
         tools: [
