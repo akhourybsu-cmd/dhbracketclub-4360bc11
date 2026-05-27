@@ -1,80 +1,63 @@
-## Phase 2: Cron Jobs + Server-Side Triggers + Remaining Client Triggers
+# Plan: Sequential "Season N" labeling with optional subtitle
 
-Building on the Phase 1 foundation (schema, edge fn, `notify()` helper, grouped prefs UI, initial client triggers), this phase fills the remaining gaps.
+## Goal
+Stop tying Draft Arena seasons to calendar quarters. Every season becomes **"Season {N}"** (auto-incremented per club, starting at 1) with an optional **subtitle** the user can set. Lists are ordered by season number, newest first.
 
-### 1. Scheduled reminder edge functions + cron jobs
+## Decisions confirmed
+- Numbering scope: **per club**
+- Sort order: **newest first** (Season 5 → 4 → 3 …)
+- Existing custom-named seasons: **leave as-is** (only new seasons follow the new format; backfill assigns numbers but does not rewrite names)
 
-All follow the `lockbox-daily-reminder` pattern: cron-secret-gated, fan-out via `send-push-notification`, expired-subscription cleanup, preference gating.
+## Database migration
 
-| Edge function | Cron schedule | Purpose |
-|---|---|---|
-| `events-reminder` | every 15 min | T-24h and T-1h pushes to RSVPs (tag `dh-event-<id>-24h`/`-1h`, dedupe via a `events_reminder_log` table) |
-| `polls-closing-reminder` | every 15 min | T-1h before `closes_at` + results broadcast on close |
-| `pickem-week-reminder` | every 30 min while a week is open | week-open broadcast + T-1h before first kickoff |
-| `celebrations-daily` | 08:00 UTC daily | today's birthdays/anniversaries broadcast |
-| `brackets-entry-reminder` | hourly | T-24h / T-1h before bracket lock |
+Add two columns to `public.draft_seasons`:
+- `season_number int` — sequential per `club_id`
+- `subtitle text` — nullable, user-provided tagline
 
-Each function:
-- Validates `x-cron-secret` against `CRON_SHARED_SECRET`.
-- Queries upcoming entities in window.
-- Skips users via per-type preference column.
-- Writes to a small `notification_sent_log(type, entity_id, variant, sent_at)` table to prevent duplicate sends.
-- Returns `{sent, skipped, expired}` summary.
+Steps:
+1. `ALTER TABLE public.draft_seasons ADD COLUMN season_number int, ADD COLUMN subtitle text`
+2. Backfill `season_number` per club using `row_number() OVER (PARTITION BY club_id ORDER BY starts_at ASC, created_at ASC)`
+3. Add `UNIQUE (club_id, season_number)` constraint
+4. Drop the existing `UNIQUE (year, season_label)` constraint (year/season_label columns remain for legacy data but are no longer required for new rows)
+5. Keep `year` / `season_label` nullable so future inserts can omit them
 
-Cron is registered via `supabase--insert` (not migration) per the schedule-jobs convention — contains project-specific URL/anon key.
+## Code changes
 
-### 2. Server-side triggers from edge functions
+**`src/hooks/useDraftSeasons.ts`**
+- Extend `DraftSeason` type with `season_number: number | null` and `subtitle: string | null`
+- Add helper `formatSeasonTitle(s)` → returns `"Season {n}"` when `season_number` is set, else falls back to `s.name`
+- Update `createSeason` params: drop required `year`/`seasonLabel`; accept `subtitle`; compute `season_number` = `max(season_number where club_id=…) + 1`
+- Update all season-list queries to `.order('season_number', { ascending: false, nullsFirst: false })` with `starts_at desc` as tiebreaker for legacy rows
 
-Add `send-push-notification` invocations to existing edge functions where the event originates server-side:
+**`src/components/draft/StartNextSeasonSheet.tsx`**
+- Remove the `LABEL_CYCLE` / year-slot scanning logic
+- Compute next season number from existing seasons
+- Replace the "Name" input with:
+  - A read-only display of **"Season {N}"** (the auto-assigned title)
+  - An optional **Subtitle** text input (placeholder e.g. "Rookie Year")
+- Pass `subtitle` (no year/label) into `createSeason`
 
-- **`rate-draft`** (already runs on draft finalize) — after writing results, fan out "Draft complete — see the podium" to all participants with `type: 'draft'`, `tag: dh-draft-<id>-complete`.
-- **`advance-playoffs`** — broadcast "Semifinal/Final scheduled" + "Season champion" pushes.
-- **`start-playoff-match`** — push to the two matched users.
-- **`resolve-pick-dispute`** — push the dispute-filer with approve/reject outcome.
-- **`score-nfl-week`** — broadcast "Week N results posted" to all pickem players.
-- **`pw-week-action`** — already gated on `portfolio_wars` pref (Phase 1); confirm copy + tags.
+**`src/components/drafts/DraftArenaHUD.tsx`**
+- Chip becomes `S{season_number}` instead of `season_label` / year fallback
 
-### 3. Remaining client-side triggers
+**Display surfaces — use `formatSeasonTitle` + show subtitle as secondary line**
+- `src/pages/SeasonsArchivePage.tsx` (card title + subtitle under it)
+- `src/pages/SeasonArchiveDetailPage.tsx` (page header)
+- `src/pages/DraftsListPage.tsx` (season banner, commissioner panels, archive prompts — multiple spots)
+- `src/components/draft/stats/DraftStatsHub.tsx` (season chips + selector dropdown)
 
-| Module | File | Trigger |
-|---|---|---|
-| Drafts | `CreateDraftPage.tsx` / `DraftsListPage.tsx` create flow | "New draft started — join now" to club |
-| Events | `EventsPage` cancel/reschedule path | "Event updated" to RSVPs |
-| Events | `EventDetailPage` thread insert | comment notify to RSVPs |
-| Posts | `PostDetailPage.tsx` reaction handler | reaction notify to post author |
-| Lore | `LoreReactionBar.tsx` | reaction notify to lore author |
-| Chat | channel-member-add path | "Added to a new channel" |
-| Chat | `toggle_message_pin` RPC caller | "Message pinned in #channel" |
-| Narrative | scene insert + `transition_narrative_campaign` | scene posted / approval state changes |
-| Nexus | `submit_operation_contribution` phase-advance branch + `award_operation_rewards` (server RPC → client follow-up push) | phase advanced / rewards ready |
-| Rune Delve | `useDailyChallenge` rotation + `detectMasteryUnlock` | daily available / mastery unlock |
-| Brackets | bracket scoring completion | scored broadcast |
-| Club admin | `upsert_club_request` caller | notify platform owners |
-| Changelog | ChatPage when posting in changelog channel | broadcast to club |
+**Ordering**
+- `useAllSeasons`, `useDraftSeasons` queries: order by `season_number desc`
+- Stats hub season selector list: sort by `season_number desc`
 
-All use the `notify()` helper from Phase 1.
+## Out of scope
+- Pick'em / NFL seasons (`nfl_seasons` table) — unrelated to Draft Arena seasons
+- Renaming any historical season records (preserved as-is per decision)
+- Any AI/judging logic
 
-### 4. Diagnostics
-
-- Lightweight `notification_sent_log` table (also doubles as dedupe for crons).
-- Add a "Notification activity (24h)" card to `AdminDiagnosticsPage` showing counts by `type`.
-
-### 5. Technical notes
-
-- DB-originated notifications (RPCs / triggers): use `pg_net.http_post` to call `send-push-notification` directly with `CRON_SHARED_SECRET` header, matching the lockbox pattern. No new queue table needed.
-- All edge-function pushes use `target_user_ids[]` fan-out — never per-user loops.
-- Tag convention preserved: `dh-<type>-<entityId>[-<variant>]`.
-- Every client trigger uses `.catch(() => {})` via `notify()` so push failures never block UX.
-- No new dependencies.
-
-### Execution order
-
-1. `notification_sent_log` table migration.
-2. Five reminder edge functions + cron registrations.
-3. Server-side push injections into existing edge functions.
-4. Remaining client triggers, module by module.
-5. AdminDiagnostics "Notification activity" card.
-
-### Out of scope (unchanged from Phase 1)
-
-Email, per-channel mute, quiet hours/DND, mobile native push.
+## Acceptance
+- New seasons created via "Start Next Season" sheet are titled exactly "Season {N}" with an optional subtitle line, no year/quarter prompts.
+- HUD chip shows `S{N}`.
+- Archive, Drafts list banner, Stats hub, and Detail header all show "Season {N}" (subtitle below when present) and are ordered Season N → 1.
+- Legacy seasons with custom names render their existing names but are slotted into the correct numeric position.
+- No existing draft results, league standings, or RLS behavior changes.

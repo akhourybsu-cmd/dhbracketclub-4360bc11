@@ -1439,13 +1439,15 @@ export type Database = {
           regular_season_drafts: number
           regular_season_weeks: number
           runner_up_user_id: string | null
-          season_label: string
+          season_label: string | null
+          season_number: number | null
           starts_at: string
           status: string
+          subtitle: string | null
           summary: Json | null
           third_place_user_id: string | null
           updated_at: string
-          year: number
+          year: number | null
         }
         Insert: {
           archived_at?: string | null
@@ -1462,13 +1464,15 @@ export type Database = {
           regular_season_drafts?: number
           regular_season_weeks?: number
           runner_up_user_id?: string | null
-          season_label: string
+          season_label?: string | null
+          season_number?: number | null
           starts_at: string
           status?: string
+          subtitle?: string | null
           summary?: Json | null
           third_place_user_id?: string | null
           updated_at?: string
-          year: number
+          year?: number | null
         }
         Update: {
           archived_at?: string | null
@@ -1485,13 +1489,15 @@ export type Database = {
           regular_season_drafts?: number
           regular_season_weeks?: number
           runner_up_user_id?: string | null
-          season_label?: string
+          season_label?: string | null
+          season_number?: number | null
           starts_at?: string
           status?: string
+          subtitle?: string | null
           summary?: Json | null
           third_place_user_id?: string | null
           updated_at?: string
-          year?: number
+          year?: number | null
         }
         Relationships: [
           {
