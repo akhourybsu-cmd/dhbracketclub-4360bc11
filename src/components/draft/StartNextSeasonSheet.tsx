@@ -1,13 +1,15 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Sparkles, Trophy, Users2, Swords, Loader2 } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 import {
   createSeason,
   setSeasonCommissioner,
+  formatSeasonTitle,
   type DraftSeason,
 } from '@/hooks/useDraftSeasons';
 import { useAuth } from '@/contexts/AuthContext';
@@ -19,78 +21,60 @@ interface Props {
   onCreated: () => void;
 }
 
-function suggestedDefaults(prev: DraftSeason) {
-  // Increment the trailing number in the previous season name if present
-  const m = prev.name.match(/^(.*?)(\d+)\s*$/);
-  const nextName = m ? `${m[1]}${parseInt(m[2], 10) + 1}` : `${prev.name} · Next`;
-
-  return {
-    name: nextName.trim(),
-    regularSeasonDrafts: prev.regular_season_drafts || 12,
-    bestOf: prev.best_of || 10,
-  };
-}
-
 export function StartNextSeasonSheet({ open, onOpenChange, previousSeason, onCreated }: Props) {
   const { user } = useAuth();
-  const defaults = useMemo(() => suggestedDefaults(previousSeason), [previousSeason]);
+  const prevTitle = formatSeasonTitle(previousSeason) || previousSeason.name;
 
-  const [name, setName] = useState(defaults.name);
-  const [regularSeasonDrafts, setRegularSeasonDrafts] = useState<number>(defaults.regularSeasonDrafts);
-  const [bestOf, setBestOf] = useState<number>(defaults.bestOf);
+  const [nextNumber, setNextNumber] = useState<number>(
+    (previousSeason.season_number ?? 0) + 1 || 1,
+  );
+  const [subtitle, setSubtitle] = useState<string>('');
+  const [regularSeasonDrafts, setRegularSeasonDrafts] = useState<number>(previousSeason.regular_season_drafts || 12);
+  const [bestOf, setBestOf] = useState<number>(previousSeason.best_of || 10);
   const [busy, setBusy] = useState(false);
 
-  // Reset form when re-opened with potentially new previous season
+  // Compute the next per-club season_number on open so the preview is accurate.
   useEffect(() => {
-    if (open) {
-      setName(defaults.name);
-      setRegularSeasonDrafts(defaults.regularSeasonDrafts);
-      setBestOf(defaults.bestOf);
-    }
-  }, [open, defaults]);
+    if (!open) return;
+    setSubtitle('');
+    setRegularSeasonDrafts(previousSeason.regular_season_drafts || 12);
+    setBestOf(previousSeason.best_of || 10);
+    (async () => {
+      try {
+        const { data: clubId } = await supabase.rpc('current_user_club_id' as any);
+        if (!clubId) return;
+        const { data } = await supabase
+          .from('draft_seasons' as any)
+          .select('season_number')
+          .eq('club_id', clubId as unknown as string)
+          .order('season_number', { ascending: false, nullsFirst: false })
+          .limit(1);
+        const cur = (data && (data as any[])[0]?.season_number) as number | null | undefined;
+        setNextNumber((cur || 0) + 1);
+      } catch {
+        // keep optimistic guess
+      }
+    })();
+  }, [open, previousSeason]);
+
+  const newTitle = `Season ${nextNumber}`;
 
   const handleSubmit = async () => {
-    if (!name.trim()) { toast.error('Season name required'); return; }
-    if (regularSeasonDrafts < 1 || regularSeasonDrafts > 50) { toast.error('Drafts must be between 1 and 50'); return; }
+    if (regularSeasonDrafts < 1 || regularSeasonDrafts > 50) {
+      toast.error('Drafts must be between 1 and 50');
+      return;
+    }
 
     setBusy(true);
     try {
-      // Seasons progress by completed-draft count, not calendar dates.
-      // We still satisfy NOT NULL schema columns with structural placeholders.
-      // The DB has a unique (year, season_label) constraint, so find the next
-      // available slot automatically — users no longer pick year/label.
       const now = new Date();
       const farFuture = new Date(now);
       farFuture.setFullYear(farFuture.getFullYear() + 1);
 
-      const LABEL_CYCLE: Array<'winter' | 'spring' | 'summer' | 'fall'> =
-        ['spring', 'summer', 'fall', 'winter'];
-      const { data: existing } = await (await import('@/integrations/supabase/client')).supabase
-        .from('draft_seasons' as any)
-        .select('year, season_label');
-      const taken = new Set(
-        ((existing as any[]) || []).map(r => `${r.year}::${r.season_label}`)
-      );
-      let chosenYear = now.getFullYear();
-      let chosenLabel: 'winter' | 'spring' | 'summer' | 'fall' = 'spring';
-      let found = false;
-      for (let yr = chosenYear; yr <= chosenYear + 25 && !found; yr++) {
-        for (const lbl of LABEL_CYCLE) {
-          if (!taken.has(`${yr}::${lbl}`)) {
-            chosenYear = yr;
-            chosenLabel = lbl;
-            found = true;
-            break;
-          }
-        }
-      }
-
       const created: any = await createSeason({
-        name: name.trim(),
-        year: chosenYear,
-        seasonLabel: chosenLabel,
         startsAt: now.toISOString(),
         endsAt: farFuture.toISOString(),
+        subtitle: subtitle.trim() || null,
         regularSeasonDrafts,
         bestOf,
       });
@@ -102,7 +86,8 @@ export function StartNextSeasonSheet({ open, onOpenChange, previousSeason, onCre
         catch (e) { console.warn('Could not set commissioner; continuing.', e); }
       }
 
-      toast.success(`${name.trim()} is live! 🏆`);
+      const title = created?.season_number ? `Season ${created.season_number}` : newTitle;
+      toast.success(`${title} is live! 🏆`);
       onOpenChange(false);
       onCreated();
     } catch (err: any) {
@@ -129,7 +114,7 @@ export function StartNextSeasonSheet({ open, onOpenChange, previousSeason, onCre
             <div className="text-left">
               <SheetTitle className="text-[16px] font-extrabold leading-tight">Start a New Season</SheetTitle>
               <p className="text-[11px] text-muted-foreground/70 font-medium mt-0.5">
-                Wraps {previousSeason.name} into the archive and opens fresh standings.
+                Wraps {prevTitle} into the archive and opens fresh standings.
               </p>
             </div>
           </div>
@@ -147,21 +132,45 @@ export function StartNextSeasonSheet({ open, onOpenChange, previousSeason, onCre
           >
             <Trophy className="w-4 h-4 flex-shrink-0" style={{ color: 'hsl(var(--gold))' }} />
             <p className="text-[11px] font-semibold leading-snug">
-              {previousSeason.name} stays archived with its podium, standings, and full bracket.
+              {prevTitle} stays archived with its podium, standings, and full bracket.
             </p>
           </div>
 
-          {/* Name */}
+          {/* Auto-assigned title */}
           <div className="space-y-1.5">
             <Label className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground/70">
-              Season Name
+              Season Title
+            </Label>
+            <div
+              className="h-11 px-3 rounded-md flex items-center text-[14px] font-extrabold tracking-tight"
+              style={{
+                background: 'hsl(var(--gold) / 0.08)',
+                border: '1px solid hsl(var(--gold) / 0.25)',
+                color: 'hsl(var(--gold))',
+              }}
+            >
+              {newTitle}
+            </div>
+            <p className="text-[10px] text-muted-foreground/60">
+              Seasons are numbered automatically for your club.
+            </p>
+          </div>
+
+          {/* Optional subtitle */}
+          <div className="space-y-1.5">
+            <Label className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground/70">
+              Subtitle <span className="text-muted-foreground/50 font-bold">(optional)</span>
             </Label>
             <Input
-              value={name}
-              onChange={e => setName(e.target.value)}
-              placeholder="Season 2"
+              value={subtitle}
+              onChange={e => setSubtitle(e.target.value.slice(0, 60))}
+              placeholder="e.g. Rookie Year, Summer Cup"
               className="h-11 text-[14px] font-bold"
+              maxLength={60}
             />
+            <p className="text-[10px] text-muted-foreground/60">
+              Shown as a tagline below the season title.
+            </p>
           </div>
 
           {/* Progression note (no dates — driven by draft count) */}
@@ -221,15 +230,15 @@ export function StartNextSeasonSheet({ open, onOpenChange, previousSeason, onCre
             <button
               onClick={handleSubmit}
               disabled={busy}
-              className="flex-[1.4] h-11 rounded-xl text-[12px] font-extrabold btn-press flex items-center justify-center gap-1.5 disabled:opacity-60"
+              className="flex-[2] h-11 rounded-xl text-[12px] font-extrabold btn-press flex items-center justify-center gap-2"
               style={{
-                background: 'linear-gradient(135deg, hsl(var(--gold) / 0.95), hsl(var(--gold) / 0.7))',
-                color: 'hsl(0 0% 8%)',
-                boxShadow: '0 6px 18px -6px hsl(var(--gold) / 0.5)',
+                background: 'linear-gradient(135deg, hsl(var(--gold)), hsl(var(--gold) / 0.85))',
+                color: 'hsl(var(--background))',
+                boxShadow: '0 6px 18px hsl(var(--gold) / 0.35)',
               }}
             >
               {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-              {busy ? 'Starting…' : 'Launch Season'}
+              {busy ? 'Starting…' : `Launch ${newTitle}`}
             </button>
           </div>
         </motion.div>
