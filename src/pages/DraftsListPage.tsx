@@ -1662,7 +1662,7 @@ export default function DraftsListPage() {
                     <Sparkles className="w-5 h-5 flex-shrink-0" style={{ color: 'hsl(var(--gold))' }} />
                     <div className="flex-1 min-w-0">
                       <p className="text-[13px] font-extrabold">Start a new season?</p>
-                      <p className="text-[10px] text-muted-foreground/70 mt-0.5">Archive {season.name} and open fresh standings.</p>
+                      <p className="text-[10px] text-muted-foreground/70 mt-0.5">Archive {formatSeasonTitle(season)} and open fresh standings.</p>
                     </div>
                     <button onClick={() => setStartNextOpen(true)}
                       className="h-9 px-3 rounded-lg text-[11px] font-extrabold btn-press flex items-center gap-1.5 flex-shrink-0"
