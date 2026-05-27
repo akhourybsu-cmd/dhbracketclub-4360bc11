@@ -87,7 +87,10 @@ function SeasonHeaderCard({ season, entries }: { season: any; entries: any[] }) 
           <div className="relative z-10 p-5 pb-4">
             <div className="flex items-start justify-between mb-3">
               <div>
-                <h2 className="font-extrabold text-xl tracking-tight leading-tight">{season.name}</h2>
+                <h2 className="font-extrabold text-xl tracking-tight leading-tight">{formatSeasonTitle(season)}</h2>
+                {season.subtitle && (
+                  <p className="text-[12px] font-semibold text-muted-foreground/85 mt-0.5 leading-snug">{season.subtitle}</p>
+                )}
                 <p className="text-[11px] text-muted-foreground/70 mt-0.5">
                   {format(new Date(season.starts_at), 'MMM d')} — {format(new Date(season.ends_at), 'MMM d, yyyy')}
                 </p>
