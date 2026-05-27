@@ -577,6 +577,7 @@ export default function NexusBattlePage() {
             <AlertDialogCancel>Keep playing</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
+                clearedRef.current = true;
                 if (mission) clearBattle(user?.id, mission.id);
                 navigate('/nexus');
               }}
