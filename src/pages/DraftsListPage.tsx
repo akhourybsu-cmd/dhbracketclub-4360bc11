@@ -1635,7 +1635,7 @@ export default function DraftsListPage() {
                   </div>
                   <div>
                     <p className="text-[11px] font-extrabold" style={{ color: 'hsl(var(--gold))' }}>Commissioner Tools</p>
-                    <p className="text-[10px] text-muted-foreground/70">{season.name}</p>
+                    <p className="text-[10px] text-muted-foreground/70">{formatSeasonTitle(season)}{season.subtitle ? ` · ${season.subtitle}` : ''}</p>
                   </div>
                 </div>
                 <CommissionerPanel season={season} entries={entries} onUpdate={handleSeasonUpdate} />
