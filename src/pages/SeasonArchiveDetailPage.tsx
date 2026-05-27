@@ -77,7 +77,7 @@ export default function SeasonArchiveDetailPage() {
         </Link>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-0.5">
-            <h1 className="font-extrabold text-lg truncate">{season.name}</h1>
+            <h1 className="font-extrabold text-lg truncate">{formatSeasonTitle(season)}</h1>
             {isComplete && (
               <span
                 className="text-[9px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded"
@@ -87,6 +87,9 @@ export default function SeasonArchiveDetailPage() {
               </span>
             )}
           </div>
+          {season.subtitle && (
+            <p className="text-[11px] font-semibold text-muted-foreground/85 truncate mb-0.5">{season.subtitle}</p>
+          )}
           <p className="text-[10px] text-muted-foreground/70 font-medium flex items-center gap-1">
             <Calendar className="w-2.5 h-2.5" />
             {format(new Date(season.starts_at), 'MMM d, yyyy')} —{' '}
