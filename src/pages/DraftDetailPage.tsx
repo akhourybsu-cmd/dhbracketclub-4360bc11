@@ -463,6 +463,27 @@ export default function DraftDetailPage() {
       return;
     }
 
+    // Ensure AI validation has completed for the current text before submitting.
+    // If a check hasn't run (or text changed after last check), flush it now.
+    if (suggestionPending || validatedText !== pickText.trim()) {
+      const result = await validateNow(pickText);
+      if (result?.is_duplicate) {
+        toast.error(result.relevance_note || 'This has already been picked!');
+        return;
+      }
+      if (result?.corrected_text) {
+        toast.error('Please accept or dismiss the spelling suggestion first.');
+        return;
+      }
+    } else if (suggestion?.is_duplicate) {
+      toast.error(suggestion.relevance_note || 'This has already been picked!');
+      return;
+    } else if (suggestion?.corrected_text) {
+      toast.error('Please accept or dismiss the spelling suggestion first.');
+      return;
+    }
+
+
     setSubmitting(true);
     try {
       const pickNumber = picks.length + 1;
