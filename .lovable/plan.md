@@ -1,63 +1,37 @@
-# Plan: Sequential "Season N" labeling with optional subtitle
-
 ## Goal
-Stop tying Draft Arena seasons to calendar quarters. Every season becomes **"Season {N}"** (auto-incremented per club, starting at 1) with an optional **subtitle** the user can set. Lists are ordered by season number, newest first.
 
-## Decisions confirmed
-- Numbering scope: **per club**
-- Sort order: **newest first** (Season 5 → 4 → 3 …)
-- Existing custom-named seasons: **leave as-is** (only new seasons follow the new format; backfill assigns numbers but does not rewrite names)
+In Drafts, prevent a pick from being submitted until the AI has finished verifying:
+1. Spelling/canonical form (so the user can accept a correction first)
+2. Duplicate check against picks already taken in this draft
 
-## Database migration
+Today, the bar under the input shows the result, but the **Submit** button is only disabled when the field is empty — so a user can hit Enter or Send before the AI has answered, or even when the AI has flagged a duplicate.
 
-Add two columns to `public.draft_seasons`:
-- `season_number int` — sequential per `club_id`
-- `subtitle text` — nullable, user-provided tagline
+## Behavior
 
-Steps:
-1. `ALTER TABLE public.draft_seasons ADD COLUMN season_number int, ADD COLUMN subtitle text`
-2. Backfill `season_number` per club using `row_number() OVER (PARTITION BY club_id ORDER BY starts_at ASC, created_at ASC)`
-3. Add `UNIQUE (club_id, season_number)` constraint
-4. Drop the existing `UNIQUE (year, season_label)` constraint (year/season_label columns remain for legacy data but are no longer required for new rows)
-5. Keep `year` / `season_label` nullable so future inserts can omit them
+- While the AI check is pending (debounce running or request in-flight) → Submit is **disabled** with a subtle spinner state; Enter is ignored.
+- If the user presses Submit/Enter before the debounced check has fired → we flush the check immediately, await the result, then evaluate.
+- If the AI returns `is_duplicate: true` → Submit stays **disabled** (hard block — you can't draft something already taken). The existing yellow warning bar remains the explanation. User must edit the text to unblock.
+- If the AI returns a spelling `corrected_text` → Submit is **disabled** until the user either taps the suggested correction (which replaces the text and re-validates) or dismisses the suggestion (treats the original as intentional). Same one-tap UX as today; we just gate Send on the user making that choice.
+- If the AI returns `is_irrelevant: true` (but not duplicate) → keep current behavior (warn only, allow submit). The user explicitly framed the requirement around "proper edit" + "hasn't been duplicated"; relevance stays advisory so creative picks aren't blocked.
+- Once text is validated clean (no correction, no duplicate), Submit re-enables instantly.
 
-## Code changes
+## Technical notes
 
-**`src/hooks/useDraftSeasons.ts`**
-- Extend `DraftSeason` type with `season_number: number | null` and `subtitle: string | null`
-- Add helper `formatSeasonTitle(s)` → returns `"Season {n}"` when `season_number` is set, else falls back to `s.name`
-- Update `createSeason` params: drop required `year`/`seasonLabel`; accept `subtitle`; compute `season_number` = `max(season_number where club_id=…) + 1`
-- Update all season-list queries to `.order('season_number', { ascending: false, nullsFirst: false })` with `starts_at desc` as tiebreaker for legacy rows
+**`src/hooks/usePickSuggestion.ts`**
+- Track the last text that produced the current `suggestion` result; expose `validatedText: string | null`.
+- Add `isPending` (true between text-change and check-complete) = `checking || debounceScheduled || validatedText !== currentText`.
+- Add `validateNow(text)`: cancels debounce, runs `checkPick` immediately, returns the resolved suggestion (or null).
 
-**`src/components/draft/StartNextSeasonSheet.tsx`**
-- Remove the `LABEL_CYCLE` / year-slot scanning logic
-- Compute next season number from existing seasons
-- Replace the "Name" input with:
-  - A read-only display of **"Season {N}"** (the auto-assigned title)
-  - An optional **Subtitle** text input (placeholder e.g. "Rookie Year")
-- Pass `subtitle` (no year/label) into `createSeason`
+**`src/pages/DraftDetailPage.tsx`** (pick input block ~lines 1284–1325)
+- Compute `canSubmit = pickText.trim().length > 0 && !submitting && !isPending && !suggestion?.is_duplicate && !suggestion?.corrected_text`.
+- `disabled={!canSubmit}` on the Send button; same gate on the Enter handler.
+- Wrap `handleMakePick` so that if `isPending` when invoked, it awaits `validateNow(pickText)` first and aborts if the result is a duplicate or a correction.
+- Replace the standalone spinner next to the input with a Send button that swaps its icon to `Loader2` while `isPending`, so the "we're checking" state lives on the action itself (clearer affordance that Send is gated).
+- When the user dismisses the corrected-text suggestion via the existing X button, treat that as "accept original" — no extra UI needed since `clearSuggestion()` already nulls it and `validatedText` will match.
 
-**`src/components/drafts/DraftArenaHUD.tsx`**
-- Chip becomes `S{season_number}` instead of `season_label` / year fallback
+## Files touched
 
-**Display surfaces — use `formatSeasonTitle` + show subtitle as secondary line**
-- `src/pages/SeasonsArchivePage.tsx` (card title + subtitle under it)
-- `src/pages/SeasonArchiveDetailPage.tsx` (page header)
-- `src/pages/DraftsListPage.tsx` (season banner, commissioner panels, archive prompts — multiple spots)
-- `src/components/draft/stats/DraftStatsHub.tsx` (season chips + selector dropdown)
+- `src/hooks/usePickSuggestion.ts` — expose `isPending`, `validatedText`, `validateNow`
+- `src/pages/DraftDetailPage.tsx` — gate Submit + Enter on the new state; reflect pending state on the Send button
 
-**Ordering**
-- `useAllSeasons`, `useDraftSeasons` queries: order by `season_number desc`
-- Stats hub season selector list: sort by `season_number desc`
-
-## Out of scope
-- Pick'em / NFL seasons (`nfl_seasons` table) — unrelated to Draft Arena seasons
-- Renaming any historical season records (preserved as-is per decision)
-- Any AI/judging logic
-
-## Acceptance
-- New seasons created via "Start Next Season" sheet are titled exactly "Season {N}" with an optional subtitle line, no year/quarter prompts.
-- HUD chip shows `S{N}`.
-- Archive, Drafts list banner, Stats hub, and Detail header all show "Season {N}" (subtitle below when present) and are ordered Season N → 1.
-- Legacy seasons with custom names render their existing names but are slotted into the correct numeric position.
-- No existing draft results, league standings, or RLS behavior changes.
+No backend, schema, or RLS changes. Edge function `check-draft-pick` already returns the needed fields.
