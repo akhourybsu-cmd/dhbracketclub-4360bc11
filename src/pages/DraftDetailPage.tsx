@@ -1323,27 +1323,37 @@ export default function DraftDetailPage() {
                   maxLength={100}
                   className="form-input flex-1"
                   onKeyDown={e => {
-                    if (e.key === 'Enter' && pickText.trim()) {
+                    if (e.key === 'Enter' && pickText.trim() && !suggestionPending && !suggestion?.is_duplicate && !suggestion?.corrected_text) {
                       handleMakePick();
                     }
                   }}
                 />
-                <AnimatePresence>
-                  {suggestionChecking && (
-                    <motion.span
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.8 }}
-                      className="flex items-center self-center flex-shrink-0"
-                    >
-                      <Loader2 className="w-4 h-4 animate-spin text-muted-foreground/50" />
-                    </motion.span>
-                  )}
-                </AnimatePresence>
-                <Button onClick={handleMakePick} disabled={submitting || !pickText.trim()} className="h-11 px-4 rounded-xl font-bold btn-press">
-                  <Send className={cn("w-4 h-4", submitting && "animate-pulse")} />
+                <Button
+                  onClick={handleMakePick}
+                  disabled={
+                    submitting ||
+                    !pickText.trim() ||
+                    suggestionPending ||
+                    !!suggestion?.is_duplicate ||
+                    !!suggestion?.corrected_text
+                  }
+                  title={
+                    suggestionPending
+                      ? 'Checking your pick…'
+                      : suggestion?.is_duplicate
+                        ? 'This pick has already been taken'
+                        : suggestion?.corrected_text
+                          ? 'Accept or dismiss the spelling suggestion first'
+                          : undefined
+                  }
+                  className="h-11 px-4 rounded-xl font-bold btn-press"
+                >
+                  {suggestionPending
+                    ? <Loader2 className="w-4 h-4 animate-spin" />
+                    : <Send className={cn("w-4 h-4", submitting && "animate-pulse")} />}
                 </Button>
               </motion.div>
+
 
               {/* Spell-check / relevance suggestion */}
               <AnimatePresence>
