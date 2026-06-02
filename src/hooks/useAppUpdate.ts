@@ -9,10 +9,23 @@ const AUTO_NUKE_DELAY_MS = 10 * 1000;
 // on next focus to defeat aggressive Android Chrome caching of /version.json.
 const STALE_BUNDLE_FALLBACK_MS = 5 * 60 * 1000;
 
+// localStorage keys to break update loops across reloads. If we've already
+// nuke-and-reloaded for a particular remote build id and the freshly-loaded
+// bundle STILL doesn't match it, the deployment itself is inconsistent
+// (CDN drift between /version.json and the JS bundle). Suppress further
+// prompts for that remote id so users aren't stuck in a "Update available"
+// loop on every app open.
+const LS_LAST_NUKED_REMOTE = 'dh_update_last_nuked_remote_v1';
+const LS_SESSION_PROMPTED = 'dh_update_session_prompted_v1';
+
 /**
  * Universal update detector. Independent of the service worker — fetches
  * /version.json (no-store) and compares against the build id baked into
  * this JS bundle. On mismatch: prominent toast + auto nuke after 10s.
+ *
+ * Loop protection: if we've already nuked once for a given remote build id
+ * and the reloaded bundle still has a different local id, treat the deploy
+ * as inconsistent and stop prompting until /version.json changes again.
  */
 export function useAppUpdate() {
   const location = useLocation();
@@ -26,6 +39,13 @@ export function useAppUpdate() {
   useEffect(() => {
     let cancelled = false;
 
+    const readLS = (k: string): string | null => {
+      try { return localStorage.getItem(k); } catch { return null; }
+    };
+    const writeLS = (k: string, v: string) => {
+      try { localStorage.setItem(k, v); } catch { /* noop */ }
+    };
+
     // Don't auto-nuke during an active game run, chat composition, or form entry —
     // user would lose progress. Show toast but let them tap to update manually.
     const isBusyContext = (): boolean => {
@@ -36,9 +56,39 @@ export function useAppUpdate() {
       return false;
     };
 
-    const triggerUpdate = () => {
+    const shouldPromptFor = (remote: string): boolean => {
+      // Skip if remote/local aren't real build stamps.
+      if (remote === localBuildId) return false;
+      if (localBuildId === 'dev' || remote === 'dev') return false;
+      // Loop guard: if we already nuked for this exact remote id and ended
+      // up back here with a still-mismatched local id, the deploy is
+      // inconsistent — suppress.
+      if (readLS(LS_LAST_NUKED_REMOTE) === remote) {
+        console.warn(
+          '[update] suppressing prompt: already nuked for remote',
+          remote,
+          'but local is still',
+          localBuildId,
+          '— deploy may be inconsistent',
+        );
+        return false;
+      }
+      // Per-session dedupe.
+      if (sessionStorage.getItem(LS_SESSION_PROMPTED) === remote) return false;
+      return true;
+    };
+
+    const triggerUpdate = (remote: string) => {
       if (promptedRef.current) return;
       promptedRef.current = true;
+      try { sessionStorage.setItem(LS_SESSION_PROMPTED, remote); } catch { /* noop */ }
+
+      const doNuke = () => {
+        // Record the remote id we're nuking for BEFORE navigating away so
+        // the next load can detect a broken-deploy loop.
+        writeLS(LS_LAST_NUKED_REMOTE, remote);
+        void nukeAndReload();
+      };
 
       const busy = isBusyContext();
       toast('🚀 New version available', {
@@ -50,15 +100,13 @@ export function useAppUpdate() {
           label: 'Update now',
           onClick: () => {
             if (autoTimerRef.current) clearTimeout(autoTimerRef.current);
-            void nukeAndReload();
+            doNuke();
           },
         },
       });
 
       if (!busy) {
-        autoTimerRef.current = setTimeout(() => {
-          void nukeAndReload();
-        }, AUTO_NUKE_DELAY_MS);
+        autoTimerRef.current = setTimeout(doNuke, AUTO_NUKE_DELAY_MS);
       }
     };
 
@@ -67,9 +115,13 @@ export function useAppUpdate() {
       const remote = await fetchRemoteBuildId();
       if (cancelled || !remote) return;
       lastSuccessfulProbeRef.current = Date.now();
-      // Only prompt when both ids look like real build stamps and differ.
-      if (remote !== localBuildId && localBuildId !== 'dev' && remote !== 'dev') {
-        triggerUpdate();
+      // If local now matches remote, clear any stale loop-guard marker so
+      // future genuine deploys can prompt again.
+      if (remote === localBuildId && readLS(LS_LAST_NUKED_REMOTE)) {
+        try { localStorage.removeItem(LS_LAST_NUKED_REMOTE); } catch { /* noop */ }
+      }
+      if (shouldPromptFor(remote)) {
+        triggerUpdate(remote);
       }
     };
 
@@ -114,30 +166,43 @@ export function useAppUpdate() {
   }, []);
 
   // Probe on every route change too — cheap and catches stuck installs.
+  // Reuses the same shouldPromptFor / loop guards via the effect above by
+  // simply re-running check() through the visibility path is overkill;
+  // inline a minimal version that respects the same localStorage guards.
   useEffect(() => {
     if (promptedRef.current) return;
     void (async () => {
       const remote = await fetchRemoteBuildId();
       if (!remote) return;
       lastSuccessfulProbeRef.current = Date.now();
-      if (remote !== localBuildId && localBuildId !== 'dev' && remote !== 'dev') {
-        if (promptedRef.current) return;
-        promptedRef.current = true;
-        toast('🚀 New version available', {
-          description: 'Updating in 10 seconds — tap to update now.',
-          duration: AUTO_NUKE_DELAY_MS,
-          action: {
-            label: 'Update now',
-            onClick: () => {
-              if (autoTimerRef.current) clearTimeout(autoTimerRef.current);
-              void nukeAndReload();
-            },
+      if (remote === localBuildId) return;
+      if (localBuildId === 'dev' || remote === 'dev') return;
+      // Loop guard
+      let lastNuked: string | null = null;
+      try { lastNuked = localStorage.getItem(LS_LAST_NUKED_REMOTE); } catch { /* noop */ }
+      if (lastNuked === remote) return;
+      let sessionPrompted: string | null = null;
+      try { sessionPrompted = sessionStorage.getItem(LS_SESSION_PROMPTED); } catch { /* noop */ }
+      if (sessionPrompted === remote) return;
+      if (promptedRef.current) return;
+      promptedRef.current = true;
+      try { sessionStorage.setItem(LS_SESSION_PROMPTED, remote); } catch { /* noop */ }
+      const doNuke = () => {
+        try { localStorage.setItem(LS_LAST_NUKED_REMOTE, remote); } catch { /* noop */ }
+        void nukeAndReload();
+      };
+      toast('🚀 New version available', {
+        description: 'Updating in 10 seconds — tap to update now.',
+        duration: AUTO_NUKE_DELAY_MS,
+        action: {
+          label: 'Update now',
+          onClick: () => {
+            if (autoTimerRef.current) clearTimeout(autoTimerRef.current);
+            doNuke();
           },
-        });
-        autoTimerRef.current = setTimeout(() => {
-          void nukeAndReload();
-        }, AUTO_NUKE_DELAY_MS);
-      }
+        },
+      });
+      autoTimerRef.current = setTimeout(doNuke, AUTO_NUKE_DELAY_MS);
     })();
   }, [location.pathname, localBuildId]);
 }
