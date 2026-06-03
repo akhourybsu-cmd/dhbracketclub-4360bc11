@@ -1309,34 +1309,18 @@ export default function DraftDetailPage() {
                   maxLength={100}
                   className="form-input flex-1"
                   onKeyDown={e => {
-                    if (e.key === 'Enter' && pickText.trim() && !suggestionPending && !suggestion?.is_duplicate && !suggestion?.corrected_text) {
+                    if (e.key === 'Enter' && pickText.trim() && !submitting && !localDuplicate) {
                       handleMakePick();
                     }
                   }}
                 />
                 <Button
                   onClick={handleMakePick}
-                  disabled={
-                    submitting ||
-                    !pickText.trim() ||
-                    suggestionPending ||
-                    !!suggestion?.is_duplicate ||
-                    !!suggestion?.corrected_text
-                  }
-                  title={
-                    suggestionPending
-                      ? 'Checking your pick…'
-                      : suggestion?.is_duplicate
-                        ? 'This pick has already been taken'
-                        : suggestion?.corrected_text
-                          ? 'Accept or dismiss the spelling suggestion first'
-                          : undefined
-                  }
+                  disabled={submitting || !pickText.trim() || localDuplicate}
+                  title={localDuplicate ? 'This pick has already been taken' : undefined}
                   className="h-11 px-4 rounded-xl font-bold btn-press"
                 >
-                  {suggestionPending
-                    ? <Loader2 className="w-4 h-4 animate-spin" />
-                    : <Send className={cn("w-4 h-4", submitting && "animate-pulse")} />}
+                  <Send className={cn("w-4 h-4", submitting && "animate-pulse")} />
                 </Button>
               </motion.div>
 
