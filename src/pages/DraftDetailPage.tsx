@@ -145,7 +145,7 @@ export default function DraftDetailPage() {
   const { enriching, enrichDraftPicks } = useEnrichDraftPicks();
 
   const existingPickTexts = picks.map(p => p.pick_text);
-  const { suggestion, checking: suggestionChecking, isPending: suggestionPending, validatedText, debouncedCheck, validateNow, clearSuggestion } = usePickSuggestion(
+  const { suggestion, checking: suggestionChecking, localDuplicate, debouncedCheck, clearSuggestion } = usePickSuggestion(
     draft?.topic || '',
     draft?.category || null,
     existingPickTexts,
