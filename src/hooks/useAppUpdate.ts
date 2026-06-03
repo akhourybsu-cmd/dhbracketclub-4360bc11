@@ -17,6 +17,7 @@ const STALE_BUNDLE_FALLBACK_MS = 5 * 60 * 1000;
 // loop on every app open.
 const LS_LAST_NUKED_REMOTE = 'dh_update_last_nuked_remote_v1';
 const LS_SESSION_PROMPTED = 'dh_update_session_prompted_v1';
+const LS_LAST_PROMPTED_REMOTE = 'dh_update_last_prompted_remote_v1';
 
 /**
  * Universal update detector. Independent of the service worker — fetches
@@ -73,6 +74,14 @@ export function useAppUpdate() {
         );
         return false;
       }
+      // Durable prompt dedupe. iOS installed PWAs can relaunch with a stale
+      // bundle even after cache/SW cleanup, and sessionStorage is often reset
+      // between standalone launches. If we already told this device about this
+      // exact remote build, don't nag on every app open.
+      if (readLS(LS_LAST_PROMPTED_REMOTE) === remote) {
+        console.info('[update] suppressing prompt: already prompted for remote', remote);
+        return false;
+      }
       // Per-session dedupe.
       if (sessionStorage.getItem(LS_SESSION_PROMPTED) === remote) return false;
       return true;
@@ -81,6 +90,7 @@ export function useAppUpdate() {
     const triggerUpdate = (remote: string) => {
       if (promptedRef.current) return;
       promptedRef.current = true;
+      writeLS(LS_LAST_PROMPTED_REMOTE, remote);
       try { sessionStorage.setItem(LS_SESSION_PROMPTED, remote); } catch { /* noop */ }
 
       const doNuke = () => {
@@ -119,6 +129,9 @@ export function useAppUpdate() {
       // future genuine deploys can prompt again.
       if (remote === localBuildId && readLS(LS_LAST_NUKED_REMOTE)) {
         try { localStorage.removeItem(LS_LAST_NUKED_REMOTE); } catch { /* noop */ }
+      }
+      if (remote === localBuildId && readLS(LS_LAST_PROMPTED_REMOTE)) {
+        try { localStorage.removeItem(LS_LAST_PROMPTED_REMOTE); } catch { /* noop */ }
       }
       if (shouldPromptFor(remote)) {
         triggerUpdate(remote);
@@ -181,11 +194,15 @@ export function useAppUpdate() {
       let lastNuked: string | null = null;
       try { lastNuked = localStorage.getItem(LS_LAST_NUKED_REMOTE); } catch { /* noop */ }
       if (lastNuked === remote) return;
+      let lastPrompted: string | null = null;
+      try { lastPrompted = localStorage.getItem(LS_LAST_PROMPTED_REMOTE); } catch { /* noop */ }
+      if (lastPrompted === remote) return;
       let sessionPrompted: string | null = null;
       try { sessionPrompted = sessionStorage.getItem(LS_SESSION_PROMPTED); } catch { /* noop */ }
       if (sessionPrompted === remote) return;
       if (promptedRef.current) return;
       promptedRef.current = true;
+      try { localStorage.setItem(LS_LAST_PROMPTED_REMOTE, remote); } catch { /* noop */ }
       try { sessionStorage.setItem(LS_SESSION_PROMPTED, remote); } catch { /* noop */ }
       const doNuke = () => {
         try { localStorage.setItem(LS_LAST_NUKED_REMOTE, remote); } catch { /* noop */ }
