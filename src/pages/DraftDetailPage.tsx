@@ -455,7 +455,7 @@ export default function DraftDetailPage() {
   const handleMakePick = async () => {
     if (!user || !draftId || !pickText.trim() || !isMyTurn) return;
 
-    // Hard duplicate check (case-insensitive)
+    // Hard duplicate check (case-insensitive, matches edge function normalization)
     const normalized = pickText.trim().toLowerCase();
     const isDuplicate = picks.some(p => p.pick_text.trim().toLowerCase() === normalized);
     if (isDuplicate) {
@@ -463,25 +463,11 @@ export default function DraftDetailPage() {
       return;
     }
 
-    // Ensure AI validation has completed for the current text before submitting.
-    // If a check hasn't run (or text changed after last check), flush it now.
-    if (suggestionPending || validatedText !== pickText.trim()) {
-      const result = await validateNow(pickText);
-      if (result?.is_duplicate) {
-        toast.error(result.relevance_note || 'This has already been picked!');
-        return;
-      }
-      if (result?.corrected_text) {
-        toast.error('Please accept or dismiss the spelling suggestion first.');
-        return;
-      }
-    } else if (suggestion?.is_duplicate) {
-      toast.error(suggestion.relevance_note || 'This has already been picked!');
-      return;
-    } else if (suggestion?.corrected_text) {
-      toast.error('Please accept or dismiss the spelling suggestion first.');
-      return;
-    }
+    // AI suggestion is advisory — never block submission on a pending or completed check.
+    // Cancel any in-flight check so its result doesn't flicker after we submit.
+    clearSuggestion();
+
+
 
 
     setSubmitting(true);
