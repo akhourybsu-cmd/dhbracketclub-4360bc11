@@ -1,37 +1,32 @@
 ## Goal
 
-In Drafts, prevent a pick from being submitted until the AI has finished verifying:
-1. Spelling/canonical form (so the user can accept a correction first)
-2. Duplicate check against picks already taken in this draft
+Make the draft pick AI check feel helpful, not like a gate. Users shouldn't ever sit staring at a spinner waiting on Submit to enable.
 
-Today, the bar under the input shows the result, but the **Submit** button is only disabled when the field is empty — so a user can hit Enter or Send before the AI has answered, or even when the AI has flagged a duplicate.
+## Behavior change
 
-## Behavior
+**Today:** Submit is hard-disabled whenever the AI check is pending OR has flagged a spelling correction OR a duplicate. Pressing Enter early flushes the check and waits for it. This is what makes it feel restrictive — you type a clean pick, hit send, and wait.
 
-- While the AI check is pending (debounce running or request in-flight) → Submit is **disabled** with a subtle spinner state; Enter is ignored.
-- If the user presses Submit/Enter before the debounced check has fired → we flush the check immediately, await the result, then evaluate.
-- If the AI returns `is_duplicate: true` → Submit stays **disabled** (hard block — you can't draft something already taken). The existing yellow warning bar remains the explanation. User must edit the text to unblock.
-- If the AI returns a spelling `corrected_text` → Submit is **disabled** until the user either taps the suggested correction (which replaces the text and re-validates) or dismisses the suggestion (treats the original as intentional). Same one-tap UX as today; we just gate Send on the user making that choice.
-- If the AI returns `is_irrelevant: true` (but not duplicate) → keep current behavior (warn only, allow submit). The user explicitly framed the requirement around "proper edit" + "hasn't been duplicated"; relevance stays advisory so creative picks aren't blocked.
-- Once text is validated clean (no correction, no duplicate), Submit re-enables instantly.
+**New model — instant submit, advisory AI, one hard block:**
 
-## Technical notes
+1. **Duplicates → blocked, but checked instantly client-side.** The edge function already normalizes (lowercase + strip punctuation) and compares against `existing_picks` before calling the AI. We do the exact same normalization in the browser against `existingPicks` and block Submit immediately — no network round trip. This is the only hard block, and it never waits on AI.
 
-**`src/hooks/usePickSuggestion.ts`**
-- Track the last text that produced the current `suggestion` result; expose `validatedText: string | null`.
-- Add `isPending` (true between text-change and check-complete) = `checking || debounceScheduled || validatedText !== currentText`.
-- Add `validateNow(text)`: cancels debounce, runs `checkPick` immediately, returns the resolved suggestion (or null).
+2. **Spelling corrections → advisory, never block.** The yellow "Did you mean X?" bar stays, but Submit is enabled. User can tap the suggestion to accept it, or just send their original. Removes the "AI thinks you misspelled it so you can't submit" friction.
 
-**`src/pages/DraftDetailPage.tsx`** (pick input block ~lines 1284–1325)
-- Compute `canSubmit = pickText.trim().length > 0 && !submitting && !isPending && !suggestion?.is_duplicate && !suggestion?.corrected_text`.
-- `disabled={!canSubmit}` on the Send button; same gate on the Enter handler.
-- Wrap `handleMakePick` so that if `isPending` when invoked, it awaits `validateNow(pickText)` first and aborts if the result is a duplicate or a correction.
-- Replace the standalone spinner next to the input with a Send button that swaps its icon to `Loader2` while `isPending`, so the "we're checking" state lives on the action itself (clearer affordance that Send is gated).
-- When the user dismisses the corrected-text suggestion via the existing X button, treat that as "accept original" — no extra UI needed since `clearSuggestion()` already nulls it and `validatedText` will match.
+3. **Pending AI → never blocks Submit.** Drop the `isPending` / `validateNow` gate entirely. If the user hits send before the AI replies, the pick goes through. The bar can still appear after the fact as an FYI for the *next* pick they make (or we just abort the in-flight check on submit).
 
-## Files touched
+4. **Irrelevance → stays advisory (unchanged).**
 
-- `src/hooks/usePickSuggestion.ts` — expose `isPending`, `validatedText`, `validateNow`
-- `src/pages/DraftDetailPage.tsx` — gate Submit + Enter on the new state; reflect pending state on the Send button
+Net effect: Submit is disabled only when the field is empty, currently submitting, or the text exactly matches something already drafted. Everything else is suggestion-grade.
 
-No backend, schema, or RLS changes. Edge function `check-draft-pick` already returns the needed fields.
+## Why this is safe
+
+- The "double-drafting" concern from the earlier request is preserved — duplicate detection is deterministic and runs on every keystroke and on submit, no AI required. The AI duplicate check was redundant with the edge function's pre-AI normalization step anyway.
+- Spelling/canonical form was always a "nice to have" — the draft owner can correct picks later via the existing inline edit + repick tools, and enrichment already tolerates minor misspellings.
+- We keep the visible warning UI so the AI's work isn't wasted, it just stops blocking.
+
+## Files to touch
+
+- **`src/hooks/usePickSuggestion.ts`** — add a `localDuplicate` boolean derived synchronously from `existingPicks` + current text using the same normalization as the edge function. Keep `suggestion`, `checking`, `debouncedCheck`, `clearSuggestion`. Drop `isPending`, `validatedText`, `validateNow` (no longer needed).
+- **`src/pages/DraftDetailPage.tsx`** — Submit gate becomes `pickText.trim().length > 0 && !submitting && !localDuplicate`. Enter key uses the same gate. Send button loses the spinner-while-checking state (it's no longer gating). The warning bar under the input stays as-is for spelling/relevance/server-confirmed duplicates. Remove the `validateNow` call in `handleMakePick`.
+
+No backend or edge-function changes — `check-draft-pick` keeps working exactly as it does today; we just stop treating its response as a submission gate.

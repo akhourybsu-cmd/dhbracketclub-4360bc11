@@ -145,7 +145,7 @@ export default function DraftDetailPage() {
   const { enriching, enrichDraftPicks } = useEnrichDraftPicks();
 
   const existingPickTexts = picks.map(p => p.pick_text);
-  const { suggestion, checking: suggestionChecking, isPending: suggestionPending, validatedText, debouncedCheck, validateNow, clearSuggestion } = usePickSuggestion(
+  const { suggestion, checking: suggestionChecking, localDuplicate, debouncedCheck, clearSuggestion } = usePickSuggestion(
     draft?.topic || '',
     draft?.category || null,
     existingPickTexts,
@@ -455,7 +455,7 @@ export default function DraftDetailPage() {
   const handleMakePick = async () => {
     if (!user || !draftId || !pickText.trim() || !isMyTurn) return;
 
-    // Hard duplicate check (case-insensitive)
+    // Hard duplicate check (case-insensitive, matches edge function normalization)
     const normalized = pickText.trim().toLowerCase();
     const isDuplicate = picks.some(p => p.pick_text.trim().toLowerCase() === normalized);
     if (isDuplicate) {
@@ -463,25 +463,11 @@ export default function DraftDetailPage() {
       return;
     }
 
-    // Ensure AI validation has completed for the current text before submitting.
-    // If a check hasn't run (or text changed after last check), flush it now.
-    if (suggestionPending || validatedText !== pickText.trim()) {
-      const result = await validateNow(pickText);
-      if (result?.is_duplicate) {
-        toast.error(result.relevance_note || 'This has already been picked!');
-        return;
-      }
-      if (result?.corrected_text) {
-        toast.error('Please accept or dismiss the spelling suggestion first.');
-        return;
-      }
-    } else if (suggestion?.is_duplicate) {
-      toast.error(suggestion.relevance_note || 'This has already been picked!');
-      return;
-    } else if (suggestion?.corrected_text) {
-      toast.error('Please accept or dismiss the spelling suggestion first.');
-      return;
-    }
+    // AI suggestion is advisory — never block submission on a pending or completed check.
+    // Cancel any in-flight check so its result doesn't flicker after we submit.
+    clearSuggestion();
+
+
 
 
     setSubmitting(true);
@@ -1323,34 +1309,18 @@ export default function DraftDetailPage() {
                   maxLength={100}
                   className="form-input flex-1"
                   onKeyDown={e => {
-                    if (e.key === 'Enter' && pickText.trim() && !suggestionPending && !suggestion?.is_duplicate && !suggestion?.corrected_text) {
+                    if (e.key === 'Enter' && pickText.trim() && !submitting && !localDuplicate) {
                       handleMakePick();
                     }
                   }}
                 />
                 <Button
                   onClick={handleMakePick}
-                  disabled={
-                    submitting ||
-                    !pickText.trim() ||
-                    suggestionPending ||
-                    !!suggestion?.is_duplicate ||
-                    !!suggestion?.corrected_text
-                  }
-                  title={
-                    suggestionPending
-                      ? 'Checking your pick…'
-                      : suggestion?.is_duplicate
-                        ? 'This pick has already been taken'
-                        : suggestion?.corrected_text
-                          ? 'Accept or dismiss the spelling suggestion first'
-                          : undefined
-                  }
+                  disabled={submitting || !pickText.trim() || localDuplicate}
+                  title={localDuplicate ? 'This pick has already been taken' : undefined}
                   className="h-11 px-4 rounded-xl font-bold btn-press"
                 >
-                  {suggestionPending
-                    ? <Loader2 className="w-4 h-4 animate-spin" />
-                    : <Send className={cn("w-4 h-4", submitting && "animate-pulse")} />}
+                  <Send className={cn("w-4 h-4", submitting && "animate-pulse")} />
                 </Button>
               </motion.div>
 
