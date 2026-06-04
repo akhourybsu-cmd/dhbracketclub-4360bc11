@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
 import { AnimatePresence, motion } from 'framer-motion';
-import { Hash, ChevronLeft, Pin, Search, X, Link2, Settings, Menu, Lock } from 'lucide-react';
+import { Hash, ChevronLeft, Pin, Search, X, Link2, Settings, Menu, Lock, MoreVertical, Bell } from 'lucide-react';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { getChannelTypeMeta } from '@/components/chat/channelTypeMeta';
 import { StatusPill } from '@/components/ui/status-pill';
 import { useNavigate } from 'react-router-dom';
