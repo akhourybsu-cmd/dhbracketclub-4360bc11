@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
 import { AnimatePresence, motion } from 'framer-motion';
-import { Hash, ChevronLeft, Pin, Search, X, Link2, Settings, Menu, Lock } from 'lucide-react';
+import { Hash, ChevronLeft, Pin, Search, X, Link2, Settings, Menu, Lock, MoreVertical, Bell } from 'lucide-react';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { getChannelTypeMeta } from '@/components/chat/channelTypeMeta';
 import { StatusPill } from '@/components/ui/status-pill';
 import { useNavigate } from 'react-router-dom';
@@ -690,22 +691,51 @@ export default function ChatPage() {
             </div>
             {selectedChannel?.description && <p className="text-[10px] text-muted-foreground/70 truncate leading-tight">{selectedChannel.description}</p>}
           </div>
-          <button onClick={() => { setShowSearch(!showSearch); setSearchQuery(''); setSearchResults(null); }} className={cn("p-2 rounded-full transition-colors", showSearch ? "bg-primary/15 text-primary" : "hover:bg-muted/50 text-muted-foreground/70")}>
+          {/* Desktop: individual buttons */}
+          <button onClick={() => { setShowSearch(!showSearch); setSearchQuery(''); setSearchResults(null); }} className={cn("hidden sm:inline-flex p-2 rounded-full transition-colors", showSearch ? "bg-primary/15 text-primary" : "hover:bg-muted/50 text-muted-foreground/70")} title="Search messages">
             <Search className="w-[18px] h-[18px]" />
           </button>
-          <button onClick={() => navigate('/shared')} className="p-2 rounded-full hover:bg-muted/50 text-muted-foreground/70 transition-colors" title="Shared Media">
+          <button onClick={() => navigate('/shared')} className="hidden sm:inline-flex p-2 rounded-full hover:bg-muted/50 text-muted-foreground/70 transition-colors" title="Shared Media">
             <Link2 className="w-[18px] h-[18px]" />
           </button>
           {pinnedCount > 0 && (
-            <button onClick={loadPinnedMessages} className={cn("p-2 rounded-full transition-colors", showPinned ? "bg-premium-warm/15 text-premium-warm" : "hover:bg-muted/50 text-muted-foreground/70")}>
+            <button onClick={loadPinnedMessages} className={cn("hidden sm:inline-flex p-2 rounded-full transition-colors", showPinned ? "bg-premium-warm/15 text-premium-warm" : "hover:bg-muted/50 text-muted-foreground/70")} title="Pinned messages">
               <Pin className="w-[18px] h-[18px]" />
             </button>
           )}
-          {selectedChannel && isClubAdmin && (
-            <button onClick={() => setSettingsChannel(selectedChannel)} className="p-2 rounded-full hover:bg-muted/50 text-muted-foreground/70 transition-colors" title="Channel Settings" aria-label="Channel settings">
+          {selectedChannel && (
+            <button onClick={() => setSettingsChannel(selectedChannel)} className="hidden sm:inline-flex p-2 rounded-full hover:bg-muted/50 text-muted-foreground/70 transition-colors" title="Channel Settings" aria-label="Channel settings">
               <Settings className="w-[18px] h-[18px]" />
             </button>
           )}
+
+          {/* Mobile: overflow menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="sm:hidden p-2 rounded-full hover:bg-muted/50 text-muted-foreground/70 transition-colors" aria-label="Channel actions">
+                <MoreVertical className="w-[18px] h-[18px]" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52">
+              <DropdownMenuItem onClick={() => { setShowSearch(true); setSearchQuery(''); setSearchResults(null); }}>
+                <Search className="w-4 h-4 mr-2" /> Search messages
+              </DropdownMenuItem>
+              {pinnedCount > 0 && (
+                <DropdownMenuItem onClick={loadPinnedMessages}>
+                  <Pin className="w-4 h-4 mr-2" /> Pinned ({pinnedCount})
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem onClick={() => navigate('/shared')}>
+                <Link2 className="w-4 h-4 mr-2" /> Shared media
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              {selectedChannel && (
+                <DropdownMenuItem onClick={() => setSettingsChannel(selectedChannel)}>
+                  <Bell className="w-4 h-4 mr-2" /> Notifications & settings
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {/* Search bar */}

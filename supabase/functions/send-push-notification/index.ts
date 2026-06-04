@@ -342,6 +342,16 @@ Deno.serve(async (req) => {
       (prefRows || []).filter((p: any) => p.mentions === false).map((p: any) => p.user_id),
     );
 
+    // Per-channel notification preference (overrides global chat_messages when set)
+    const { data: channelPrefRows } = await supabase
+      .from("channel_notification_prefs")
+      .select("user_id, mode")
+      .eq("channel_id", record.channel_id)
+      .in("user_id", allUserIds);
+
+    const channelModeByUser = new Map<string, string>();
+    (channelPrefRows || []).forEach((r: any) => channelModeByUser.set(r.user_id, r.mode));
+
     // Active viewer suppression
     const activeViewers = await getActiveViewers(supabase, record.channel_id, allUserIds);
 
@@ -352,6 +362,13 @@ Deno.serve(async (req) => {
     const filteredSubscriptions = subscriptions.filter((s: any) => {
       const uid = s.user_id;
       const isMentioned = mentionedUserIds.has(uid);
+      const channelMode = channelModeByUser.get(uid); // 'all' | 'mentions' | 'muted' | undefined
+
+      // Hard mute: skip everything from this channel
+      if (channelMode === "muted") return false;
+
+      // Channel set to mentions-only: only send if user is mentioned
+      if (channelMode === "mentions" && !isMentioned) return false;
 
       // If mentioned but mentions preference is off, skip
       if (isMentioned && mentionsDisabledUsers.has(uid)) return false;
@@ -362,7 +379,7 @@ Deno.serve(async (req) => {
       // Skip active viewers
       if (activeViewers.has(uid)) return false;
 
-      // Skip if chat_messages disabled
+      // Skip if chat_messages disabled (global)
       if (chatDisabledUsers.has(uid)) return false;
 
       // Skip if throttled

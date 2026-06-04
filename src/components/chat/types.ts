@@ -1,5 +1,6 @@
 export type ChannelType = 'general' | 'announcements' | 'admin_only' | 'event';
 export type PostPermission = 'all' | 'admins';
+export type NotificationMode = 'all' | 'mentions' | 'muted';
 
 export type Channel = {
   id: string;
@@ -9,8 +10,8 @@ export type Channel = {
   category_id: string | null;
   position: number;
   is_default: boolean;
-  channel_type?: ChannelType;
-  post_permission?: PostPermission;
+  channel_type: ChannelType;
+  post_permission: PostPermission;
 };
 
 export type Category = { id: string; name: string; position: number };
