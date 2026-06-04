@@ -406,6 +406,41 @@ export type Database = {
           },
         ]
       }
+      channel_notification_prefs: {
+        Row: {
+          channel_id: string
+          created_at: string
+          id: string
+          mode: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          channel_id: string
+          created_at?: string
+          id?: string
+          mode?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          channel_id?: string
+          created_at?: string
+          id?: string
+          mode?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_notification_prefs_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       channel_read_states: {
         Row: {
           channel_id: string
@@ -447,7 +482,9 @@ export type Database = {
       }
       channels: {
         Row: {
+          archived_at: string | null
           category_id: string | null
+          channel_type: string
           club_id: string
           created_at: string
           created_by: string | null
@@ -457,9 +494,13 @@ export type Database = {
           is_default: boolean
           name: string
           position: number
+          post_permission: string
+          updated_at: string
         }
         Insert: {
+          archived_at?: string | null
           category_id?: string | null
+          channel_type?: string
           club_id?: string
           created_at?: string
           created_by?: string | null
@@ -469,9 +510,13 @@ export type Database = {
           is_default?: boolean
           name: string
           position?: number
+          post_permission?: string
+          updated_at?: string
         }
         Update: {
+          archived_at?: string | null
           category_id?: string | null
+          channel_type?: string
           club_id?: string
           created_at?: string
           created_by?: string | null
@@ -481,6 +526,8 @@ export type Database = {
           is_default?: boolean
           name?: string
           position?: number
+          post_permission?: string
+          updated_at?: string
         }
         Relationships: [
           {
