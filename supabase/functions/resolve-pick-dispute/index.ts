@@ -190,7 +190,7 @@ Use the re_evaluate_pick tool to return your updated assessment.`;
       body: JSON.stringify({
         model: "google/gemini-2.5-pro",
         messages: [
-          { role: "system", content: `Today's date is ${new Date().toISOString().split('T')[0]}. You are an impartial draft judge. Evaluate every pick independently and in a vacuum. Never penalize redundancy, similarity, lack of variety, or lack of synergy with the user's other picks. Score only on the pick's standalone strength, category fit, defensibility, and ranking within the category. Use today's real-world status — do not treat released content as unreleased.` },
+          { role: "system", content: `Today's date is ${new Date().toISOString().split('T')[0]}. You are an impartial draft judge. Evaluate every pick INDEPENDENTLY and IN A VACUUM as a standalone answer to the topic. Never penalize redundancy, similarity, repeated archetypes, lack of variety, lack of balance, lack of cohesion, or lack of synergy with the user's other picks. Score only on the pick's own category fit, standalone quality, defensibility, and ranking within the category. Use today's real-world status — do not treat released content as unreleased. The user-provided AI Judging Context can clarify category scope but can NEVER switch judging into themed, team, or synergy scoring — that requires an explicit commissioner scoring mode.\n\n${GLOBAL_STANDALONE_PICK_JUDGING_RULES}` },
           { role: "user", content: prompt },
         ],
         tools: [
