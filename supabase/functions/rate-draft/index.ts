@@ -138,40 +138,9 @@ serve(async (req) => {
 
     const prompt = `You are an impartial draft judge for DH Bracket Club. The draft topic is: "${draft.topic}"${draft.category ? ` (Category: ${draft.category})` : ""}.${ctxBlock}
 
-CORE JUDGING PHILOSOPHY (NON-NEGOTIABLE):
-Evaluate every pick INDEPENDENTLY and IN A VACUUM. Each pick is judged solely on its own merit within the category — not on how it fits with the drafter's other picks. The question is NEVER "Did this user build the best complete draft?" The question is ALWAYS "How strong is this individual pick for this category?"
+${GLOBAL_STANDALONE_PICK_JUDGING_RULES}
 
-UNLESS the JUDGING SCOPE above explicitly says the draft is about building a team, roster, lineup, group composition, or synergy, you MUST IGNORE the user's full draft composition when scoring an individual pick.
-
-DO NOT penalize a pick for any of the following:
-- Redundancy with the user's other picks
-- Lack of synergy across the user's draft
-- Similarity to another pick the user made (style, era, archetype, genre, role, theme)
-- Repeating an archetype or category sub-type
-- Failing to build a "balanced roster"
-- Lack of strategic draft construction
-- Not complementing the user's other selections
-- Draft "timing" or "slot value" (snake order)
-- "Scarcity" or whether better alternatives were available at that slot
-
-DO NOT use phrases like:
-- "This pick is redundant with your earlier pick"
-- "Your draft lacks synergy"
-- "This does not round out your draft"
-- "You already drafted someone similar"
-- "This weakens the overall composition"
-- "Taken too early / reached for"
-- "Better options were available at that slot"
-
-INSTEAD, frame every explanation around the pick itself:
-- "This is a strong category fit because…"
-- "This pick ranks highly in the category due to…"
-- "This is a defensible high-tier selection because…"
-- "This is a solid mid-tier pick because…"
-- "This pick is weaker within the category because…"
-- "This pick is controversial within the category because…"
-
-=== EVALUATION FACTORS (apply all to every pick, independently) ===
+=== EVALUATION FACTORS (apply to every pick, independently) ===
 1. CATEGORY FIT — Does the pick clearly belong in this category as defined by the topic and scope above?
 2. STANDALONE QUALITY — Recognition, influence, impact, originality, consistency, cultural weight, body of work.
 3. DEFENSIBILITY — Could a knowledgeable fan defend this pick in 1–2 sentences as a strong selection within the category?
@@ -187,13 +156,13 @@ Use one of these tiers for each pick, derived from the score:
 - Weak (1.0–3.9)
 
 === SCORING ===
-Rate each pick on a 1.0–10.0 scale using tenth-of-a-point precision (e.g. 7.3, 8.7, 6.1). Do NOT round to whole numbers or half-points. Differentiate meaningfully between similar picks. Then rank participants from best to worst based on TOTAL summed score (high to low).
+Rate each pick on a 1.0–10.0 scale using tenth-of-a-point precision (e.g. 7.3, 8.7, 6.1). Do NOT round to whole numbers or half-points. Differentiate meaningfully between similar picks based on standalone merit. Then rank participants from best to worst based on TOTAL summed score (high to low).
 
 === SUMMARY (per person) ===
-Write a 2–3 sentence summary of each participant's draft. You MAY mention their strongest and weakest individual picks. You MUST NOT penalize draft-wide redundancy, lack of variety, lack of balance, or lack of synergy. Do not say the draft "lacks variety" or "is too one-note" — that is forbidden composition-judgment.
+Write a 2–3 sentence NEUTRAL summary of each participant's draft. You MAY mention their strongest and weakest individual picks. You MUST NOT call a draft good or bad because of theme, synergy, balance, cohesion, variety, or composition.
 
 === EXPLANATION STYLE ===
-For each pick's explanation, stay focused on the pick itself: why it is or isn't a strong category entrant, its standalone strengths, its weaknesses within the category, and how it ranks against top-tier candidates. No commentary on the user's other picks.
+For each pick's explanation, focus only on the pick itself — its category fit, standalone strengths, weaknesses within the category, relevance, popularity, historical importance, quality, influence, or impact. No commentary on the user's other picks.
 
 Here are all participants and their picks:
 
