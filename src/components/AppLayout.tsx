@@ -1,6 +1,6 @@
 import { ReactNode, useEffect, useState, useCallback, useRef } from 'react';
 import { useLocation, Link } from 'react-router-dom';
-import { LayoutDashboard, MessageSquareText, CalendarDays, Swords, Newspaper, User, Trophy, BarChart3, MessageCircle, Bookmark, Link2, ScrollText, Lock, FileText, Sparkles, Shield, Menu, Brackets as BracketsIcon, TrendingUp, Settings } from 'lucide-react';
+import { LayoutDashboard, MessageSquareText, CalendarDays, Swords, Newspaper, User, Trophy, BarChart3, MessageCircle, Bookmark, Link2, ScrollText, Lock, FileText, Sparkles, Shield, Menu, Brackets as BracketsIcon, TrendingUp, Settings, Cake, BookOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import dhMonogram from '@/assets/dh-monogram.png';
@@ -17,19 +17,20 @@ type SidebarSection = { label: string; items: SidebarItem[] };
 
 const STATIC_SECTIONS: SidebarSection[] = [
   {
-    label: 'Social',
+    label: 'Main',
     items: [
       { path: '/dashboard', label: 'Home', icon: LayoutDashboard },
       { path: '/chat', label: 'Chat', icon: MessageSquareText },
+      { path: '/compete', label: 'Compete', icon: Swords },
       { path: '/feed', label: 'Feed', icon: Newspaper },
       { path: '/events', label: 'Events', icon: CalendarDays },
       { path: '/lore', label: 'Lore', icon: ScrollText },
+      { path: '/celebrations', label: 'Celebrations', icon: Cake },
     ],
   },
   {
     label: 'Games',
     items: [
-      { path: '/compete', label: 'Compete Hub', icon: Swords },
       { path: '/drafts', label: 'Draft Arena', icon: Bookmark },
       { path: '/rune-delve', label: 'Rune Delve', icon: Sparkles },
       { path: '/nexus', label: 'Nexus Defense', icon: Shield },
@@ -42,6 +43,7 @@ const STATIC_SECTIONS: SidebarSection[] = [
   {
     label: 'Community',
     items: [
+      { path: '/narrative', label: 'Narrative RPG', icon: BookOpen },
       { path: '/polls', label: 'Polls', icon: MessageCircle },
       { path: '/rankings', label: 'Rankings', icon: BarChart3 },
       { path: '/posts', label: 'Posts', icon: FileText },
@@ -87,7 +89,7 @@ function AppLayoutInner({ children }: { children: ReactNode }) {
   const location = useLocation();
   const { play } = useSoundEffect();
   const { user } = useAuth();
-  const { club, isClubAdmin, isPlatformOwner } = useClub();
+  const { club, isClubAdmin, isPlatformOwner, isAppAdmin } = useClub();
   const [unreadChatCount, setUnreadChatCount] = useState(0);
   const { open: drawerOpen, setOpen: setDrawerOpen } = useNavDrawer();
   const { filterNavPaths } = useClubAssets();
@@ -237,10 +239,10 @@ function AppLayoutInner({ children }: { children: ReactNode }) {
         })).filter(sec => sec.items.length > 0);
         const accountItems: SidebarItem[] = [{ path: '/profile', label: 'Profile', icon: User }];
         sections.push({ label: 'Account', items: accountItems });
-        if (isClubAdmin || isPlatformOwner) {
+        if (isClubAdmin || isPlatformOwner || isAppAdmin) {
           const adminItems: SidebarItem[] = [
             ...(isClubAdmin ? [{ path: '/club/settings', label: 'Club Settings', icon: Settings }] : []),
-            ...(isPlatformOwner ? [{ path: '/admin/clubs', label: 'Manage Clubs', icon: Shield }] : []),
+            ...((isAppAdmin || isPlatformOwner) ? [{ path: '/admin', label: 'Admin Portal', icon: Shield }] : []),
           ];
           sections.push({ label: 'Admin', items: adminItems });
         }

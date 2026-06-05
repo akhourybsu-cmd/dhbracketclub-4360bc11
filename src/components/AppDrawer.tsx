@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, MessageSquareText, CalendarDays, Swords, Newspaper,
   User, Trophy, BarChart3, MessageCircle, Bookmark, Link2, ScrollText,
-  Lock, FileText, Sparkles, Shield, Settings, LogOut, Brackets as BracketsIcon, TrendingUp,
+  Lock, FileText, Sparkles, Shield, Settings, LogOut, Brackets as BracketsIcon, TrendingUp, Cake, BookOpen,
 } from 'lucide-react';
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -43,6 +43,7 @@ export function AppDrawer({ open, onOpenChange, unreadChatCount = 0 }: AppDrawer
         { path: '/events', label: 'Events', icon: CalendarDays },
         { path: '/lore', label: 'Lore', icon: ScrollText },
         { path: '/feed', label: 'Feed', icon: Newspaper },
+        { path: '/celebrations', label: 'Celebrations', icon: Cake },
       ],
     },
     {
@@ -60,7 +61,7 @@ export function AppDrawer({ open, onOpenChange, unreadChatCount = 0 }: AppDrawer
     {
       label: 'Community',
       items: [
-        { path: '/narrative', label: 'Narrative RPG', icon: ScrollText },
+        { path: '/narrative', label: 'Narrative RPG', icon: BookOpen },
         { path: '/polls', label: 'Polls', icon: MessageCircle },
         { path: '/rankings', label: 'Rankings', icon: BarChart3 },
         { path: '/posts', label: 'Posts', icon: FileText },
