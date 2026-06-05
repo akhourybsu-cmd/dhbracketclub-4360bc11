@@ -239,10 +239,10 @@ function AppLayoutInner({ children }: { children: ReactNode }) {
         })).filter(sec => sec.items.length > 0);
         const accountItems: SidebarItem[] = [{ path: '/profile', label: 'Profile', icon: User }];
         sections.push({ label: 'Account', items: accountItems });
-        if (isClubAdmin || isPlatformOwner) {
+        if (isClubAdmin || isPlatformOwner || isAppAdmin) {
           const adminItems: SidebarItem[] = [
             ...(isClubAdmin ? [{ path: '/club/settings', label: 'Club Settings', icon: Settings }] : []),
-            ...(isPlatformOwner ? [{ path: '/admin/clubs', label: 'Manage Clubs', icon: Shield }] : []),
+            ...((isAppAdmin || isPlatformOwner) ? [{ path: '/admin', label: 'Admin Portal', icon: Shield }] : []),
           ];
           sections.push({ label: 'Admin', items: adminItems });
         }
