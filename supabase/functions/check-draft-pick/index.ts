@@ -80,20 +80,22 @@ serve(async (req) => {
 
     const prompt = `You are a spell-check and relevance assistant for a draft game about "${topic}"${category ? ` (category: ${category})` : ""}.${scopeLine}
 
+${STANDALONE_RELEVANCE_RULE}
+
 The user typed: "${pick_text.trim()}"
 
 ${existingList.length ? `Already picked items: ${existingList.join(", ")}` : ""}
 
 Tasks:
 1. If the text has a spelling mistake or is a common misspelling of something relevant to the topic, return the corrected version.
-2. If the text seems irrelevant to the topic "${topic}" (per the judging scope above), flag it.
-3. If the text is fine (correctly spelled and relevant), return null for both.
+2. If the text is clearly UNRELATED to the topic "${topic}" (per the judging scope above), flag it as irrelevant.
+3. If the text is fine (correctly spelled and on-topic), return null for both.
 
 Rules:
 - Only suggest corrections you're confident about (>80% sure it's a misspelling).
 - A suggestion should be the canonical/proper name (e.g., "Shreck" → "Shrek", "breaking bad" → "Breaking Bad").
-- For relevance: only flag if clearly unrelated. Be lenient — creative picks are fine.
-- If the pick duplicates something already picked, flag it.`;
+- For relevance: only flag picks that are clearly unrelated to the topic. Repeating an archetype or being similar to an already-picked item is NOT a reason to flag — only exact-duplicate items are duplicates.
+- If the pick is a true duplicate of something already picked, flag it as a duplicate.`;
 
     // ── Per-user AI rate limit ──
     const { data: quota } = await userClient.rpc("consume_ai_quota", {
