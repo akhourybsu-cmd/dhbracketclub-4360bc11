@@ -89,7 +89,7 @@ function AppLayoutInner({ children }: { children: ReactNode }) {
   const location = useLocation();
   const { play } = useSoundEffect();
   const { user } = useAuth();
-  const { club, isClubAdmin, isPlatformOwner } = useClub();
+  const { club, isClubAdmin, isPlatformOwner, isAppAdmin } = useClub();
   const [unreadChatCount, setUnreadChatCount] = useState(0);
   const { open: drawerOpen, setOpen: setDrawerOpen } = useNavDrawer();
   const { filterNavPaths } = useClubAssets();
