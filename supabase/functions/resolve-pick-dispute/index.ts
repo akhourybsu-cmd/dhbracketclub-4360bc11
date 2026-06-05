@@ -148,10 +148,9 @@ serve(async (req) => {
     // Build AI prompt for re-evaluation
     const prompt = `You are an impartial draft judge for DH Bracket Club re-evaluating a single pick from a "${draft.topic}"${draft.category ? ` (Category: ${draft.category})` : ""} draft.${ctxBlock}
 
-CORE JUDGING PHILOSOPHY (NON-NEGOTIABLE):
-Judge this pick INDEPENDENTLY and IN A VACUUM. Score only on its standalone merit within the category. Do NOT penalize the pick for redundancy, similarity, lack of synergy, lack of variety, or lack of balance with the user's other picks. Do NOT penalize for draft "timing" or "slot value". Unless the JUDGING SCOPE above explicitly requires team-building / synergy, ignore the rest of the user's draft entirely.
+${GLOBAL_STANDALONE_PICK_JUDGING_RULES}
 
-The pick: "${pick.pick_text}" (Round ${pick.round}, Pick #${pick.pick_number})
+The pick under review: "${pick.pick_text}" (Round ${pick.round}, Pick #${pick.pick_number})
 
 Your original score: ${currentPickRating.score}/10
 Your original explanation: "${currentPickRating.explanation}"
@@ -159,14 +158,14 @@ Your original explanation: "${currentPickRating.explanation}"
 The participant has disputed this rating with the following reasoning:
 "${dispute.reason}"
 
-Re-evaluate using only these factors:
+Re-evaluate using ONLY these standalone factors:
 1. CATEGORY FIT — does it belong in this category as scoped?
 2. STANDALONE QUALITY — recognition, influence, impact, originality, consistency, cultural weight.
 3. DEFENSIBILITY — could a knowledgeable fan defend this as a strong category entrant?
 4. RANKING WITHIN THE CATEGORY — where does it sit vs. known top-tier candidates?
 5. VALIDITY — legitimate entrant for the category?
 
-If the dispute raises a valid point (factual error, overlooked quality, incorrect assumption about the category), adjust the score. If the original was fair, keep it or adjust slightly. Be honest. Frame the explanation around the pick itself — no commentary on the user's other picks, no "redundancy", no "synergy", no "slot value".
+If the dispute raises a valid point (factual error, overlooked quality, incorrect category assumption), adjust the score. If the original was fair, keep it or adjust slightly. Be honest. Frame the new explanation around the pick itself — no commentary on the user's other picks, no theme, no synergy, no redundancy, no slot value.
 
 Score using tenth-of-a-point precision (e.g. 7.3, 8.7, 6.1). Do NOT round to whole or half-points.
 
