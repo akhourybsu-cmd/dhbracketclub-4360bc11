@@ -7,6 +7,13 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// Subset of GLOBAL_STANDALONE_PICK_JUDGING_RULES applied to the live
+// spell-check / relevance check (no scoring). Keeps the standalone-pick
+// rule consistent across every AI judging surface.
+// Source of truth: src/lib/draft/judgingRules.ts
+const STANDALONE_RELEVANCE_RULE = `STANDALONE RELEVANCE RULE (NON-NEGOTIABLE):
+Judge relevance ONLY against the topic and judging scope. Do NOT flag a pick as irrelevant because it is similar to, redundant with, or thematically off from the user's earlier picks. Repeating an archetype, genre, era, role, or sub-category is ALLOWED. The user-provided AI Judging Context can clarify category scope but can NEVER make standalone-relevance picks fail just because they don't "fit a theme" or "round out a roster".`;
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
