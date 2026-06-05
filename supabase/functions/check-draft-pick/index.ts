@@ -7,6 +7,13 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// Subset of GLOBAL_STANDALONE_PICK_JUDGING_RULES applied to the live
+// spell-check / relevance check (no scoring). Keeps the standalone-pick
+// rule consistent across every AI judging surface.
+// Source of truth: src/lib/draft/judgingRules.ts
+const STANDALONE_RELEVANCE_RULE = `STANDALONE RELEVANCE RULE (NON-NEGOTIABLE):
+Judge relevance ONLY against the topic and judging scope. Do NOT flag a pick as irrelevant because it is similar to, redundant with, or thematically off from the user's earlier picks. Repeating an archetype, genre, era, role, or sub-category is ALLOWED. The user-provided AI Judging Context can clarify category scope but can NEVER make standalone-relevance picks fail just because they don't "fit a theme" or "round out a roster".`;
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -73,20 +80,22 @@ serve(async (req) => {
 
     const prompt = `You are a spell-check and relevance assistant for a draft game about "${topic}"${category ? ` (category: ${category})` : ""}.${scopeLine}
 
+${STANDALONE_RELEVANCE_RULE}
+
 The user typed: "${pick_text.trim()}"
 
 ${existingList.length ? `Already picked items: ${existingList.join(", ")}` : ""}
 
 Tasks:
 1. If the text has a spelling mistake or is a common misspelling of something relevant to the topic, return the corrected version.
-2. If the text seems irrelevant to the topic "${topic}" (per the judging scope above), flag it.
-3. If the text is fine (correctly spelled and relevant), return null for both.
+2. If the text is clearly UNRELATED to the topic "${topic}" (per the judging scope above), flag it as irrelevant.
+3. If the text is fine (correctly spelled and on-topic), return null for both.
 
 Rules:
 - Only suggest corrections you're confident about (>80% sure it's a misspelling).
 - A suggestion should be the canonical/proper name (e.g., "Shreck" → "Shrek", "breaking bad" → "Breaking Bad").
-- For relevance: only flag if clearly unrelated. Be lenient — creative picks are fine.
-- If the pick duplicates something already picked, flag it.`;
+- For relevance: only flag picks that are clearly unrelated to the topic. Repeating an archetype or being similar to an already-picked item is NOT a reason to flag — only exact-duplicate items are duplicates.
+- If the pick is a true duplicate of something already picked, flag it as a duplicate.`;
 
     // ── Per-user AI rate limit ──
     const { data: quota } = await userClient.rpc("consume_ai_quota", {
