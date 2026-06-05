@@ -17,19 +17,20 @@ type SidebarSection = { label: string; items: SidebarItem[] };
 
 const STATIC_SECTIONS: SidebarSection[] = [
   {
-    label: 'Social',
+    label: 'Main',
     items: [
       { path: '/dashboard', label: 'Home', icon: LayoutDashboard },
       { path: '/chat', label: 'Chat', icon: MessageSquareText },
+      { path: '/compete', label: 'Compete', icon: Swords },
       { path: '/feed', label: 'Feed', icon: Newspaper },
       { path: '/events', label: 'Events', icon: CalendarDays },
       { path: '/lore', label: 'Lore', icon: ScrollText },
+      { path: '/celebrations', label: 'Celebrations', icon: Cake },
     ],
   },
   {
     label: 'Games',
     items: [
-      { path: '/compete', label: 'Compete Hub', icon: Swords },
       { path: '/drafts', label: 'Draft Arena', icon: Bookmark },
       { path: '/rune-delve', label: 'Rune Delve', icon: Sparkles },
       { path: '/nexus', label: 'Nexus Defense', icon: Shield },
@@ -42,6 +43,7 @@ const STATIC_SECTIONS: SidebarSection[] = [
   {
     label: 'Community',
     items: [
+      { path: '/narrative', label: 'Narrative RPG', icon: BookOpen },
       { path: '/polls', label: 'Polls', icon: MessageCircle },
       { path: '/rankings', label: 'Rankings', icon: BarChart3 },
       { path: '/posts', label: 'Posts', icon: FileText },
