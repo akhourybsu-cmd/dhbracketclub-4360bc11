@@ -43,6 +43,7 @@ export function AppDrawer({ open, onOpenChange, unreadChatCount = 0 }: AppDrawer
         { path: '/events', label: 'Events', icon: CalendarDays },
         { path: '/lore', label: 'Lore', icon: ScrollText },
         { path: '/feed', label: 'Feed', icon: Newspaper },
+        { path: '/celebrations', label: 'Celebrations', icon: Cake },
       ],
     },
     {
