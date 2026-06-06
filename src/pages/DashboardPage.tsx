@@ -46,6 +46,7 @@ import { ClubOnboardingFlow } from '@/components/onboarding/ClubOnboardingFlow';
 import { WhatIsNewCard } from '@/components/onboarding/WhatIsNewCard';
 import { useClubOnboarding, useNewFeatures } from '@/hooks/useOnboarding';
 import { rankNextActions } from '@/lib/home/nextAction';
+import { getDerivedDraftTurn } from '@/lib/draftTurn';
 import { ENDLESS_MISSION_ID } from '@/lib/nexus/endless';
 
 const NEXUS_SAVE_PREFIX = 'nexus_run_state_v1';
