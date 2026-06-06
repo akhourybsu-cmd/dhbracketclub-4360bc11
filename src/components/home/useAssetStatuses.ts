@@ -13,6 +13,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { getDerivedDraftTurn } from '@/lib/draftTurn';
 import { useAuth } from '@/contexts/AuthContext';
 import { ENDLESS_MISSION_ID } from '@/lib/nexus/endless';
 
