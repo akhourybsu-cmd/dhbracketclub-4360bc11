@@ -13,6 +13,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { getDerivedDraftTurn } from '@/lib/draftTurn';
 import { useAuth } from '@/contexts/AuthContext';
 import { ENDLESS_MISSION_ID } from '@/lib/nexus/endless';
 
@@ -88,20 +89,35 @@ export function useAssetStatuses(installedSlugs: string[]): { statuses: AssetSta
 /* ─── Per-asset resolvers ──────────────────────────────────────────── */
 
 async function loadDraftArenaStatus(userId: string): Promise<AssetStatus | null> {
-  // Top priority: a draft where it's this user's turn.
-  const { data: yourTurn } = await supabase
+  // Top priority: a draft where it's this user's turn. We derive the picker
+  // from participants + picks rather than trusting drafts.current_pick_user_id,
+  // which can lag behind the actual pick stream.
+  const { data: liveDrafts } = await supabase
     .from('drafts')
-    .select('id')
-    .eq('current_pick_user_id', userId)
-    .eq('status', 'in_progress')
-    .limit(1);
-  if (yourTurn && yourTurn.length > 0) return { text: 'Your turn', tone: 'urgent' };
-
-  const { count: live } = await supabase
-    .from('drafts')
-    .select('id', { count: 'exact', head: true })
+    .select('id, num_rounds, status, current_pick_user_id')
     .eq('status', 'in_progress');
-  if ((live ?? 0) > 0) return { text: `${live} live`, tone: 'live' };
+
+  const liveCount = liveDrafts?.length ?? 0;
+  if (liveCount > 0) {
+    const ids = liveDrafts!.map(d => d.id);
+    const [{ data: parts }, { data: picks }] = await Promise.all([
+      supabase.from('draft_participants').select('draft_id, user_id, pick_order').in('draft_id', ids),
+      supabase.from('draft_picks').select('draft_id').in('draft_id', ids),
+    ]);
+    const partsByDraft = new Map<string, any[]>();
+    (parts ?? []).forEach((p: any) => {
+      const arr = partsByDraft.get(p.draft_id) ?? [];
+      arr.push(p); partsByDraft.set(p.draft_id, arr);
+    });
+    const pickCounts = new Map<string, number>();
+    (picks ?? []).forEach((p: any) => pickCounts.set(p.draft_id, (pickCounts.get(p.draft_id) ?? 0) + 1));
+    const yourTurn = liveDrafts!.some(d => {
+      const derived = getDerivedDraftTurn(d as any, partsByDraft.get(d.id) ?? [], pickCounts.get(d.id) ?? 0);
+      return derived.current_pick_user_id === userId;
+    });
+    if (yourTurn) return { text: 'Your turn', tone: 'urgent' };
+    return { text: `${liveCount} live`, tone: 'live' };
+  }
 
   return null;
 }

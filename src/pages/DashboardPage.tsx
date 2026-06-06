@@ -46,6 +46,7 @@ import { ClubOnboardingFlow } from '@/components/onboarding/ClubOnboardingFlow';
 import { WhatIsNewCard } from '@/components/onboarding/WhatIsNewCard';
 import { useClubOnboarding, useNewFeatures } from '@/hooks/useOnboarding';
 import { rankNextActions } from '@/lib/home/nextAction';
+import { getDerivedDraftTurn } from '@/lib/draftTurn';
 import { ENDLESS_MISSION_ID } from '@/lib/nexus/endless';
 
 const NEXUS_SAVE_PREFIX = 'nexus_run_state_v1';
@@ -150,11 +151,11 @@ export default function DashboardPage() {
     const draftsPromise = hasDrafts
       ? supabase
           .from('drafts')
-          .select('id, topic, status, current_pick_user_id')
+          .select('id, topic, status, current_pick_user_id, num_rounds, current_pick_number, current_round')
           .in('status', ['in_progress', 'setup'])
           .order('created_at', { ascending: false })
           .limit(10)
-      : Promise.resolve({ data: [] as DraftRow[], error: null });
+      : Promise.resolve({ data: [] as any[], error: null });
 
     const activityPromise = hasFeed
       ? supabase
@@ -181,7 +182,31 @@ export default function DashboardPage() {
       setDisplayName(profileRes.data.display_name ?? '');
       setAvatarUrl(profileRes.data.avatar_url ?? null);
     }
-    setDrafts(((draftsRes as any).data as DraftRow[]) ?? []);
+
+    // Derive the true current picker for in-progress drafts (DB column can be
+    // stale if a pick insert succeeded but the drafts row update was missed).
+    const rawDrafts = ((draftsRes as any).data as any[]) ?? [];
+    const inProgressIds = rawDrafts.filter(d => d.status === 'in_progress').map(d => d.id);
+    let derivedDrafts: DraftRow[] = rawDrafts;
+    if (inProgressIds.length > 0) {
+      const [partsRes, picksRes] = await Promise.all([
+        supabase.from('draft_participants').select('draft_id, user_id, pick_order').in('draft_id', inProgressIds),
+        supabase.from('draft_picks').select('draft_id').in('draft_id', inProgressIds),
+      ]);
+      const partsByDraft = new Map<string, any[]>();
+      (partsRes.data ?? []).forEach((p: any) => {
+        const arr = partsByDraft.get(p.draft_id) ?? [];
+        arr.push(p); partsByDraft.set(p.draft_id, arr);
+      });
+      const pickCounts = new Map<string, number>();
+      (picksRes.data ?? []).forEach((p: any) => pickCounts.set(p.draft_id, (pickCounts.get(p.draft_id) ?? 0) + 1));
+      derivedDrafts = rawDrafts.map(d => {
+        if (d.status !== 'in_progress') return d;
+        const derived = getDerivedDraftTurn(d, partsByDraft.get(d.id) ?? [], pickCounts.get(d.id) ?? 0);
+        return { ...d, current_pick_user_id: derived.current_pick_user_id };
+      });
+    }
+    setDrafts(derivedDrafts);
     setActivity(((activityRes as any).data as ActivityRow[]) ?? []);
     setEvents(((eventsRes as any).data as EventRow[]) ?? []);
 
