@@ -58,6 +58,22 @@ const CountedNumber = forwardRef<HTMLSpanElement, { value: number }>(function Co
   return <span ref={ref}>{Math.round(animated)}</span>;
 });
 
+const DRAFT_LIST_PAGE_SIZE = 1000;
+
+async function fetchAllDraftListRows<T>(
+  makeQuery: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: any }>,
+): Promise<T[]> {
+  const rows: T[] = [];
+  for (let from = 0; ; from += DRAFT_LIST_PAGE_SIZE) {
+    const { data, error } = await makeQuery(from, from + DRAFT_LIST_PAGE_SIZE - 1);
+    if (error) throw error;
+    const page = data ?? [];
+    rows.push(...page);
+    if (page.length < DRAFT_LIST_PAGE_SIZE) break;
+  }
+  return rows;
+}
+
 /* ══════════════════════════════════════════════════════════
    SEASON HEADER CARD
    ══════════════════════════════════════════════════════════ */
