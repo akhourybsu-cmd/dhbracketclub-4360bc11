@@ -1209,9 +1209,11 @@ export default function DraftsListPage() {
     if (data) {
       const draftIds = data.map(d => d.id);
       if (draftIds.length > 0) {
-        const [{ data: parts }, { data: picks }, { data: seasonEntriesAll }, { data: seasonsAll }] = await Promise.all([
+        const [{ data: parts }, picks, { data: seasonEntriesAll }, { data: seasonsAll }] = await Promise.all([
           supabase.from('draft_participants').select('draft_id, user_id, pick_order, profiles:user_id(display_name)').in('draft_id', draftIds),
-          supabase.from('draft_picks').select('draft_id').in('draft_id', draftIds),
+          fetchAllDraftListRows<any>((from, to) =>
+            supabase.from('draft_picks').select('draft_id').in('draft_id', draftIds).range(from, to),
+          ),
           supabase.from('draft_season_entries' as any).select('draft_id, season_id').in('draft_id', draftIds),
           supabase.from('draft_seasons' as any).select('id, name, season_number, subtitle, starts_at, status').order('season_number', { ascending: false, nullsFirst: false }).order('starts_at', { ascending: false }),
         ]);
@@ -1240,7 +1242,7 @@ export default function DraftsListPage() {
           setParticipantCounts(counts);
         }
         const pickCounts = new Map<string, number>();
-        if (picks) picks.forEach(p => pickCounts.set(p.draft_id, (pickCounts.get(p.draft_id) || 0) + 1));
+        picks.forEach(p => pickCounts.set(p.draft_id, (pickCounts.get(p.draft_id) || 0) + 1));
         const partCounts = new Map<string, number>();
         if (parts) parts.forEach(p => partCounts.set(p.draft_id, (partCounts.get(p.draft_id) || 0) + 1));
         const fixIds: string[] = [];
