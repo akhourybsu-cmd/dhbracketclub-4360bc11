@@ -28,9 +28,12 @@ export function OnTheClockTimer({
       </div>
     );
   }
+  // Inline default bumped 44 → 56 so the readout is comfortably
+  // legible on mobile within the regular-draft "On the Clock" hero
+  // (the previous 44px puck made the mm:ss feel like a footnote).
   return (
     <div className="flex items-center justify-center mt-2">
-      <CountdownRing startedAt={startedAt} size={size ?? 44} compact />
+      <CountdownRing startedAt={startedAt} size={size ?? 56} compact />
     </div>
   );
 }

@@ -139,7 +139,10 @@ function TrophyCase({ agg, longestStreak, mvpPicks }: {
   return (
     <div>
       <SectionLabel icon={Trophy}>Trophy Case</SectionLabel>
-      <div className="grid grid-cols-4 gap-1.5">
+      {/* 7 items: phones get a clean 4-row x 2-col layout instead of
+          the awkward 4+3 that grid-cols-4 forces; sm+ keeps the wider
+          row so the case fills the desktop column. */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
         {items.map(it => (
           <div key={it.label} className="da-glass p-2 text-center">
             <it.icon className="w-3.5 h-3.5 mx-auto mb-1" style={{ color: it.color }} />

@@ -1488,16 +1488,19 @@ export default function DraftDetailPage() {
                                   </span>
                                   {(canManage || pick.user_id === user?.id) && (
                                     <div className="flex items-center gap-0.5">
+                                      {/* Default opacity bumped from /50 → /70 so
+                                          the affordance reads on touch devices
+                                          where there's no hover state to reveal it. */}
                                       <button
                                         onClick={(e) => { e.stopPropagation(); handleStartEditPick(pick); }}
-                                        className="p-2 rounded-md text-muted-foreground/50 hover:text-primary active:text-primary active:bg-primary/10 transition-colors"
+                                        className="p-2 rounded-md text-muted-foreground/70 hover:text-primary active:text-primary active:bg-primary/10 transition-colors"
                                         title="Edit pick"
                                       >
                                         <Pencil className="w-3.5 h-3.5" />
                                       </button>
                                       <button
                                         onClick={(e) => { e.stopPropagation(); setPickToRemove(pick); }}
-                                        className="p-2 rounded-md text-muted-foreground/50 hover:text-destructive active:text-destructive active:bg-destructive/10 transition-colors"
+                                        className="p-2 rounded-md text-muted-foreground/70 hover:text-destructive active:text-destructive active:bg-destructive/10 transition-colors"
                                         title="Remove pick"
                                       >
                                         <Trash2 className="w-3.5 h-3.5" />
