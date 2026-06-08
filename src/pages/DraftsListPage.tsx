@@ -1333,34 +1333,74 @@ export default function DraftsListPage() {
         {/* ── DRAFTS TAB ── */}
         <TabsContent value="drafts" className="mt-0">
           {myDraftStats.draftsRated > 0 && (
-            <div className="da-glass p-4 mb-4">
-              <div className="grid grid-cols-3 gap-2 mb-3">
-                {[
-                  { v: myDraftStats.totalPoints, l: 'Total Pts' },
-                  { v: myDraftStats.wins, l: 'Wins' },
-                  { v: myDraftStats.podiums, l: 'Podiums' },
-                ].map(stat => (
-                  <div key={stat.l} className="text-center">
-                    <p className="text-lg font-extrabold leading-none tabular-nums"><CountedNumber value={stat.v} /></p>
-                    <p className="text-[9px] text-muted-foreground/60 font-medium mt-0.5">{stat.l}</p>
+            // Personal stats card — "trophy room" treatment.
+            // Total Pts is the hero number (gold glow, big). Wins/Podiums
+            // sit alongside as supporting stats. The thin row underneath
+            // shows Avg / Best / Rated as quieter secondary stats.
+            <div
+              className="da-glass mb-4 relative overflow-hidden"
+              style={{
+                background:
+                  'radial-gradient(120% 80% at 100% 0%, hsl(45 93% 52% / 0.10), transparent 55%), linear-gradient(180deg, hsl(160 35% 7% / 0.88), hsl(160 50% 4% / 0.94))',
+              }}
+            >
+              {/* Top edge gold accent strip — a single hairline that ties
+                  the card visually to the rest of the gold-themed shell. */}
+              <div
+                aria-hidden
+                className="absolute inset-x-0 top-0 h-px"
+                style={{ background: 'linear-gradient(90deg, transparent, hsl(var(--gold) / 0.6), transparent)' }}
+              />
+              <div className="p-4">
+                <div className="flex items-end gap-4">
+                  {/* Hero number: Total Pts */}
+                  <div className="flex-shrink-0">
+                    <p
+                      className="text-[34px] font-black leading-none tabular-nums"
+                      style={{
+                        color: 'hsl(var(--gold))',
+                        textShadow: '0 0 18px hsl(var(--gold) / 0.35)',
+                      }}
+                    >
+                      <CountedNumber value={myDraftStats.totalPoints} />
+                    </p>
+                    <p className="text-[9px] text-muted-foreground/60 font-extrabold uppercase tracking-[0.18em] mt-1">
+                      Total Pts
+                    </p>
                   </div>
-                ))}
-              </div>
-              <hr className="da-divider mb-2.5" />
-              <div className="pt-0.5 flex items-center justify-around">
-                <div className="text-center">
-                  <p className="text-sm font-bold leading-none">{myDraftStats.avgScore.toFixed(1)}</p>
-                  <p className="text-[9px] text-muted-foreground/60 font-medium mt-0.5">Avg Score</p>
+                  {/* Supporting stats — Wins · Podiums */}
+                  <div className="flex-1 grid grid-cols-2 gap-3 pb-1.5">
+                    <div>
+                      <p className="text-[18px] font-extrabold tabular-nums leading-none">
+                        <CountedNumber value={myDraftStats.wins} />
+                      </p>
+                      <p className="text-[9px] text-muted-foreground/60 font-bold uppercase tracking-wider mt-0.5">Wins</p>
+                    </div>
+                    <div>
+                      <p className="text-[18px] font-extrabold tabular-nums leading-none">
+                        <CountedNumber value={myDraftStats.podiums} />
+                      </p>
+                      <p className="text-[9px] text-muted-foreground/60 font-bold uppercase tracking-wider mt-0.5">Podiums</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="w-px h-6 bg-gold/15" />
-                <div className="text-center">
-                  <p className="text-sm font-bold leading-none">{myDraftStats.bestFinish > 0 ? `${myDraftStats.bestFinish}${myDraftStats.bestFinish === 1 ? 'st' : myDraftStats.bestFinish === 2 ? 'nd' : myDraftStats.bestFinish === 3 ? 'rd' : 'th'}` : '—'}</p>
-                  <p className="text-[9px] text-muted-foreground/60 font-medium mt-0.5">Best Finish</p>
-                </div>
-                <div className="w-px h-6 bg-gold/15" />
-                <div className="text-center">
-                  <p className="text-sm font-bold leading-none">{myDraftStats.draftsRated}</p>
-                  <p className="text-[9px] text-muted-foreground/60 font-medium mt-0.5">Rated</p>
+                <hr className="da-divider my-3" />
+                {/* Secondary row — finer typography, quieter */}
+                <div className="flex items-center justify-around">
+                  <div className="text-center">
+                    <p className="text-[13px] font-bold leading-none tabular-nums">{myDraftStats.avgScore.toFixed(1)}</p>
+                    <p className="text-[9px] text-muted-foreground/55 font-medium mt-1 uppercase tracking-wider">Avg Score</p>
+                  </div>
+                  <div className="w-px h-6 bg-gold/15" />
+                  <div className="text-center">
+                    <p className="text-[13px] font-bold leading-none tabular-nums">{myDraftStats.bestFinish > 0 ? `${myDraftStats.bestFinish}${myDraftStats.bestFinish === 1 ? 'st' : myDraftStats.bestFinish === 2 ? 'nd' : myDraftStats.bestFinish === 3 ? 'rd' : 'th'}` : '—'}</p>
+                    <p className="text-[9px] text-muted-foreground/55 font-medium mt-1 uppercase tracking-wider">Best Finish</p>
+                  </div>
+                  <div className="w-px h-6 bg-gold/15" />
+                  <div className="text-center">
+                    <p className="text-[13px] font-bold leading-none tabular-nums">{myDraftStats.draftsRated}</p>
+                    <p className="text-[9px] text-muted-foreground/55 font-medium mt-1 uppercase tracking-wider">Rated</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1431,6 +1471,17 @@ export default function DraftsListPage() {
               const isLive = d.status === 'in_progress';
               const isMyTurn = isLive && d.current_pick_user_id === user?.id;
               const staggerIdx = Math.min(i, 8);
+              // Left-edge accent color — drives the visual identity of the
+              // row at a glance from across the page:
+              //   playoff      → bright gold (championship vibe)
+              //   my turn      → gold (you should act)
+              //   live (other) → success-green (someone else is acting)
+              //   default      → none (calm row)
+              const edgeAccent =
+                isPlayoff ? 'hsl(45 93% 52%)'
+                : isMyTurn ? 'hsl(var(--gold))'
+                : isLive  ? 'hsl(var(--success))'
+                : null;
               return (
                 <motion.div key={d.id} variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0, transition: { ...springSnap, delay: staggerIdx * 0.04 } } }}>
                   <Link to={`/drafts/${d.id}`} className="block group">
@@ -1439,8 +1490,19 @@ export default function DraftsListPage() {
                       style={isPlayoff ? {
                         borderLeft: '3px solid hsl(45 93% 52%)',
                         background: 'linear-gradient(135deg, hsl(45 93% 52% / 0.08), transparent 60%), linear-gradient(180deg, hsl(160 35% 7% / 0.88), hsl(160 50% 4% / 0.94))',
-                        boxShadow: '0 0 18px -4px hsl(45 93% 52% / 0.25)',
+                        boxShadow: '0 0 22px -4px hsl(45 93% 52% / 0.32)',
+                      } : edgeAccent ? {
+                        borderLeft: `3px solid ${edgeAccent}`,
                       } : undefined}>
+                      {/* Playoff rows get a gold sweep along the top edge plus
+                          the existing ✦ watermark — unmistakable identity. */}
+                      {isPlayoff && (
+                        <div
+                          aria-hidden
+                          className="absolute inset-x-0 top-0 h-px pointer-events-none"
+                          style={{ background: 'linear-gradient(90deg, transparent, hsl(45 93% 52% / 0.7), transparent)' }}
+                        />
+                      )}
                       {isPlayoff && <div className="absolute -right-2 -top-2 text-3xl opacity-10 select-none pointer-events-none" aria-hidden>✦</div>}
                       {isLive && !isPlayoff && <div className="absolute -right-2 -top-2 text-2xl opacity-[0.07] select-none pointer-events-none" aria-hidden>✦</div>}
                       <div className="flex items-center justify-between relative z-10">
@@ -1451,24 +1513,55 @@ export default function DraftsListPage() {
                           </div>
                           <div className="min-w-0">
                             {isPlayoff && <div className="mb-0.5"><PlayoffBadge round={playoffMatch!.round} matchNumber={playoffMatch!.match_number} size="xs" /></div>}
-                            <h3 className="font-bold text-sm truncate">{d.topic}</h3>
-                            <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                            {/* Topic — bumped from text-sm → text-[15px] with
+                                tighter tracking so it reads as the row title. */}
+                            <h3 className="font-extrabold text-[15px] tracking-tight truncate leading-tight">{d.topic}</h3>
+                            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                               {isPlayoff ? (
                                 <span className="text-[10px] font-bold tracking-wide" style={{ color: 'hsl(45 93% 52%)' }}>{getPlayoffGameLabel(playoffMatch!.round, playoffMatch!.match_number)}</span>
                               ) : (
                                 <span className="text-[10px] text-muted-foreground/70 font-medium">{d.num_rounds} rounds</span>
                               )}
-                              <span className="w-0.5 h-0.5 rounded-full bg-muted-foreground/15" />
-                              <span className="text-[10px] text-muted-foreground/70 flex items-center gap-0.5 font-medium"><Users className="w-2.5 h-2.5" /> {count}</span>
+                              {/* Inline gold dot separator — small visual lift over the grey pellets. */}
+                              <span className="w-1 h-1 rounded-full bg-gold/25" />
+                              <span className="text-[10px] text-muted-foreground/75 flex items-center gap-1 font-medium">
+                                <Users className="w-2.5 h-2.5 text-muted-foreground/55" /> {count}
+                              </span>
                               {winner && (
-                                <><span className="w-0.5 h-0.5 rounded-full bg-muted-foreground/15" /><span className="text-[10px] flex items-center gap-0.5 font-semibold" style={{ color: 'hsl(var(--gold))' }}><Trophy className="w-2.5 h-2.5" /> {winner.display_name}</span></>
+                                <>
+                                  <span className="w-1 h-1 rounded-full bg-gold/25" />
+                                  <span className="text-[10px] flex items-center gap-1 font-bold" style={{ color: 'hsl(var(--gold))' }}>
+                                    <Trophy className="w-2.5 h-2.5" /> {winner.display_name}
+                                  </span>
+                                </>
                               )}
                             </div>
+                            {/* "Your turn" treatment: pill chip instead of a
+                                small text line so it reads from across the page.
+                                Other-player turn stays as a quieter line. */}
                             {d.status === 'in_progress' && d.current_pick_user_id && (
-                              <motion.p initial={isMyTurn ? { y: 0 } : false} animate={isMyTurn ? { y: [0, -2, 0] } : undefined} transition={{ duration: 0.6, ease: 'easeOut' }}
-                                className="text-[10px] font-semibold mt-0.5" style={{ color: isMyTurn ? 'hsl(var(--gold))' : 'hsl(var(--success))' }}>
-                                🎯 {isMyTurn ? 'Your pick!' : `${(d as any).current_pick_profiles?.display_name || 'Someone'}'s pick`}
-                              </motion.p>
+                              isMyTurn ? (
+                                <motion.span
+                                  initial={{ scale: 0.96 }}
+                                  animate={{ scale: [0.96, 1, 0.96] }}
+                                  transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+                                  className="inline-flex items-center gap-1 mt-1.5 px-1.5 py-[2px] rounded-full text-[9px] font-extrabold uppercase tracking-[0.18em]"
+                                  style={{
+                                    background: 'hsl(var(--gold) / 0.18)',
+                                    color: 'hsl(var(--gold))',
+                                    border: '1px solid hsl(var(--gold) / 0.5)',
+                                    boxShadow: '0 0 8px hsl(var(--gold) / 0.25)',
+                                  }}
+                                >
+                                  <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: 'hsl(var(--gold))', boxShadow: '0 0 5px hsl(var(--gold))' }} />
+                                  You're up
+                                </motion.span>
+                              ) : (
+                                <p className="text-[10px] font-semibold mt-1" style={{ color: 'hsl(var(--success))' }}>
+                                  <span className="inline-block w-1.5 h-1.5 rounded-full mr-1 align-middle animate-pulse" style={{ background: 'hsl(var(--success))' }} />
+                                  {(d as any).current_pick_profiles?.display_name || 'Someone'}'s pick
+                                </p>
+                              )
                             )}
                           </div>
                         </div>
@@ -1498,26 +1591,55 @@ export default function DraftsListPage() {
                       className="border-0 rounded-xl overflow-hidden da-glass"
                     >
                       <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                        <div className="flex items-center gap-2.5 flex-1 min-w-0 text-left">
-                          <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                            style={{ background: g.id === '__misc__' ? 'hsl(var(--muted) / 0.5)' : 'linear-gradient(135deg, hsl(var(--gold) / 0.22), hsl(var(--gold) / 0.06))' }}>
+                        <div className="flex items-center gap-3 flex-1 min-w-0 text-left">
+                          {/* Trophy icon container — bumped from 8 → 9 with
+                              slightly stronger shadow so the season header
+                              reads as a chapter divider, not another row. */}
+                          <div
+                            className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                            style={
+                              g.id === '__misc__'
+                                ? { background: 'hsl(var(--muted) / 0.5)' }
+                                : {
+                                    background:
+                                      'linear-gradient(135deg, hsl(var(--gold) / 0.28), hsl(var(--gold) / 0.08))',
+                                    boxShadow: '0 0 10px hsl(var(--gold) / 0.18)',
+                                  }
+                            }
+                          >
                             {g.id === '__misc__'
                               ? <Archive className="w-4 h-4 text-muted-foreground" />
-                              : <Trophy className="w-4 h-4" style={{ color: 'hsl(var(--gold))' }} />}
+                              : <Trophy className="w-[18px] h-[18px]" style={{ color: 'hsl(var(--gold))' }} strokeWidth={2.2} />}
                           </div>
                           <div className="min-w-0 flex-1">
+                            {/* Title row — name + status chip + live count chip
+                                all on one line. Previously the count sat on a
+                                second line which made the header feel taller
+                                than it needed to be. */}
                             <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="font-extrabold text-[13px] truncate">{g.name}</span>
+                              <span className="font-extrabold text-[14px] truncate">{g.name}</span>
                               {chip && (
                                 <span className={cn('inline-flex items-center gap-1 text-[9px] font-extrabold uppercase tracking-wider px-1.5 py-[2px] rounded-full', chip.cls)}>
                                   {chip.live && <span className="w-1 h-1 rounded-full bg-current animate-pulse" />}
                                   {chip.label}
                                 </span>
                               )}
+                              {liveCount > 0 && (
+                                <span
+                                  className="inline-flex items-center gap-1 text-[9px] font-extrabold uppercase tracking-wider px-1.5 py-[2px] rounded-full"
+                                  style={{
+                                    background: 'hsl(var(--success) / 0.15)',
+                                    color: 'hsl(var(--success))',
+                                    border: '1px solid hsl(var(--success) / 0.3)',
+                                  }}
+                                >
+                                  <span className="w-1 h-1 rounded-full bg-current animate-pulse" />
+                                  {liveCount} live
+                                </span>
+                              )}
                             </div>
-                            <p className="text-[10px] text-muted-foreground/70 font-medium mt-0.5">
+                            <p className="text-[10px] text-muted-foreground/65 font-medium mt-0.5 tabular-nums">
                               {g.drafts.length} {g.drafts.length === 1 ? 'draft' : 'drafts'}
-                              {liveCount > 0 && <> · <span style={{ color: 'hsl(var(--success))' }}>{liveCount} in progress</span></>}
                             </p>
                           </div>
                         </div>
@@ -1537,11 +1659,23 @@ export default function DraftsListPage() {
 
 
 
-          {/* Seasons archive link */}
+          {/* Seasons archive link — gold-edged chip matching the rest of
+              the shell's visual language, instead of the previous muted
+              utility button. Still the same destination + same flow. */}
           <div className="mt-4">
             <Link to="/drafts/seasons">
-              <button className="w-full h-9 rounded-lg bg-muted/40 text-[11px] font-bold text-foreground/70 transition-colors flex items-center justify-center gap-1.5 btn-press hover:bg-muted/60">
-                <Archive className="w-3.5 h-3.5" /> Seasons Archive <ChevronRight className="w-3 h-3" />
+              <button
+                className="w-full h-10 rounded-xl text-[11px] font-extrabold uppercase tracking-wider transition-all flex items-center justify-center gap-2 btn-press group"
+                style={{
+                  background: 'linear-gradient(180deg, hsl(var(--gold) / 0.10), hsl(var(--gold) / 0.04))',
+                  color: 'hsl(var(--gold))',
+                  border: '1px solid hsl(var(--gold) / 0.3)',
+                  boxShadow: 'inset 0 1px 0 hsl(var(--gold) / 0.15)',
+                }}
+              >
+                <Archive className="w-3.5 h-3.5" />
+                Seasons Archive
+                <ChevronRight className="w-3 h-3 transition-transform group-hover:translate-x-0.5" />
               </button>
             </Link>
           </div>
