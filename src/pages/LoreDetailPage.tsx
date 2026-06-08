@@ -18,7 +18,7 @@ export default function LoreDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="pb-6">
+      <div className="pb-6 lg:max-w-[760px] lg:mx-auto">
         <div className="h-4 w-20 skeleton-shimmer rounded mb-6" />
         <div className="glass-card p-5 h-64 skeleton-shimmer" />
       </div>
@@ -48,7 +48,9 @@ export default function LoreDetailPage() {
   };
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-6">
+    {/* Long-form article — re-narrow to 760px on lg so prose stays
+        comfortable to read instead of stretching to the desktop shell. */}
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-6 lg:max-w-[760px] lg:mx-auto">
       <Link to="/lore" className="back-link">
         <ArrowLeft /> Lore
       </Link>

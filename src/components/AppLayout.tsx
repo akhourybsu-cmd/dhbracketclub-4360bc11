@@ -224,7 +224,19 @@ function AppLayoutInner({ children }: { children: ReactNode }) {
         {location.pathname === '/chat' || isGameShell ? (
           children
         ) : (
-          <div className="max-w-[640px] mx-auto px-4 sm:px-5 py-5 sm:py-6 lg:py-8 min-w-0">
+          // Content area sizing:
+          //   • Mobile / tablet (<lg): keep the 640px phone-column cap.
+          //     Everything below the lg breakpoint stays byte-identical
+          //     to the prior mobile-first design.
+          //   • Desktop (lg+): widen to 1280px. This single change is
+          //     the foundation of the desktop overhaul — most non-game
+          //     pages were getting capped at 640px on a 1920px display,
+          //     which is what makes the app feel like an emulated phone.
+          //
+          // Long-form reading pages (Lore article detail, etc.) re-apply
+          // a narrower cap at the page root via `lg:max-w-[760px]
+          // lg:mx-auto` so prose stays readable.
+          <div className="max-w-[640px] lg:max-w-[1280px] mx-auto px-4 sm:px-5 py-5 sm:py-6 lg:py-8 min-w-0">
             {children}
           </div>
         )}
