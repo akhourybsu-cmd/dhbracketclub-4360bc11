@@ -17,8 +17,15 @@ export function DraftArenaLayout({ children }: { children: ReactNode }) {
     <div className="da-mode da-shell relative min-h-[100dvh]">
       <DraftArenaHUD />
 
+      {/* Shell width: mobile-first 640px cap (the original calm phone
+          column) widens to 1100px on lg+ so dense surfaces like the war
+          room and Stats Hub can adopt a 2-column desktop layout. Pages
+          inside that don't want the extra room — long-form report
+          content, etc. — re-apply a narrower max-width on their inner
+          wrapper (e.g. `lg:max-w-[760px] lg:mx-auto`). Mobile/tablet
+          (<lg) is unchanged. */}
       <main
-        className="max-w-[640px] mx-auto px-3 sm:px-5 pt-3"
+        className="max-w-[640px] lg:max-w-[1100px] mx-auto px-3 sm:px-5 pt-3"
         style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom, 0px))' }}
       >
         {children}

@@ -622,29 +622,46 @@ export default function DraftStatsHub() {
 
   return (
     <div className="space-y-3 pb-4">
+      {/* Scope chips stay full-width above the dashboard grid so they
+          read as a global filter for everything below. */}
       <ScopeBar scope={scope} onScope={setScope} seasons={seasonChips} />
 
-      {!noPersonal && agg && (
-        <HeroIdentity nickname={nickname} agg={agg} totalPoints={agg.totalSeasonPoints} />
-      )}
+      {/* Two-column dashboard on lg+:
+            LEFT  — "You + your numbers"   (Hero · Trophy · Pulse · Pick Quality)
+            RIGHT — "Comparison + context" (Timing · Leaderboards · Topics · Awards · Seasons)
+          Mobile/tablet is a single column with the previous order preserved.
+          items-start so columns at different heights align cleanly. */}
+      <div className="lg:grid lg:grid-cols-2 lg:gap-4 lg:items-start space-y-3 lg:space-y-0">
+        {/* LEFT column */}
+        <div className="space-y-3">
+          {!noPersonal && agg && (
+            <HeroIdentity nickname={nickname} agg={agg} totalPoints={agg.totalSeasonPoints} />
+          )}
 
-      {!noPersonal && agg && (
-        <TrophyCase agg={agg} longestStreak={streak} mvpPicks={pq?.topMvpPicks || 0} />
-      )}
+          {!noPersonal && agg && (
+            <TrophyCase agg={agg} longestStreak={streak} mvpPicks={pq?.topMvpPicks || 0} />
+          )}
 
-      {pulse.length >= 2 && <CareerPulse points={pulse} />}
+          {/* CareerPulse renders a teaser at length === 1 (see component),
+              so the gate is >= 1. The component itself short-circuits on 0. */}
+          {pulse.length >= 1 && <CareerPulse points={pulse} />}
 
-      {pq && pq.totalRated > 0 && <PickQualityCard pq={pq} />}
+          {pq && pq.totalRated > 0 && <PickQualityCard pq={pq} />}
+        </div>
 
-      {timing && timing.sampleCount > 0 && <TimingCard t={timing} />}
+        {/* RIGHT column */}
+        <div className="space-y-3">
+          {timing && timing.sampleCount > 0 && <TimingCard t={timing} />}
 
-      <Leaderboards dataset={scoped} userId={user?.id} />
+          <Leaderboards dataset={scoped} userId={user?.id} />
 
-      {tt && <TopicTendencies tt={tt} />}
+          {tt && <TopicTendencies tt={tt} />}
 
-      <FunAwards awards={awards} userId={user?.id} />
+          <FunAwards awards={awards} userId={user?.id} />
 
-      <SeasonHistory dataset={dataset} userId={user?.id} />
+          <SeasonHistory dataset={dataset} userId={user?.id} />
+        </div>
+      </div>
 
       <button onClick={refresh}
         className="w-full h-9 rounded-lg bg-muted/40 text-[11px] font-bold text-foreground/70 hover:bg-muted/60 btn-press flex items-center justify-center gap-1.5">

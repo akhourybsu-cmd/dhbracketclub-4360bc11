@@ -1118,8 +1118,17 @@ export default function DraftDetailPage() {
       {/* ═══ Live Draft ═══ */}
       {isInProgress && !isDraftComplete && (
         <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
-          {/* Pick announcement */}
+          {/* Pick announcement — spans full width on lg, sits above the
+              2-col grid so a fresh pick still reads as a broadcast moment
+              instead of being trapped in one column. */}
           <PickAnnouncement pick={announcement} onHide={() => setAnnouncement(null)} />
+
+          {/* Live-draft 2-column layout on lg+:
+                LEFT  (420px, sticky)  — turn hero + pick input + AI suggestion
+                RIGHT (1fr, scrolls)   — pick history
+              Mobile/tablet (<lg) is unchanged — pure single-column stack. */}
+          <div className="lg:grid lg:grid-cols-[420px_1fr] lg:gap-5 lg:items-start">
+          <div className="lg:sticky lg:top-3">
 
           {/* Current turn banner */}
           {isPlayoffDraft ? (
@@ -1383,6 +1392,9 @@ export default function DraftDetailPage() {
             </div>
           )}
 
+          </div>{/* /lg sticky left column */}
+
+          <div className="lg:min-w-0">
           {/* Pick history — enriched cards */}
           {picks.length > 0 && (
             <div
@@ -1539,12 +1551,22 @@ export default function DraftDetailPage() {
               </div>{/* /scroll mask wrapper */}
             </div>
           )}
+          </div>{/* /lg right column */}
+          </div>{/* /lg 2-col grid wrapper */}
         </motion.div>
       )}
 
       {/* ═══ Complete — Results ═══ */}
+      {/* Long-form report: cap at 760px on desktop. Without this, the
+          podium + MVP banner + stats card stretch across the full 1100px
+          shell and feel sparse. The content is a story, not a dashboard,
+          so it stays single-column on every breakpoint. */}
       {(isDraftComplete || draft.status === 'complete') && (
-        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
+        <motion.div
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="lg:max-w-[760px] lg:mx-auto"
+        >
           {/* ─── Playoff completion banners ─── */}
           {isPlayoffDraft && playoffMatch?.winner_user_id && (() => {
             const winnerId = playoffMatch.winner_user_id;
