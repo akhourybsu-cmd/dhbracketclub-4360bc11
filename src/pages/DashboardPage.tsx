@@ -460,14 +460,10 @@ export default function DashboardPage() {
         firstName={firstName}
       />
 
-      {/* Today — consolidated flowing feed of what's happening */}
-      <TodayFeed
-        items={todayItems}
-        title={club?.name ? `Today in ${club.name}` : 'Today'}
-        sublabel={todayItems.length > 0 ? 'What\'s moving right now' : undefined}
-      />
-
-      {/* QuickBar — user-pinned shortcut dock. Full app list lives in the side menu. */}
+      {/* QuickBar — user-pinned shortcut dock. Full-width on every
+          breakpoint: the dock is a horizontal strip of 56px tiles and
+          doesn't tile well into a narrow sidebar. Lives ABOVE the lg
+          desktop split so it stays one of the first things you see. */}
       {qb.pinned.length > 0 && (
         <QuickBar pinned={qb.pinned} accent={accent} onEditClick={() => setQbSheetOpen(true)} />
       )}
@@ -487,33 +483,55 @@ export default function DashboardPage() {
         )}
       </AnimatePresence>
 
+      {/* ─── Desktop 2-column split ────────────────────────────────────
+          On lg+ the rest of the home page becomes a [1fr | 320px] grid:
+            LEFT  — primary stream (FeaturedModule)
+            RIGHT — social/discover sidebar (MembersOnline, DiscoverStrip)
+          On mobile/tablet this collapses to the original vertical stack
+          (the wrapper is plain flex-column under lg, only `lg:grid`
+          takes effect at the breakpoint).
+          ──────────────────────────────────────────────────────────── */}
+      <div className="flex flex-col gap-0 lg:grid lg:grid-cols-[1fr_320px] lg:gap-6 lg:items-start">
+        {/* LEFT column — primary content */}
+        <div className="min-w-0">
+          {/* Today — consolidated flowing feed of what's happening */}
+          <TodayFeed
+            items={todayItems}
+            title={club?.name ? `Today in ${club.name}` : 'Today'}
+            sublabel={todayItems.length > 0 ? 'What\'s moving right now' : undefined}
+          />
 
+          {/* Featured — one richer block: league or active campaign */}
+          <FeaturedModule
+            season={hasDrafts ? season ?? null : null}
+            standings={standings as any}
+            regularEntries={regularEntries}
+            seasonTarget={seasonTarget}
+            userId={user?.id}
+            campaigns={isInstalled('narrative-rpg') ? narrativeCampaigns as any : []}
+          />
 
-      {/* Featured — one richer block: league or active campaign */}
-      <FeaturedModule
-        season={hasDrafts ? season ?? null : null}
-        standings={standings as any}
-        regularEntries={regularEntries}
-        seasonTarget={seasonTarget}
-        userId={user?.id}
-        campaigns={isInstalled('narrative-rpg') ? narrativeCampaigns as any : []}
-      />
+          {/* Fresh-club empty state lives in the primary column so its CTA
+              is the main thing the user sees on a brand-new club. */}
+          {isFreshClub && (
+            <EmptyClubState isAdmin={isClubAdmin} accent={accent} clubName={club?.name} />
+          )}
+        </div>
 
-      {/* Members online — small presence strip (renders nothing if you're alone) */}
-      <MembersOnline myDisplayName={displayName} myAvatarUrl={avatarUrl} accent={accent} />
+        {/* RIGHT column — social / discover sidebar */}
+        <div className="min-w-0 lg:sticky lg:top-3">
+          {/* Members online — small presence strip (renders nothing if you're alone) */}
+          <MembersOnline myDisplayName={displayName} myAvatarUrl={avatarUrl} accent={accent} />
 
-      {/* Discover — admin-only un-installed assets */}
-      <DiscoverStrip
-        allAssets={allAssets}
-        installedAssets={installedAssets}
-        isAdmin={isClubAdmin}
-        accent={accent}
-      />
-
-      {/* Fresh-club empty state */}
-      {isFreshClub && (
-        <EmptyClubState isAdmin={isClubAdmin} accent={accent} clubName={club?.name} />
-      )}
+          {/* Discover — admin-only un-installed assets */}
+          <DiscoverStrip
+            allAssets={allAssets}
+            installedAssets={installedAssets}
+            isAdmin={isClubAdmin}
+            accent={accent}
+          />
+        </div>
+      </div>
 
       {/* First-time club onboarding — full-screen, dismissible, runs once */}
       <ClubOnboardingFlow
