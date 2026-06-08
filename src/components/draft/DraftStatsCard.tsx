@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
-import { Timer, Zap, Target, TrendingUp, Clock, Award, Flame } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Timer, Zap, Target, TrendingUp, Clock, Award, Flame, ArrowRight } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown } from 'lucide-react';
 import { useState } from 'react';
@@ -135,6 +136,18 @@ export function DraftStatsCard({ picks, results, participants }: DraftStatsCardP
               </div>
             ))}
           </div>
+          {/* Bridge to the career-level Stats Hub. The per-draft card
+              (here) shows micro-stats — pick-level wins for one draft.
+              The hub shows the macro view across every draft you've
+              played. Without this link, those two surfaces are siloed
+              and users may not realise the hub exists. */}
+          <Link
+            to="/drafts?tab=stats"
+            className="border-t border-border/25 px-4 py-2.5 flex items-center gap-2 text-[11px] font-bold text-primary hover:bg-primary/8 active:bg-primary/12 transition-colors group"
+          >
+            <span className="flex-1">View your career stats</span>
+            <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
+          </Link>
         </CollapsibleContent>
       </motion.div>
     </Collapsible>

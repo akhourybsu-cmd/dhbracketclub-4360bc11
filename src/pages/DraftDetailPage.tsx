@@ -1423,6 +1423,13 @@ export default function DraftDetailPage() {
                   <PickCount value={picks.length} /> {picks.length === 1 ? 'pick' : 'picks'}
                 </span>
               </div>
+              {/* Wrap the scrollable list in a positioned container so we
+                  can layer a soft fade-mask at the bottom. The mask is a
+                  pointer-events-none overlay that fades the last few
+                  pixels of content into the card background — gives users
+                  a clear "more below" cue without adding chrome. Only
+                  shown when there are enough picks to actually scroll. */}
+              <div className="relative">
               <div className="divide-y divide-border/20 max-h-96 overflow-y-auto">
                 <AnimatePresence initial={false}>
                   {(() => {
@@ -1518,6 +1525,18 @@ export default function DraftDetailPage() {
                   })()}
                 </AnimatePresence>
               </div>
+              {/* Fade mask — only render when there are enough rows to
+                  actually be cut off (>5 picks at typical row height). */}
+              {picks.length > 5 && (
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-x-0 bottom-0 h-10"
+                  style={{
+                    background: 'linear-gradient(to top, hsl(var(--card)) 0%, hsl(var(--card) / 0) 100%)',
+                  }}
+                />
+              )}
+              </div>{/* /scroll mask wrapper */}
             </div>
           )}
         </motion.div>
