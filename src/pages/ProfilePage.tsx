@@ -154,9 +154,12 @@ export default function ProfilePage() {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: 'spring' as const, stiffness: 380, damping: 30 }}
-      className="max-w-md mx-auto"
+      className="max-w-md lg:max-w-none mx-auto lg:mx-0"
     >
-      {/* Page header */}
+      {/* Page header — full width on every breakpoint.
+          Note on the wrapper className above: mobile/tablet keeps the
+          original 28rem reading-column. On lg+ the cap is lifted so
+          the 2-column desktop layout below can use the full shell. */}
       <div className="page-header">
         <div className="page-header-icon">
           <User />
@@ -166,6 +169,15 @@ export default function ProfilePage() {
           <p className="page-header-subtitle">Manage your DH account</p>
         </div>
       </div>
+
+      {/* Desktop 2-column split (mobile/tablet keeps the original
+          vertical stack — no `lg:` prefix means no change <lg):
+            LEFT  (1fr) — Identity + Your Club  (who you are)
+            RIGHT (1fr) — Your Stats + Recent Activity  (what you've done)
+          Page header above stays full-width. Settings + Sound +
+          Sign Out follow below the grid as a full-width block. */}
+      <div className="flex flex-col gap-0 lg:grid lg:grid-cols-2 lg:gap-5 lg:items-start">
+        <div className="min-w-0">
 
       {/* Identity card */}
       <div className="glass-card arena-edge p-6 mb-4">
@@ -279,6 +291,11 @@ export default function ProfilePage() {
         </div>
       )}
 
+        </div>{/* /lg left column — Identity + Club */}
+
+        {/* RIGHT column — stats + recent activity */}
+        <div className="min-w-0">
+
       {/* Stats */}
       <div className="glass-card p-5 mb-4">
         <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-3">Your Stats</h3>
@@ -335,7 +352,11 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* Settings */}
+        </div>{/* /lg right column — Stats + Recent Activity */}
+      </div>{/* /lg 2-col grid */}
+
+      {/* Settings — full width again on every breakpoint (the panel is
+          dense form rows that doesn't benefit from 2-col splitting). */}
       <div className="glass-card p-5 mb-4 space-y-4">
         <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-3">Settings</h3>
 
