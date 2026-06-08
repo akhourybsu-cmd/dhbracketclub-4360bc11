@@ -352,7 +352,9 @@ export default function EventsPage() {
                   <CalendarDays className="w-3.5 h-3.5 inline-block mr-1.5 text-primary" />
                   Upcoming
                 </h2>
-                <div className="space-y-2">
+                {/* lg: 2-col grid so wide desktops aren't a tall single
+                    stack of event cards. Mobile/tablet unchanged. */}
+                <div className="space-y-2 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-3">
                   {upcoming.map((event, i) => (
                     <motion.div key={event.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
                       <Link to={`/events/${event.id}`} className="block group">
@@ -419,7 +421,7 @@ export default function EventsPage() {
             {past.length > 0 && (
               <div>
                 <h2 className="section-header mb-3 text-muted-foreground/60">Past</h2>
-                <div className="space-y-1.5 opacity-50">
+                <div className="space-y-1.5 opacity-50 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-2">
                   {past.slice(0, 5).map(event => (
                     <Link key={event.id} to={`/events/${event.id}`} className="block">
                       <div className="glass-card p-3 transition-all duration-200 hover:border-border/25">
