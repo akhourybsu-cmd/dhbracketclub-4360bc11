@@ -151,6 +151,17 @@ export default function FeedPage() {
           </div>
         )}
 
+        {/* Desktop 2-column split (mobile/tablet keeps the original
+            vertical stack — no `lg:` prefix means no change <lg):
+              LEFT  (1fr)            — Pinned posts + Discussions
+              RIGHT (360px, sticky)  — Activity stream
+
+            The Activity stream is high-volume realtime micro-events;
+            it naturally belongs in a sidebar. Discussions are the
+            bigger content cards and stay in the primary column. */}
+        <div className="flex flex-col gap-0 lg:grid lg:grid-cols-[1fr_360px] lg:gap-6 lg:items-start">
+          <div className="min-w-0">
+
         {/* Pinned posts */}
         {!loading && pinnedPosts.length > 0 && (
           <div className="mb-6">
@@ -198,6 +209,10 @@ export default function FeedPage() {
           </div>
         )}
 
+          </div>{/* /lg left column — Pinned posts + Discussions */}
+
+          {/* RIGHT column — Activity sidebar (sticky on lg) */}
+          <div className="min-w-0 lg:sticky lg:top-3">
         {/* Activity stream */}
         {!loading && (
         <div>
@@ -257,6 +272,8 @@ export default function FeedPage() {
           )}
         </div>
         )}
+          </div>{/* /lg right column — Activity */}
+        </div>{/* /lg 2-col grid */}
       </motion.div>
     </div>
   );
