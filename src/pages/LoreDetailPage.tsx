@@ -47,9 +47,9 @@ export default function LoreDetailPage() {
     });
   };
 
+  // Long-form article — re-narrow to 760px on lg so prose stays
+  // comfortable to read instead of stretching to the desktop shell.
   return (
-    {/* Long-form article — re-narrow to 760px on lg so prose stays
-        comfortable to read instead of stretching to the desktop shell. */}
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-6 lg:max-w-[760px] lg:mx-auto">
       <Link to="/lore" className="back-link">
         <ArrowLeft /> Lore
