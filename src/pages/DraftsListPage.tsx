@@ -7,7 +7,7 @@ import { StatusPill } from '@/components/ui/status-pill';
 import {
   Bookmark, Plus, ArrowRight, Users, Play, Trophy, Award, Target, Archive,
   Calendar, TrendingUp, Crown, Swords, Shield, ChevronRight, ChevronDown,
-  Medal, Sparkles, X, Loader2, RefreshCw, Flame,
+  Medal, Sparkles, X, Loader2, RefreshCw, Flame, BarChart3, ListChecks,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -1334,73 +1334,121 @@ export default function DraftsListPage() {
         <TabsContent value="drafts" className="mt-0">
           {myDraftStats.draftsRated > 0 && (
             // Personal stats card — "trophy room" treatment.
-            // Total Pts is the hero number (gold glow, big). Wins/Podiums
-            // sit alongside as supporting stats. The thin row underneath
-            // shows Avg / Best / Rated as quieter secondary stats.
+            //
+            // Layout from top:
+            //   1. Header strip — small Sparkles icon + "Your Card" label
+            //      so the card has an identity rather than being raw numbers.
+            //   2. Hero row — 3 stats balanced on a flex track: TOTAL PTS
+            //      is the anchor (big gold), WINS + PODIUMS sit beside it
+            //      at medium weight. Each has an icon chip for fast scan.
+            //   3. Divider hairline.
+            //   4. Secondary row — Avg Score / Best Finish / Rated, smaller
+            //      type, each anchored by an icon. These are "averaged"
+            //      stats so they read as supporting context.
+            //
+            // The card sits on a radial gold wash + hairline top-edge strip
+            // so it visually anchors to the rest of the gold-themed shell.
             <div
               className="da-glass mb-4 relative overflow-hidden"
               style={{
                 background:
-                  'radial-gradient(120% 80% at 100% 0%, hsl(45 93% 52% / 0.10), transparent 55%), linear-gradient(180deg, hsl(160 35% 7% / 0.88), hsl(160 50% 4% / 0.94))',
+                  'radial-gradient(120% 80% at 100% 0%, hsl(45 93% 52% / 0.12), transparent 55%), linear-gradient(180deg, hsl(160 35% 7% / 0.88), hsl(160 50% 4% / 0.94))',
               }}
             >
-              {/* Top edge gold accent strip — a single hairline that ties
-                  the card visually to the rest of the gold-themed shell. */}
+              {/* Top edge gold accent strip */}
               <div
                 aria-hidden
                 className="absolute inset-x-0 top-0 h-px"
                 style={{ background: 'linear-gradient(90deg, transparent, hsl(var(--gold) / 0.6), transparent)' }}
               />
               <div className="p-4">
-                <div className="flex items-end gap-4">
-                  {/* Hero number: Total Pts */}
-                  <div className="flex-shrink-0">
+                {/* Header strip — small label gives the card an anchor */}
+                <div className="flex items-center gap-1.5 mb-3">
+                  <Sparkles className="w-3 h-3" style={{ color: 'hsl(var(--gold))' }} />
+                  <p className="text-[9px] font-extrabold uppercase tracking-[0.22em]" style={{ color: 'hsl(var(--gold) / 0.85)' }}>
+                    Your Card
+                  </p>
+                  <div className="flex-1 h-px" style={{ background: 'linear-gradient(90deg, hsl(var(--gold) / 0.18), transparent)' }} />
+                </div>
+
+                {/* Hero row — 3 stats on a single track.
+                    Using flex with `flex-1` on each so they share the row
+                    fairly while Total Pts can grow into its space; the
+                    gold pulse-glow on TOTAL PTS makes it the anchor. */}
+                <div className="flex items-end gap-3">
+                  {/* TOTAL PTS — anchor */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1 mb-1">
+                      <Trophy className="w-3 h-3" style={{ color: 'hsl(var(--gold))' }} strokeWidth={2.5} />
+                      <p className="text-[8.5px] font-extrabold uppercase tracking-[0.2em]" style={{ color: 'hsl(var(--gold) / 0.7)' }}>
+                        Total Pts
+                      </p>
+                    </div>
                     <p
                       className="text-[34px] font-black leading-none tabular-nums"
                       style={{
                         color: 'hsl(var(--gold))',
-                        textShadow: '0 0 18px hsl(var(--gold) / 0.35)',
+                        textShadow: '0 0 18px hsl(var(--gold) / 0.4)',
                       }}
                     >
                       <CountedNumber value={myDraftStats.totalPoints} />
                     </p>
-                    <p className="text-[9px] text-muted-foreground/60 font-extrabold uppercase tracking-[0.18em] mt-1">
-                      Total Pts
+                  </div>
+                  {/* WINS */}
+                  <div className="flex-1 min-w-0 pb-1">
+                    <div className="flex items-center gap-1 mb-1">
+                      <Crown className="w-3 h-3 text-muted-foreground/60" strokeWidth={2.5} />
+                      <p className="text-[8.5px] font-extrabold uppercase tracking-[0.2em] text-muted-foreground/60">Wins</p>
+                    </div>
+                    <p className="text-[22px] font-extrabold tabular-nums leading-none">
+                      <CountedNumber value={myDraftStats.wins} />
                     </p>
                   </div>
-                  {/* Supporting stats — Wins · Podiums */}
-                  <div className="flex-1 grid grid-cols-2 gap-3 pb-1.5">
-                    <div>
-                      <p className="text-[18px] font-extrabold tabular-nums leading-none">
-                        <CountedNumber value={myDraftStats.wins} />
-                      </p>
-                      <p className="text-[9px] text-muted-foreground/60 font-bold uppercase tracking-wider mt-0.5">Wins</p>
+                  {/* PODIUMS */}
+                  <div className="flex-1 min-w-0 pb-1">
+                    <div className="flex items-center gap-1 mb-1">
+                      <Medal className="w-3 h-3 text-muted-foreground/60" strokeWidth={2.5} />
+                      <p className="text-[8.5px] font-extrabold uppercase tracking-[0.2em] text-muted-foreground/60">Podiums</p>
                     </div>
-                    <div>
-                      <p className="text-[18px] font-extrabold tabular-nums leading-none">
-                        <CountedNumber value={myDraftStats.podiums} />
-                      </p>
-                      <p className="text-[9px] text-muted-foreground/60 font-bold uppercase tracking-wider mt-0.5">Podiums</p>
-                    </div>
+                    <p className="text-[22px] font-extrabold tabular-nums leading-none">
+                      <CountedNumber value={myDraftStats.podiums} />
+                    </p>
                   </div>
                 </div>
+
                 <hr className="da-divider my-3" />
-                {/* Secondary row — finer typography, quieter */}
-                <div className="flex items-center justify-around">
-                  <div className="text-center">
-                    <p className="text-[13px] font-bold leading-none tabular-nums">{myDraftStats.avgScore.toFixed(1)}</p>
-                    <p className="text-[9px] text-muted-foreground/55 font-medium mt-1 uppercase tracking-wider">Avg Score</p>
-                  </div>
-                  <div className="w-px h-6 bg-gold/15" />
-                  <div className="text-center">
-                    <p className="text-[13px] font-bold leading-none tabular-nums">{myDraftStats.bestFinish > 0 ? `${myDraftStats.bestFinish}${myDraftStats.bestFinish === 1 ? 'st' : myDraftStats.bestFinish === 2 ? 'nd' : myDraftStats.bestFinish === 3 ? 'rd' : 'th'}` : '—'}</p>
-                    <p className="text-[9px] text-muted-foreground/55 font-medium mt-1 uppercase tracking-wider">Best Finish</p>
-                  </div>
-                  <div className="w-px h-6 bg-gold/15" />
-                  <div className="text-center">
-                    <p className="text-[13px] font-bold leading-none tabular-nums">{myDraftStats.draftsRated}</p>
-                    <p className="text-[9px] text-muted-foreground/55 font-medium mt-1 uppercase tracking-wider">Rated</p>
-                  </div>
+
+                {/* Secondary row — icon-anchored, smaller numbers, finer
+                    typography. These three stats read as "context for the
+                    hero" rather than achievements in their own right. */}
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { icon: BarChart3, label: 'Avg Score', value: myDraftStats.avgScore.toFixed(1) },
+                    {
+                      icon: Award,
+                      label: 'Best Finish',
+                      value: myDraftStats.bestFinish > 0
+                        ? `${myDraftStats.bestFinish}${myDraftStats.bestFinish === 1 ? 'st' : myDraftStats.bestFinish === 2 ? 'nd' : myDraftStats.bestFinish === 3 ? 'rd' : 'th'}`
+                        : '—',
+                    },
+                    { icon: ListChecks, label: 'Rated', value: myDraftStats.draftsRated },
+                  ].map(s => {
+                    const Icon = s.icon;
+                    return (
+                      <div key={s.label} className="flex items-center gap-2 min-w-0">
+                        <div
+                          className="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0"
+                          style={{ background: 'hsl(var(--gold) / 0.08)', border: '1px solid hsl(var(--gold) / 0.18)' }}
+                        >
+                          <Icon className="w-3.5 h-3.5" style={{ color: 'hsl(var(--gold) / 0.85)' }} strokeWidth={2.2} />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[13px] font-extrabold leading-none tabular-nums">{s.value}</p>
+                          <p className="text-[8.5px] text-muted-foreground/55 font-bold mt-0.5 uppercase tracking-wider truncate">{s.label}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>
