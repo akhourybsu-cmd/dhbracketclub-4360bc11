@@ -95,7 +95,9 @@ export default function PollsListPage() {
           </Link>
         </motion.div>
       ) : (
-        <div className="space-y-2">
+        // Mobile/tablet: vertical list. lg+: 2-col grid so wide
+        // desktops aren't a tall single column of cards.
+        <div className="space-y-2 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-3">
           {polls.map((p, i) => {
             const count = voteCounts.get(p.id) || 0;
             const voted = myVotes.has(p.id);

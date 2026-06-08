@@ -361,7 +361,7 @@ export default function SharedMediaPage() {
           );
         })()
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-2 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-3">
           {items.map(item => (
             <MediaItemCard
               key={item.id}

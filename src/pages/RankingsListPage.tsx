@@ -85,7 +85,7 @@ export default function RankingsListPage() {
           </Link>
         </motion.div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-2 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-3">
           {rankings.map((r, i) => {
             const count = submissionCounts.get(r.id) || 0;
             const submitted = mySubmissions.has(r.id);

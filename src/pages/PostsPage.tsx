@@ -127,7 +127,7 @@ export default function PostsPage() {
 
         {/* Posts list */}
         {!loading && (
-        <div className="space-y-2">
+        <div className="space-y-2 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-3">
           {posts.map((post, i) => (
             <motion.div key={post.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}>
               <Link to={`/posts/${post.id}`} className="block group">
