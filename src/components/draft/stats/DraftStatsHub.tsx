@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Trophy, Crown, Award, Flame, Target, Zap, Timer, TrendingUp,
@@ -159,6 +160,31 @@ function TrophyCase({ agg, longestStreak, mvpPicks }: {
 
 /* ─── Career pulse sparkline ─── */
 function CareerPulse({ points }: { points: ReturnType<typeof computeCareerPulse> }) {
+  // 1-draft users: show a teaser card instead of silently hiding the
+  // whole Career Pulse section. The graph needs two points to draw a
+  // line — but signalling "one more draft unlocks this" is way more
+  // motivating than a missing section.
+  if (points.length === 1) {
+    return (
+      <div>
+        <SectionLabel icon={TrendingUp}>Career Pulse</SectionLabel>
+        <div className="da-glass p-4 flex items-center gap-3">
+          <div
+            className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+            style={{ background: 'hsl(var(--gold) / 0.12)', border: '1px solid hsl(var(--gold) / 0.3)' }}
+          >
+            <Sparkles className="w-4 h-4" style={{ color: 'hsl(var(--gold))' }} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[12px] font-extrabold">Your trend unlocks at draft #2</p>
+            <p className="text-[10.5px] text-muted-foreground/70 leading-snug mt-0.5">
+              Finish one more draft to see your score line — and whether you're trending up.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
   if (points.length < 2) return null;
   const scores = points.map(p => p.score);
   const min = Math.min(...scores);
@@ -325,7 +351,13 @@ const LEADERBOARDS: { key: LeaderMetric; label: string; icon: any }[] = [
 ];
 
 function Leaderboards({ dataset, userId }: { dataset: any; userId?: string }) {
-  const [expanded, setExpanded] = useState<Set<string>>(new Set(['wins', 'championships']));
+  // Default-open four boards instead of two: previously only Wins +
+  // Championships were visible at mount, so six other meaningful
+  // boards were hidden behind a tap. The four open-by-default now are
+  // the ones most likely to start a useful comparison conversation.
+  const [expanded, setExpanded] = useState<Set<string>>(
+    new Set(['wins', 'championships', 'avgScore', 'draftsPlayed']),
+  );
   return (
     <div>
       <SectionLabel icon={BarChart3}>Leaderboards</SectionLabel>
@@ -487,9 +519,17 @@ function SeasonHistory({ dataset, userId }: { dataset: any; userId?: string }) {
   return (
     <div>
       <SectionLabel icon={Trophy}>Season-by-Season</SectionLabel>
+      {/* Each row is now a Link to the season archive detail page, so
+          users can drill from "here's your career profile" into "what
+          actually happened in that season." Chevron affordance + hover
+          state make the tap target obvious. */}
       <div className="da-glass overflow-hidden divide-y divide-border/10">
         {rows.map((r: any) => (
-          <div key={r.season.id} className="px-3.5 py-2.5 flex items-center gap-3">
+          <Link
+            key={r.season.id}
+            to={`/drafts/seasons/${r.season.id}`}
+            className="px-3.5 py-2.5 flex items-center gap-3 transition-colors hover:bg-gold/8 active:bg-gold/12"
+          >
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5">
                 <p className="text-[12px] font-bold truncate">{formatSeasonTitle({ season_number: r.season.season_number, name: r.season.name })}</p>
@@ -504,7 +544,8 @@ function SeasonHistory({ dataset, userId }: { dataset: any; userId?: string }) {
               <p className="text-[14px] font-extrabold tabular-nums" style={{ color: 'hsl(var(--gold))' }}>{r.st.season_points}</p>
               <p className="text-[8px] text-muted-foreground/60 font-bold uppercase tracking-wider">pts</p>
             </div>
-          </div>
+            <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 flex-shrink-0" />
+          </Link>
         ))}
       </div>
     </div>
