@@ -773,7 +773,10 @@ export default function ChatPage() {
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Search messages..."
-              className="h-8 text-xs bg-muted/20 border-border/25 rounded-lg"
+              // Mobile: h-9 (36px) so it's comfortable to focus with a
+              // thumb without misfiring on the surrounding border.
+              // Desktop: original h-8 keeps the header compact.
+              className="h-9 lg:h-8 text-xs bg-muted/20 border-border/25 rounded-lg"
               autoFocus
             />
             {searchResults && searchResults.length > 0 && (

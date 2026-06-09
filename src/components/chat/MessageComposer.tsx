@@ -392,7 +392,11 @@ export const MessageComposer = forwardRef<MessageComposerHandle, MessageComposer
             aria-label={uploading ? 'Sending message' : 'Send message'}
             type="button"
             className={cn(
-              "flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-150 active:scale-90 disabled:cursor-not-allowed",
+              // Mobile bumped to 44×44 (Apple HIG primary action min)
+              // so the most-tapped affordance in the app is comfortably
+              // thumb-sized. Desktop stays at 36×36 since it's typically
+              // a click target.
+              "flex-shrink-0 w-11 h-11 lg:w-9 lg:h-9 rounded-full flex items-center justify-center transition-all duration-150 active:scale-90 disabled:cursor-not-allowed",
               canSend
                 ? "bg-primary text-primary-foreground shadow-sm"
                 : "bg-muted/40 text-muted-foreground/40"

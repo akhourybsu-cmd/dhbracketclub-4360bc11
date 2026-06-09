@@ -298,7 +298,9 @@ export function MessageList({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.8, y: 10 }}
             onClick={scrollToBottom}
-            className="sticky bottom-3 ml-auto mr-3 w-10 h-10 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:bg-primary/90 transition-colors z-20"
+            // 44×44 on mobile (HIG floating-action minimum), tighter
+            // 40×40 on lg+ since pointer-precision is higher on desktop.
+            className="sticky bottom-3 ml-auto mr-3 w-11 h-11 lg:w-10 lg:h-10 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:bg-primary/90 transition-colors z-20"
             style={{ touchAction: 'manipulation' }}
           >
             <ChevronDown className="w-5 h-5" />

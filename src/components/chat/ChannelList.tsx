@@ -380,7 +380,10 @@ export function ChannelList({
                 <button
                   type="button"
                   onClick={() => toggleCategory(group.id)}
-                  className="w-full flex items-center gap-1.5 px-2 mb-1.5 group/cat rounded-md hover:bg-muted/15 transition-colors active:scale-[0.99]"
+                  // Explicit min-h on mobile so the chevron + label
+                  // has a real 36px tap zone. Desktop is unchanged
+                  // (the row collapses to its natural text height).
+                  className="w-full flex items-center gap-1.5 px-2 mb-1.5 group/cat rounded-md hover:bg-muted/15 transition-colors active:scale-[0.99] min-h-[36px] lg:min-h-0"
                   aria-expanded={!isCollapsed}
                 >
                   <ChevronDown

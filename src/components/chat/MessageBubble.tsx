@@ -575,7 +575,10 @@ function MessageBubbleInner({
                         transition={reduceMotion ? { duration: 0 } : { type: 'spring', damping: 22, stiffness: 480 }}
                         onClick={(e) => { e.stopPropagation(); handleReaction(r.emoji); }}
                         className={cn(
-                          "inline-flex items-center gap-1 h-6 px-1.5 rounded-full text-[11px] border shadow-sm backdrop-blur-sm transition-colors duration-150 active:scale-90",
+                          // Mobile: h-7 (28px) for reliable tap target.
+                          // Desktop keeps the original h-6 (24px) so
+                          // reaction rows stay dense alongside text.
+                          "inline-flex items-center gap-1 h-7 lg:h-6 px-2 lg:px-1.5 rounded-full text-[11px] border shadow-sm backdrop-blur-sm transition-colors duration-150 active:scale-90",
                           r.user_reacted
                             ? "border-primary/30 bg-primary/15 text-primary"
                             : "border-border/30 bg-background/95 text-foreground/80 hover:bg-background"
@@ -606,7 +609,10 @@ function MessageBubbleInner({
               <button
                 onClick={(e) => { e.stopPropagation(); onOpenThread(msg); }}
                 className={cn(
-                  "group/thread relative inline-flex items-center gap-2 mt-2 pl-2.5 pr-3 py-1.5 rounded-lg text-[11.5px] font-bold transition-colors",
+                  // Mobile: py-2 + min-h-[36px] for HIG-acceptable tap
+                  // target. Desktop keeps the denser py-1.5 since chips
+                  // hover-target reliably with a mouse.
+                  "group/thread relative inline-flex items-center gap-2 mt-2 pl-2.5 pr-3 py-2 lg:py-1.5 min-h-[36px] lg:min-h-0 rounded-lg text-[11.5px] font-bold transition-colors",
                   "bg-primary/8 hover:bg-primary/14 text-primary border border-primary/20 hover:border-primary/35",
                   isOwn ? "ml-auto" : ""
                 )}
