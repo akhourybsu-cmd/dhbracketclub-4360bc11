@@ -28,6 +28,7 @@ import { useChatMessages } from '@/hooks/useChatMessages';
 import { useChatRealtime, useChatTyping } from '@/hooks/useChatRealtime';
 import { useChatActions } from '@/hooks/useChatActions';
 import { notifyThreadReply } from '@/lib/chatNotifications';
+import { applySlashCommand } from '@/lib/chatSlashCommands';
 
 export default function ChatPage() {
   const { user } = useAuth();
@@ -311,8 +312,18 @@ export default function ChatPage() {
     play('tap');
     setSending(true);
 
+    // Apply Discord-style slash command transformations (e.g.
+    // "/shrug hi" → "hi ¯\_(ツ)_/¯", "/me dances" → "*dances*").
+    // Non-command text is returned unchanged.
     // Build content: text + image URLs on separate lines
-    let content = newMessage.trim();
+    let content = applySlashCommand(newMessage.trim());
+    // If the slash command emitted nothing (e.g. "/me" with no text)
+    // and there are no images, bail out — there's nothing to send.
+    if (!content && !hasImages) {
+      setSending(false);
+      setNewMessage('');
+      return;
+    }
     if (hasImages) {
       const imgLines = imageUrls.map(url => url).join('\n');
       content = content ? `${content}\n${imgLines}` : imgLines;
