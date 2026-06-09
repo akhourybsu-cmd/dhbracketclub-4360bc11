@@ -66,6 +66,10 @@ import { rollRelicDrop } from '@/lib/runedelve/relicDrops';
 import type { RelicDef } from '@/lib/runedelve/relics';
 import { useUnlockRelic } from '@/hooks/useRelicCollection';
 import { getPathVariant, resolvePathEffect } from '@/lib/runedelve/pathVariants';
+import {
+  detectPhaseTransitions, applyPhaseDamageBump,
+  type BossPhaseIndex,
+} from '@/lib/runedelve/bossPhases';
 import { applyInitialIntents } from '@/lib/runedelve/telegraph';
 import {
   buildInitialCorruption,
@@ -182,6 +186,11 @@ export default function RuneDelvePlayPage() {
   // R7: a relic dropped on this clear (if any). Surfaced in the
   // endState card so the player sees the find.
   const [droppedRelic, setDroppedRelic] = useState<RelicDef | null>(null);
+  // R5: per-enemy boss phase tracker. Bosses + mini-bosses progress
+  // through phases as their HP drops; the map records the highest
+  // phase each enemy has entered so we can detect new transitions
+  // on every state change without re-firing past ones.
+  const bossPhasesRef = useRef<Map<string, BossPhaseIndex>>(new Map());
   const { data: wallet } = useRuneWallet();
   const { data: failureRow } = useFailureRow(level?.level_number ?? null);
   const earnShards = useEarnShards();
@@ -448,6 +457,11 @@ export default function RuneDelvePlayPage() {
     setBonusShardsFromMastery(0);
     setBonusScoreFromTreasure(0);
     setBonusShardsFromTreasure(0);
+    // R5: reset boss-phase tracker on every run-init path (fresh OR
+    // snapshot rehydrate). Snapshot rehydrate re-derives current phase
+    // lazily on the first transition check using the restored HP, so
+    // resuming a backgrounded run picks up the correct boss state.
+    bossPhasesRef.current = new Map();
     setTotalManaSpent(0);
     // Name → archetype-id fallback for legacy levels seeded before the roster system.
     const resolveArchetype = (e: any): string | undefined => {
@@ -550,6 +564,11 @@ export default function RuneDelvePlayPage() {
     setBonusShardsFromMastery(0);
     setBonusScoreFromTreasure(0);
     setBonusShardsFromTreasure(0);
+    // R5: reset boss-phase tracker on every run-init path (fresh OR
+    // snapshot rehydrate). Snapshot rehydrate re-derives current phase
+    // lazily on the first transition check using the restored HP, so
+    // resuming a backgrounded run picks up the correct boss state.
+    bossPhasesRef.current = new Map();
     setTotalManaSpent(0);
     setGoldRunesCleared(0);
     // R3: fresh run — surface the modifier picker. We only do this
@@ -1571,6 +1590,24 @@ export default function RuneDelvePlayPage() {
         turnLogs.push({ kind: 'corruption', text: '🔥 Inferno burns', amount: drain });
       }
     }
+    // ── R5: Boss phase transitions ──────────────────────────────────────
+    // Detect AFTER all damage has been applied for the turn (chain +
+    // relic procs + any wave damage). Phase damage bumps apply to the
+    // boss's `damage` field, which the engine reads on the NEXT
+    // enemy turn — giving the player one "warning" turn between
+    // hearing "Phase 2 — Awakened" and feeling the bigger hits.
+    {
+      const transitions = detectPhaseTransitions(postWave.enemies, bossPhasesRef.current);
+      for (const t of transitions) {
+        bossPhasesRef.current.set(t.enemyId, t.to);
+        const e = postWave.enemies.find(e => e.id === t.enemyId);
+        if (e) applyPhaseDamageBump(e, t);
+        turnLogs.push({
+          kind: 'info',
+          text: `👑 ${t.enemyName} · ${t.def.name} — ${t.def.flavor}`,
+        });
+      }
+    }
     setCombat(postWave);
     pushLogs(turnLogs);
 
@@ -1674,6 +1711,21 @@ export default function RuneDelvePlayPage() {
           ? `The ground trembles — the Boss enters! +${nextWave.reinforcement_turns ?? 2} turns granted.`
           : `Reinforcements arrive! +${nextWave.reinforcement_turns ?? 2} turns granted.`,
       });
+    }
+    // R5: same boss-phase check as the other setCombat path — fires
+    // for both the standard "turn ended" branch and the wave-spawn
+    // branch so phase transitions never get skipped.
+    {
+      const transitions = detectPhaseTransitions(postWave.enemies, bossPhasesRef.current);
+      for (const t of transitions) {
+        bossPhasesRef.current.set(t.enemyId, t.to);
+        const e = postWave.enemies.find(e => e.id === t.enemyId);
+        if (e) applyPhaseDamageBump(e, t);
+        turnLogs.push({
+          kind: 'info',
+          text: `👑 ${t.enemyName} · ${t.def.name} — ${t.def.flavor}`,
+        });
+      }
     }
     setCombat(postWave);
     pushLogs(turnLogs);
