@@ -1298,25 +1298,33 @@ export default function DraftsListPage() {
   return (
     <div className="pb-6">
       <Tabs defaultValue={defaultTab} className="w-full">
-        {/* Tab bar */}
+        {/* Tab bar.
+            Previous bug: the active TabsTrigger inherits shadcn's
+            `data-[state=active]:bg-background` from its base styles.
+            In `.da-mode` dark, `bg-background` resolves to the same
+            near-black that the override `text-[hsl(160_30%_6%)]` was
+            using for active-tab text — so the active label was being
+            painted dark-on-dark and effectively invisible. The fix:
+            force the active state to a solid gold fill so the dark
+            text reads as black-on-gold (the intended look). */}
         <div className="flex items-center justify-between mb-4 gap-3">
           <TabsList className="flex gap-1 p-1 rounded-xl h-auto" style={{ background: 'hsl(45 95% 55% / 0.08)', border: '1px solid hsl(45 95% 55% / 0.18)' }}>
             <TabsTrigger value="drafts"
-              className="text-[10px] font-bold px-3 py-1.5 rounded-lg data-[state=active]:text-[hsl(160_30%_6%)] data-[state=inactive]:text-white/60"
+              className="text-[10px] font-bold px-3 py-1.5 rounded-lg data-[state=active]:bg-[hsl(45_95%_55%)] data-[state=active]:text-[hsl(160_30%_6%)] data-[state=active]:shadow-[0_0_12px_hsl(45_95%_55%/0.45)] data-[state=inactive]:text-white/60"
               style={{ '--tw-ring-color': 'transparent' } as any}>
               Drafts
             </TabsTrigger>
             <TabsTrigger value="season"
-              className="text-[10px] font-bold px-3 py-1.5 rounded-lg data-[state=active]:text-[hsl(160_30%_6%)] data-[state=inactive]:text-white/60">
+              className="text-[10px] font-bold px-3 py-1.5 rounded-lg data-[state=active]:bg-[hsl(45_95%_55%)] data-[state=active]:text-[hsl(160_30%_6%)] data-[state=active]:shadow-[0_0_12px_hsl(45_95%_55%/0.45)] data-[state=inactive]:text-white/60">
               Season
             </TabsTrigger>
             <TabsTrigger value="stats"
-              className="text-[10px] font-bold px-3 py-1.5 rounded-lg data-[state=active]:text-[hsl(160_30%_6%)] data-[state=inactive]:text-white/60">
+              className="text-[10px] font-bold px-3 py-1.5 rounded-lg data-[state=active]:bg-[hsl(45_95%_55%)] data-[state=active]:text-[hsl(160_30%_6%)] data-[state=active]:shadow-[0_0_12px_hsl(45_95%_55%/0.45)] data-[state=inactive]:text-white/60">
               Stats
             </TabsTrigger>
             {canSeeCommissioner && (
               <TabsTrigger value="commissioner"
-                className="text-[10px] font-bold px-3 py-1.5 rounded-lg data-[state=active]:text-[hsl(160_30%_6%)] data-[state=inactive]:text-white/60">
+                className="text-[10px] font-bold px-3 py-1.5 rounded-lg data-[state=active]:bg-[hsl(45_95%_55%)] data-[state=active]:text-[hsl(160_30%_6%)] data-[state=active]:shadow-[0_0_12px_hsl(45_95%_55%/0.45)] data-[state=inactive]:text-white/60">
                 Commissioner
               </TabsTrigger>
             )}
