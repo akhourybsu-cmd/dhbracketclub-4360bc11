@@ -62,30 +62,27 @@ export function MessageList({
     setOpenOverlayMessageId(msgId);
   }, []);
 
-  // Reset auto-scroll when channel changes
+  // Track whether we just switched channels — used by the auto-scroll
+  // effect to know it should snap instantly (no smooth scroll) on the
+  // first render after a channel change, and only smooth-scroll for
+  // genuine new-message arrivals.
+  const justSwitchedRef = useRef(true);
+
+  // Reset auto-scroll state when channel changes.
+  //
+  // Previously this effect set up a MutationObserver that re-scrolled
+  // for 1500ms on EVERY DOM mutation — including image loads, framer-
+  // motion animation enter/exit, and child re-renders — which caused
+  // visible scroll bumps during the first second after switching.
+  // Dropping the observer: the auto-scroll effect below already
+  // handles "messages added → scroll to bottom" via its `messages`
+  // dependency, and the ResizeObserver below handles viewport/image
+  // resize. The observer was solving a problem the other two effects
+  // already solve.
   useEffect(() => {
     setAutoScroll(true);
     setNewMsgCount(0);
-
-    const el = scrollRef.current;
-    if (!el) return;
-
-    requestAnimationFrame(() => {
-      messagesEndRef.current?.scrollIntoView();
-    });
-
-    const observer = new MutationObserver(() => {
-      requestAnimationFrame(() => {
-        messagesEndRef.current?.scrollIntoView();
-      });
-    });
-    observer.observe(el, { childList: true, subtree: true });
-
-    const t = setTimeout(() => observer.disconnect(), 1500);
-    return () => {
-      clearTimeout(t);
-      observer.disconnect();
-    };
+    justSwitchedRef.current = true;
   }, [selectedChannel?.id]);
 
   // Scroll preservation on load-more (prepend)
@@ -109,10 +106,20 @@ export function MessageList({
     }
   }, [messages, loadingMore]);
 
-  // Auto scroll to bottom on new messages
+  // Auto scroll to bottom on new messages.
+  //
+  // Behaviour:
+  //   • First render after a channel switch → snap instant (no smooth)
+  //     so the initial position lands before the user sees anything.
+  //   • Subsequent renders while autoScroll=true → smooth-scroll for
+  //     new arrivals.
+  //   • autoScroll=false → bump the "new messages" badge instead.
   useEffect(() => {
     if (autoScroll) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      messagesEndRef.current?.scrollIntoView({
+        behavior: justSwitchedRef.current ? 'auto' : 'smooth',
+      });
+      justSwitchedRef.current = false;
       setNewMsgCount(0);
     } else if (messages.length > prevMsgCount.current && prevScrollHeight.current === null) {
       setNewMsgCount(prev => prev + (messages.length - prevMsgCount.current));

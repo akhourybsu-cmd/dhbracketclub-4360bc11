@@ -11,6 +11,12 @@ interface UseChatRealtimeOptions {
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
   threadParentRef: React.RefObject<Message | null>;
   setThreadMessages: React.Dispatch<React.SetStateAction<Message[]>>;
+  /** Shared echo set from useChatActions. Whenever we optimistically
+   *  toggle a reaction locally, an entry is added here so that the
+   *  inevitable INSERT/DELETE realtime event for OUR own toggle gets
+   *  detected and skipped — otherwise the reaction count would
+   *  double-apply (once optimistically, once on the realtime echo). */
+  reactionEchoRef?: React.RefObject<Set<string>>;
 }
 
 export function useChatRealtime({
@@ -21,6 +27,7 @@ export function useChatRealtime({
   setMessages,
   threadParentRef,
   setThreadMessages,
+  reactionEchoRef,
 }: UseChatRealtimeOptions) {
   // Use refs for values that change frequently but shouldn't cause re-subscribe
   const membersRef = useRef(members);
@@ -86,6 +93,14 @@ export function useChatRealtime({
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'message_reactions' },
         (payload) => {
           const r = payload.new as any;
+          // Echo dedup: if THIS user just optimistically added this
+          // reaction, the count has already been bumped locally. The
+          // realtime event is the server echo of our action — consume
+          // it from the echo set and skip the apply.
+          if (r.user_id === userId && reactionEchoRef?.current?.has(`${r.message_id}:${r.emoji}:add`)) {
+            reactionEchoRef.current.delete(`${r.message_id}:${r.emoji}:add`);
+            return;
+          }
           setMessages(prev => prev.map(m => {
             if (m.id !== r.message_id) return m;
             const reactions = [...(m.reactions || [])];
@@ -102,6 +117,12 @@ export function useChatRealtime({
       .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'message_reactions' },
         (payload) => {
           const r = payload.old as any;
+          // Echo dedup mirror of the INSERT case — skip the apply
+          // when the DELETE is our own optimistic un-react.
+          if (r.user_id === userId && reactionEchoRef?.current?.has(`${r.message_id}:${r.emoji}:remove`)) {
+            reactionEchoRef.current.delete(`${r.message_id}:${r.emoji}:remove`);
+            return;
+          }
           setMessages(prev => prev.map(m => {
             if (m.id !== r.message_id) return m;
             let reactions = [...(m.reactions || [])];

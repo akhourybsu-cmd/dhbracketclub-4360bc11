@@ -117,11 +117,18 @@ export default function ChatPage() {
     messages, setMessages, hasMore, loadingMore, fetchMessages, loadOlderMessages,
   } = useChatMessages(user?.id);
 
+  // Shared echo set so optimistic reaction toggles (useChatActions)
+  // and realtime listeners (useChatRealtime) cooperate. When we
+  // optimistically apply a reaction, we record the action here; the
+  // realtime listener checks the set and skips applying its own
+  // echo, preventing double-counting.
+  const reactionEchoRef = useRef<Set<string>>(new Set());
+
   const {
     play, toggleReaction, togglePin, deleteMessage,
     startEditing, handleSaveEdit,
     editingMessageId, editContent, setEditContent, cancelEdit,
-  } = useChatActions(user?.id);
+  } = useChatActions(user?.id, { setMessages, reactionEchoRef });
 
   useChatRealtime({
     channelId: selectedChannel?.id,
@@ -131,6 +138,7 @@ export default function ChatPage() {
     setMessages,
     threadParentRef,
     setThreadMessages,
+    reactionEchoRef,
   });
 
   const { typingUsers, broadcastTyping } = useChatTyping(
