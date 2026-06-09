@@ -34,10 +34,16 @@ interface Props {
    *  (Warrior 1.25× red, Mage 2 mana on blue, Cleric 1.5× green) and chain
    *  tier bonuses (chain 6/7/8+). */
   effectOverride?: Partial<Record<RuneType, (n: number) => string>>;
+  /** Treasure cells from the chamber's layout — chaining through them
+   *  pays bonus score + shards. Rendered as a gold sparkle overlay. */
+  treasureCells?: Set<string>;
+  /** Hazard cells from the chamber's layout — chaining through them
+   *  costs HP. Rendered as a red glow overlay. */
+  hazardCells?: Set<string>;
 }
 
 // Mobile-first rune board with pointer-driven chain selection.
-export function RuneBoard({ grid, disabled, onChainComplete, seals, corruptedCells, corruptionSources, eclipsedCells, linkedCells, shiftingColumn, effectOverride }: Props) {
+export function RuneBoard({ grid, disabled, onChainComplete, seals, corruptedCells, corruptionSources, eclipsedCells, linkedCells, shiftingColumn, effectOverride, treasureCells, hazardCells }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [chain, setChain] = useState<Cell[]>([]);
   const draggingRef = useRef(false);
@@ -175,6 +181,8 @@ export function RuneBoard({ grid, disabled, onChainComplete, seals, corruptedCel
               const isEclipsed = eclipsedCells?.has(k) ?? false;
               const isLinked = linkedCells?.has(k) ?? false;
               const isShifting = (shiftingColumn ?? -1) === c;
+              const isTreasure = treasureCells?.has(k) ?? false;
+              const isHazard = hazardCells?.has(k) ?? false;
               return (
                 <RuneCell
                   key={`${r}-${c}`}
@@ -189,6 +197,8 @@ export function RuneBoard({ grid, disabled, onChainComplete, seals, corruptedCel
                   eclipsed={isEclipsed}
                   linked={isLinked}
                   shifting={isShifting}
+                  treasure={isTreasure}
+                  hazard={isHazard}
                   onPointerDown={handlePointerDown(r, c)}
                 />
               );

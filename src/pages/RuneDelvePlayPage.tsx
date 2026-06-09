@@ -50,6 +50,12 @@ import {
   type MechanicId,
 } from '@/lib/runedelve/mechanics';
 import { buildInitialSeals, sealsBrokenByChain } from '@/lib/runedelve/sealedTiles';
+import {
+  computeLayoutZones, countChainInZone, EMPTY_ZONES,
+  TREASURE_SCORE_BONUS, TREASURE_SHARD_BONUS,
+  HAZARD_DAMAGE, HAZARD_MAX_DAMAGE_PER_CHAIN,
+} from '@/lib/runedelve/layoutZones';
+import { getLayoutIdForLevel } from '@/lib/runedelve/chamberAssignment';
 import { applyInitialIntents } from '@/lib/runedelve/telegraph';
 import {
   buildInitialCorruption,
@@ -195,6 +201,10 @@ export default function RuneDelvePlayPage() {
   // First-chain-of-fight detection for cleric mastery.
   const [chainsThisFight, setChainsThisFight] = useState(0);
   const [bonusShardsFromMastery, setBonusShardsFromMastery] = useState(0);
+  // Chamber-layout zones (R1 wire-up). Tracked per-run; reset alongside
+  // bonusShardsFromMastery on run-init.
+  const [bonusScoreFromTreasure, setBonusScoreFromTreasure] = useState(0);
+  const [bonusShardsFromTreasure, setBonusShardsFromTreasure] = useState(0);
   // Track lifetime mana spent for Mage Overflow mastery refund cadence.
   const [totalManaSpent, setTotalManaSpent] = useState(0);
   // Rogue T1 Gilded Eye — count gold runes cleared across the run.
@@ -305,6 +315,16 @@ export default function RuneDelvePlayPage() {
     if (stored?.length) return stored;
     return level ? mechanicsForLevel(level.level_number) : [];
   }, [level]);
+
+  // Chamber layout zones — treasure/hazard cells derived from the
+  // chamber assigned to this level. Treasure cells in a chain pay
+  // bonus score + shards; hazard cells cost HP. Deterministic per
+  // (level number, seed) so replays show the same layout.
+  const layoutZones = useMemo(() => {
+    if (!level) return EMPTY_ZONES;
+    const layoutId = getLayoutIdForLevel(level.level_number);
+    return computeLayoutZones(layoutId, level.generation_seed);
+  }, [level]);
   const sealedTilesActive = activeMechanics.includes('sealed_tiles');
   const telegraphActive = activeMechanics.includes('telegraphed_attacks');
   const corruptionActive = activeMechanics.includes('corrupted_tiles');
@@ -391,6 +411,8 @@ export default function RuneDelvePlayPage() {
     setEclipse(buildInitialEclipse(level.generation_seed, eclipseActive, initialSeals));
     setChainsThisFight(0);
     setBonusShardsFromMastery(0);
+    setBonusScoreFromTreasure(0);
+    setBonusShardsFromTreasure(0);
     setTotalManaSpent(0);
     // Name → archetype-id fallback for legacy levels seeded before the roster system.
     const resolveArchetype = (e: any): string | undefined => {
@@ -471,6 +493,8 @@ export default function RuneDelvePlayPage() {
     setBonusUsedThisCycle(false);
     setRngTick(0);
     setBonusShardsFromMastery(0);
+    setBonusScoreFromTreasure(0);
+    setBonusShardsFromTreasure(0);
     setTotalManaSpent(0);
     setGoldRunesCleared(0);
     braceFiredRef.current = false;
@@ -683,6 +707,37 @@ export default function RuneDelvePlayPage() {
     // Momentum (rogue): chain bonus threshold drops from 5 → 4.
     const rogueBonusThreshold = hero.class === 'rogue' && has(relics, 'momentum') ? 4 : 5;
     const { next, resolution } = applyChain(combat, type, chain.length, hero.class, bossRule, rogueBonusThreshold, level.level_number);
+
+    // ── Chamber layout zones: treasure + hazard (R1) ────────────────────
+    // Treasure: bonus score + shards (banked, awarded at finalize so
+    // they show up cleanly on the results card alongside other bonuses).
+    // Hazard: immediate HP cost on the chain that touched them.
+    //   Capped per chain so a chain through every hazard tile can't
+    //   wipe the hero in one move — there's still risk, not instant
+    //   death from a bad path.
+    if (layoutZones.treasure.size > 0 || layoutZones.hazard.size > 0) {
+      const treasureHits = countChainInZone(chain, layoutZones.treasure);
+      const hazardHits = countChainInZone(chain, layoutZones.hazard);
+      if (treasureHits > 0) {
+        setBonusScoreFromTreasure(s => s + treasureHits * TREASURE_SCORE_BONUS);
+        setBonusShardsFromTreasure(s => s + treasureHits * TREASURE_SHARD_BONUS);
+        pushLog({
+          kind: 'info',
+          text: `✨ Treasure +${treasureHits * TREASURE_SCORE_BONUS} score · +${treasureHits * TREASURE_SHARD_BONUS} shards`,
+        });
+      }
+      if (hazardHits > 0) {
+        const rawDamage = hazardHits * HAZARD_DAMAGE;
+        const damage = Math.min(rawDamage, HAZARD_MAX_DAMAGE_PER_CHAIN);
+        next.hp = Math.max(0, next.hp - damage);
+        pushLog({
+          kind: 'corruption',
+          text: `⚠️ Hazard tile · -${damage} HP`,
+          amount: damage,
+        });
+      }
+    }
+
     // Apply relic damage multiplier for red chains (composes with tier mult).
     if (type === 'red' && chainMods.bonusDamageMult > 1 && resolution.damageDealt > 0) {
       const baseDmg = resolution.damageDealt;
@@ -1512,9 +1567,13 @@ export default function RuneDelvePlayPage() {
     const momentumMult = momentumScoreBonusMult(relicsForFinal, final.longestChain);
     // Mastery: Rogue T1 Gilded Eye — +2 score per gold rune cleared.
     const goldEyeBonus = getMasteryGoldScoreBonus(activeMasteries, goldRunesCleared);
+    // Chamber-layout treasure bonus accrued during the run (R1).
+    // Added flat (after the momentum multiplier) so it reads as its
+    // own line — treasure is a board property, not a chain bonus.
+    const treasureScore = bonusScoreFromTreasure;
     const breakdown = momentumMult > 1
-      ? { ...rawBreakdown, total: Math.round(rawBreakdown.total * momentumMult) + goldEyeBonus }
-      : { ...rawBreakdown, total: rawBreakdown.total + goldEyeBonus };
+      ? { ...rawBreakdown, total: Math.round(rawBreakdown.total * momentumMult) + goldEyeBonus + treasureScore }
+      : { ...rawBreakdown, total: rawBreakdown.total + goldEyeBonus + treasureScore };
     const xp = xpForRun(breakdown.total, cleared);
     const reason: 'cleared' | 'defeated' | 'timeout' = cleared ? 'cleared' : final.hp <= 0 ? 'defeated' : 'timeout';
     // OPTIMISTIC isNewBest — used only for the immediate end-state card. The
@@ -1533,6 +1592,10 @@ export default function RuneDelvePlayPage() {
     // get added on top after the base computation.
     const dailyShardMult = isDailyMode ? dailyShardMultiplier(dailyMods) : 1;
     const masteryBonusShards = bonusShardsFromMastery;
+    // Treasure-cell shard pickups from the chamber layout (R1).
+    // Added flat to the awarded total at the same point as mastery
+    // bonuses so the player sees consistent reward arithmetic.
+    const treasureBonusShards = bonusShardsFromTreasure;
     try {
       if (cleared) {
         const breakdownShards = computeClearShards({
@@ -1564,6 +1627,7 @@ export default function RuneDelvePlayPage() {
     // Apply Daily Greed multiplier + Rogue T5 bonus shards on top.
     if (dailyShardMult !== 1) shardsAwarded = Math.round(shardsAwarded * dailyShardMult);
     shardsAwarded += masteryBonusShards;
+    shardsAwarded += treasureBonusShards;
     setEndState({ cleared, reason, score: breakdown.total, isNewBest, shards: shardsAwarded });
     rdSfx(cleared ? 'victory' : 'defeat');
     try {
@@ -1908,6 +1972,8 @@ export default function RuneDelvePlayPage() {
         eclipsedCells={eclipse}
         linkedCells={new Set(linkedPairs.pairs.keys())}
         shiftingColumn={shift.column}
+        treasureCells={layoutZones.treasure}
+        hazardCells={layoutZones.hazard}
         effectOverride={{
           // Class-aware previews. Tier bonus shows when chain hits 6+.
           red: (n) => {

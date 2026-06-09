@@ -26,6 +26,12 @@ interface Props {
   linked?: boolean;
   /** Shifting Runes — column drifts down each turn. */
   shifting?: boolean;
+  /** Chamber-layout TREASURE cell — chain through for bonus score
+   *  + shards. Persists across the run (board property, not tile). */
+  treasure?: boolean;
+  /** Chamber-layout HAZARD cell — chaining through costs HP.
+   *  Persists across the run (board property, not tile). */
+  hazard?: boolean;
   size?: number;
   onPointerDown?: (e: React.PointerEvent) => void;
   onPointerEnter?: (e: React.PointerEvent) => void;
@@ -33,7 +39,7 @@ interface Props {
   dataC: number;
 }
 
-export function RuneCell({ type, selected, invalid, sealed, corrupted, corruptionSource, eclipsed, linked, shifting, size = 56, onPointerDown, onPointerEnter, dataR, dataC }: Props) {
+export function RuneCell({ type, selected, invalid, sealed, corrupted, corruptionSource, eclipsed, linked, shifting, treasure, hazard, size = 56, onPointerDown, onPointerEnter, dataR, dataC }: Props) {
   const meta = RUNE_META[type];
   return (
     <div
@@ -117,6 +123,36 @@ export function RuneCell({ type, selected, invalid, sealed, corrupted, corruptio
           {shifting && !corrupted && (
             <span className="absolute bottom-0.5 right-0.5 text-[9px] opacity-70 leading-none pointer-events-none" aria-hidden>🌬️</span>
           )}
+        </>
+      )}
+
+      {/* Chamber-layout overlays — board properties, independent of
+          the tile's rune type or mechanical state. Rendered as a thin
+          inset ring + a small corner marker so they don't collide
+          with the existing top-right tile-state icons (corrupted,
+          linked, eclipsed) which live on the RUNE. */}
+      {treasure && (
+        <>
+          <span
+            aria-hidden
+            className="absolute inset-0 rounded-xl pointer-events-none rd-tile-treasure"
+            style={{
+              boxShadow: 'inset 0 0 0 1.5px hsl(45 95% 60% / 0.6), inset 0 0 12px hsl(45 95% 60% / 0.2)',
+            }}
+          />
+          <span className="absolute bottom-0.5 left-0.5 text-[10px] leading-none pointer-events-none" aria-hidden>✨</span>
+        </>
+      )}
+      {hazard && !treasure && (
+        <>
+          <span
+            aria-hidden
+            className="absolute inset-0 rounded-xl pointer-events-none rd-tile-hazard"
+            style={{
+              boxShadow: 'inset 0 0 0 1.5px hsl(0 75% 58% / 0.55), inset 0 0 10px hsl(0 75% 58% / 0.18)',
+            }}
+          />
+          <span className="absolute bottom-0.5 left-0.5 text-[10px] leading-none pointer-events-none" aria-hidden>⚠️</span>
         </>
       )}
     </div>
