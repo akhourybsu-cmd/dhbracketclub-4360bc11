@@ -1293,6 +1293,27 @@ export default function DraftsListPage() {
     complete: { label: 'Complete', cls: 'da-status-complete' },
   };
 
+  // Sort priority by draft status. Active drafts sit on top, setup
+  // drafts next, completed (resolved) drafts at the bottom — so once
+  // a draft resolves it drops below anything still in flight. Within
+  // each tier the original `created_at desc` order from the fetch is
+  // preserved (Array.prototype.sort is stable in modern engines).
+  // Used by BOTH the Drafts tab (per-season group ordering) and the
+  // Misc tab (flat list ordering).
+  const STATUS_RANK: Record<string, number> = {
+    in_progress: 0,
+    setup: 1,
+    complete: 2,
+  };
+  const sortedDrafts = useMemo(() => {
+    return [...drafts].sort((a, b) => {
+      const ra = STATUS_RANK[a.status] ?? 3;
+      const rb = STATUS_RANK[b.status] ?? 3;
+      return ra - rb;
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drafts]);
+
   const canSeeCommissioner = isCommissioner || isAppAdmin;
 
   // ── renderDraftRow ────────────────────────────────────────────────
@@ -1612,7 +1633,10 @@ export default function DraftsListPage() {
               groupsMap.set(s.id, { id: s.id, name: s.name, status: s.status, startsAt: s.startsAt, drafts: [] });
             }
             let miscCount = 0;
-            for (const d of drafts) {
+            // Iterate the status-sorted list so each season group ends up
+            // with active → setup → complete order naturally (push order
+            // is preserved).
+            for (const d of sortedDrafts) {
               const meta = seasonByDraft.get(d.id);
               if (meta && groupsMap.has(meta.seasonId)) groupsMap.get(meta.seasonId)!.drafts.push(d);
               else miscCount++; // counted for the empty-state hint below
@@ -1874,7 +1898,9 @@ export default function DraftsListPage() {
               ))}
             </div>
           ) : (() => {
-            const miscDrafts = drafts.filter(d => !seasonByDraft.has(d.id));
+            // Use the status-sorted list so misc rows respect the same
+            // active → setup → complete ordering as the Drafts tab.
+            const miscDrafts = sortedDrafts.filter(d => !seasonByDraft.has(d.id));
             if (miscDrafts.length === 0) {
               return (
                 <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} className="empty-state">
