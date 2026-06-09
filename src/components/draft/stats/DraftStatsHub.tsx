@@ -14,6 +14,7 @@ import { useDraftStatsHub } from '@/hooks/useDraftStatsHub';
 import { formatSeasonTitle } from '@/hooks/useDraftSeasons';
 import {
   filterDatasetByScope,
+  countDraftComposition,
   computeUserAggregate,
   computePickQuality,
   computeTiming,
@@ -28,6 +29,7 @@ import {
   type ScopeKey,
   type LeaderMetric,
 } from '@/lib/draft/statsAggregators';
+import { Archive } from 'lucide-react';
 
 function Counter({ value, decimals = 0, suffix = '' }: { value: number; decimals?: number; suffix?: string }) {
   const animated = useCountUp(value);
@@ -52,33 +54,73 @@ function SectionLabel({ icon: Icon, children, accent }: { icon: any; children: R
   );
 }
 
-/* ─── Scope bar ─── */
-function ScopeBar({ scope, onScope, seasons }: {
+/* ─── Scope bar ───
+   Seasons first (chronological), then the special "Misc" chip if
+   the user actually has misc drafts, with "All-Time" leading. The
+   composition row below shows the breakdown — "X seasoned · Y misc"
+   — so users can see at a glance which bucket their drafts fall into.
+*/
+function ScopeBar({ scope, onScope, seasons, composition }: {
   scope: ScopeKey;
   onScope: (s: ScopeKey) => void;
   seasons: { id: string; name: string }[];
+  composition: { seasoned: number; misc: number; total: number };
 }) {
+  const hasMisc = composition.misc > 0;
   return (
-    <div className="-mx-1 px-1 overflow-x-auto no-scrollbar mb-3">
-      <div className="flex items-center gap-1.5 min-w-max pb-1">
-        <button
-          onClick={() => onScope('all')}
-          className={cn('px-3 h-8 rounded-full text-[11px] font-bold whitespace-nowrap transition-colors btn-press border',
-            scope === 'all'
-              ? 'bg-gold/20 text-gold border-gold/40'
-              : 'bg-muted/30 text-muted-foreground border-border/30')}>
-          All-Time
-        </button>
-        {seasons.map(s => (
-          <button key={s.id} onClick={() => onScope(s.id)}
+    <div className="mb-3">
+      <div className="-mx-1 px-1 overflow-x-auto no-scrollbar">
+        <div className="flex items-center gap-1.5 min-w-max pb-1">
+          <button
+            onClick={() => onScope('all')}
             className={cn('px-3 h-8 rounded-full text-[11px] font-bold whitespace-nowrap transition-colors btn-press border',
-              scope === s.id
+              scope === 'all'
                 ? 'bg-gold/20 text-gold border-gold/40'
                 : 'bg-muted/30 text-muted-foreground border-border/30')}>
-            {s.name}
+            All-Time
           </button>
-        ))}
+          {seasons.map(s => (
+            <button key={s.id} onClick={() => onScope(s.id)}
+              className={cn('px-3 h-8 rounded-full text-[11px] font-bold whitespace-nowrap transition-colors btn-press border',
+                scope === s.id
+                  ? 'bg-gold/20 text-gold border-gold/40'
+                  : 'bg-muted/30 text-muted-foreground border-border/30')}>
+              {s.name}
+            </button>
+          ))}
+          {/* Misc chip is conditionally rendered — only appears once
+              the user actually has a draft outside any season. A
+              neutral/grey treatment (not gold) so it visually
+              separates from the season chips. */}
+          {hasMisc && (
+            <button
+              onClick={() => onScope('misc')}
+              className={cn('px-3 h-8 rounded-full text-[11px] font-bold whitespace-nowrap transition-colors btn-press border inline-flex items-center gap-1.5',
+                scope === 'misc'
+                  ? 'bg-foreground/12 text-foreground border-foreground/30'
+                  : 'bg-muted/30 text-muted-foreground border-border/30')}>
+              <Archive className="w-3 h-3" />
+              Misc
+            </button>
+          )}
+        </div>
       </div>
+
+      {/* Composition row — shows the seasoned/misc split so the user
+          knows exactly what's behind each scope. Hidden when the user
+          has no drafts (initial state) since the number would be 0/0. */}
+      {composition.total > 0 && (
+        <p className="text-[10px] text-muted-foreground/65 font-medium mt-1.5 px-1 tabular-nums">
+          <span className="font-bold text-foreground/70">{composition.total}</span> total ·{' '}
+          <span className="font-bold" style={{ color: 'hsl(var(--gold) / 0.85)' }}>{composition.seasoned}</span> in seasons
+          {hasMisc && (
+            <>
+              {' · '}
+              <span className="font-bold text-foreground/70">{composition.misc}</span> misc
+            </>
+          )}
+        </p>
+      )}
     </div>
   );
 }
@@ -595,6 +637,11 @@ export default function DraftStatsHub() {
     [dataset.seasons],
   );
 
+  // Composition is computed against the FULL dataset (not `scoped`)
+  // so the breakdown shown in the scope bar is always the true total,
+  // regardless of which scope is active.
+  const composition = useMemo(() => countDraftComposition(dataset, user?.id), [dataset, user?.id]);
+
   if (loading) return <LoadingState />;
   if (error) return (
     <div className="da-glass p-5 text-center">
@@ -624,7 +671,34 @@ export default function DraftStatsHub() {
     <div className="space-y-3 pb-4">
       {/* Scope chips stay full-width above the dashboard grid so they
           read as a global filter for everything below. */}
-      <ScopeBar scope={scope} onScope={setScope} seasons={seasonChips} />
+      <ScopeBar scope={scope} onScope={setScope} seasons={seasonChips} composition={composition} />
+
+      {/* Misc-scope banner — when the user has picked the Misc scope,
+          surface a brief explanation so it's unambiguous: this view
+          covers only the drafts that aren't tied to any season, and
+          season-only awards (championships, regular titles, finals
+          appearances, 3rd-place medals) will all show 0 because they
+          don't apply outside a season. Without this, a user seeing
+          "0 Championships" in misc scope might think their data is
+          missing. */}
+      {scope === 'misc' && (
+        <motion.div
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-xl border border-border/35 bg-card/50 px-3.5 py-2.5 flex items-start gap-2.5"
+        >
+          <Archive className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-muted-foreground/75" />
+          <div className="min-w-0">
+            <p className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground/85">
+              Misc scope · {composition.misc} {composition.misc === 1 ? 'draft' : 'drafts'}
+            </p>
+            <p className="text-[10.5px] text-muted-foreground/65 leading-snug mt-0.5">
+              These drafts aren't tied to any season. Championships, Regular Titles,
+              Finals Apps and Season Points all show 0 here — they're season-only.
+            </p>
+          </div>
+        </motion.div>
+      )}
 
       {/* Two-column dashboard on lg+:
             LEFT  — "You + your numbers"   (Hero · Trophy · Pulse · Pick Quality)

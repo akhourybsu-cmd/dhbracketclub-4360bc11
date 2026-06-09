@@ -629,12 +629,39 @@ export function computeIdentity(agg: UserAggregate, pq: PickQuality, t: TimingPr
   return 'Drafter';
 }
 
-/* ───── Scope filtering ───── */
+/* ───── Scope filtering ─────
+ *
+ * Three flavours of scope:
+ *   - 'all'    → entire dataset, seasoned + misc together
+ *   - 'misc'   → ONLY drafts that aren't tied to any season (no row in
+ *                season_draft_entries). These were always invisible as
+ *                their own bucket before — `filterDatasetByScope` had
+ *                no way to surface them, so the Stats Hub couldn't
+ *                show users a misc-only breakdown.
+ *   - seasonId → ONLY drafts that have a season_draft_entries row
+ *                matching that season. Misc drafts have no such row
+ *                so they're naturally excluded — this was already the
+ *                case before, kept the same.
+ */
 
-export type ScopeKey = 'all' | string; // 'all' or seasonId
+export type ScopeKey = 'all' | 'misc' | string; // 'all' | 'misc' | seasonId
 
 export function filterDatasetByScope(d: StatsDataset, scope: ScopeKey): StatsDataset {
   if (scope === 'all') return d;
+
+  if (scope === 'misc') {
+    // Misc = drafts that have NO row in seasonEntries. We don't ship
+    // any seasons / matches / standings / seasonEntries through to the
+    // downstream computations since none of those apply to misc.
+    const seasonedDraftIds = new Set(d.seasonEntries.map(e => e.draft_id));
+    const drafts = d.drafts.filter(x => !seasonedDraftIds.has(x.id));
+    const draftIds = new Set(drafts.map(x => x.id));
+    const results = d.results.filter(r => draftIds.has(r.draft_id));
+    const picks = d.picks.filter(p => draftIds.has(p.draft_id));
+    return { ...d, drafts, results, picks, matches: [], standings: [], seasons: [], seasonEntries: [] };
+  }
+
+  // Season scope (seasonId).
   const draftIds = new Set(d.seasonEntries.filter(e => e.season_id === scope).map(e => e.draft_id));
   const drafts = d.drafts.filter(x => draftIds.has(x.id));
   const results = d.results.filter(r => draftIds.has(r.draft_id));
@@ -644,4 +671,19 @@ export function filterDatasetByScope(d: StatsDataset, scope: ScopeKey): StatsDat
   const seasons = d.seasons.filter(s => s.id === scope);
   const seasonEntries = d.seasonEntries.filter(e => e.season_id === scope);
   return { ...d, drafts, results, picks, matches, standings, seasons, seasonEntries };
+}
+
+/** Composition breakdown for the Stats Hub scope bar — splits the
+ *  user's drafts into seasoned vs misc so the hub can show the split
+ *  inline. Counts drafts the user actually participated in (i.e. has
+ *  a result row for). */
+export function countDraftComposition(d: StatsDataset, userId: string | undefined): { seasoned: number; misc: number; total: number } {
+  if (!userId) return { seasoned: 0, misc: 0, total: 0 };
+  const myDraftIds = new Set(d.results.filter(r => r.user_id === userId).map(r => r.draft_id));
+  if (myDraftIds.size === 0) return { seasoned: 0, misc: 0, total: 0 };
+  const seasonedSet = new Set(d.seasonEntries.map(e => e.draft_id));
+  let seasoned = 0;
+  let misc = 0;
+  myDraftIds.forEach(id => { seasonedSet.has(id) ? seasoned++ : misc++; });
+  return { seasoned, misc, total: seasoned + misc };
 }
