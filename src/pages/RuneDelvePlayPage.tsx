@@ -56,6 +56,10 @@ import {
   HAZARD_DAMAGE, HAZARD_MAX_DAMAGE_PER_CHAIN,
 } from '@/lib/runedelve/layoutZones';
 import { getLayoutIdForLevel } from '@/lib/runedelve/chamberAssignment';
+import {
+  type RunModifier, pickModifierOffer, resolveEffect, getModifierById, STEADY_PATH,
+} from '@/lib/runedelve/runModifiers';
+import { RunModifierPicker } from '@/components/runedelve/RunModifierPicker';
 import { applyInitialIntents } from '@/lib/runedelve/telegraph';
 import {
   buildInitialCorruption,
@@ -205,6 +209,11 @@ export default function RuneDelvePlayPage() {
   // bonusShardsFromMastery on run-init.
   const [bonusScoreFromTreasure, setBonusScoreFromTreasure] = useState(0);
   const [bonusShardsFromTreasure, setBonusShardsFromTreasure] = useState(0);
+  // Run modifier (R3). `activeModifier` is what's applied to this run;
+  // `modifierOffer` is the 3 cards currently shown in the picker.
+  // Both clear on run-init so each chamber gets a fresh offer.
+  const [activeModifier, setActiveModifier] = useState<RunModifier | null>(null);
+  const [modifierOffer, setModifierOffer] = useState<RunModifier[] | null>(null);
   // Track lifetime mana spent for Mage Overflow mastery refund cadence.
   const [totalManaSpent, setTotalManaSpent] = useState(0);
   // Rogue T1 Gilded Eye — count gold runes cleared across the run.
@@ -385,6 +394,11 @@ export default function RuneDelvePlayPage() {
         setActiveRelicsSnapshot(rehydrateRelics(snap.activeRelicsSnapshot) ?? relics);
         defeatedArchetypesRef.current = new Map(snap.defeatedArchetypes);
         wavesSpawnedRef.current = snap.wavesSpawned;
+        // R3: rehydrate the modifier from snapshot. Pre-R3 snapshots
+        // have no activeModifierId — getModifierById returns null in
+        // that case, which the engine treats as Steady Path.
+        setActiveModifier(getModifierById(snap.activeModifierId));
+        setModifierOffer(null); // never re-show the picker on a resume
         const turnNow = level.turn_limit - snap.combat.turnsRemaining + 1;
         toast(`↩️ Resumed your run (Turn ${turnNow} of ${level.turn_limit})`, { duration: 2200 });
         return;
@@ -482,6 +496,24 @@ export default function RuneDelvePlayPage() {
       initial.maxHp = Math.max(10, Math.round(initial.maxHp * dailyHpMult));
       initial.hp = initial.maxHp;
     }
+    // R3 — Run modifier init effects. Applied AFTER all relic/daily/
+    // mastery init so the modifier composes cleanly on top of the
+    // already-buffed baseline. hpMult is multiplicative; manaStart is
+    // additive (capped to MAX_MANA); turnDelta is additive to the
+    // remaining turn budget (clamped to 3 minimum).
+    if (activeModifier) {
+      const eff = resolveEffect(activeModifier);
+      if (eff.hpMult !== 1) {
+        initial.maxHp = Math.max(10, Math.round(initial.maxHp * eff.hpMult));
+        initial.hp = initial.maxHp;
+      }
+      if (eff.manaStart > 0) {
+        initial.mana = Math.min(MAX_MANA, initial.mana + eff.manaStart);
+      }
+      if (eff.turnDelta !== 0) {
+        initial.turnsRemaining = Math.max(3, initial.turnsRemaining + eff.turnDelta);
+      }
+    }
     setCombat(initial);
     setActiveRelicsSnapshot(relics);
     setLastStandUsed(0);
@@ -497,6 +529,13 @@ export default function RuneDelvePlayPage() {
     setBonusShardsFromTreasure(0);
     setTotalManaSpent(0);
     setGoldRunesCleared(0);
+    // R3: fresh run — surface the modifier picker. We only do this
+    // if no modifier is set yet (this guard exists because the run
+    // can re-init mid-session in some flows; we never want to wipe
+    // a choice the user already made).
+    if (!activeModifier) {
+      setModifierOffer(pickModifierOffer());
+    }
     braceFiredRef.current = false;
     aegisFiredRef.current = false;
     defeatedArchetypesRef.current = new Map();
@@ -531,6 +570,7 @@ export default function RuneDelvePlayPage() {
       wavesSpawned: wavesSpawnedRef.current,
       rngTick,
       activeRelicsSnapshot,
+      activeModifierId: activeModifier?.id,
     });
     saveSnapshot(runKey, snap);
   }, [
@@ -708,6 +748,64 @@ export default function RuneDelvePlayPage() {
     const rogueBonusThreshold = hero.class === 'rogue' && has(relics, 'momentum') ? 4 : 5;
     const { next, resolution } = applyChain(combat, type, chain.length, hero.class, bossRule, rogueBonusThreshold, level.level_number);
 
+    // ── R3: Run modifier per-chain effects ─────────────────────────────
+    // Applied post-applyChain (same pattern as the relic damage mult
+    // block below) so we can compose cleanly with everything else.
+    //   redDamageMult → extra damage to current target
+    //   healMult      → extra heal to next.hp
+    //   shieldMult    → extra shield turns
+    const modEff = resolveEffect(activeModifier);
+    if (type === 'red' && modEff.redDamageMult !== 1 && resolution.damageDealt > 0) {
+      const boosted = Math.round(resolution.damageDealt * modEff.redDamageMult);
+      const delta = boosted - resolution.damageDealt;
+      if (delta !== 0) {
+        const target = next.enemies.find(e => e.hp > 0) ?? next.enemies.find(e => resolution.enemyKills.includes(e.id));
+        if (target) {
+          if (delta > 0) {
+            const applied = Math.min(delta, Math.max(target.hp, 0));
+            if (applied > 0) {
+              target.hp -= applied;
+              next.totalDamage += applied;
+              resolution.damageDealt += applied;
+              if (target.hp <= 0 && !resolution.enemyKills.includes(target.id)) {
+                resolution.enemyKills.push(target.id);
+                next.enemiesDefeated += 1;
+              }
+            }
+          } else {
+            // Negative modifier (e.g. Verdant Heart) — heal target back partially.
+            const heal = Math.min(-delta, target.maxHp - target.hp);
+            if (heal > 0) {
+              target.hp += heal;
+              next.totalDamage = Math.max(0, next.totalDamage - heal);
+              resolution.damageDealt = Math.max(0, resolution.damageDealt - heal);
+            }
+          }
+        }
+      }
+    }
+    if (type === 'green' && modEff.healMult !== 1 && resolution.hpHealed > 0) {
+      const boosted = Math.round(resolution.hpHealed * modEff.healMult);
+      const delta = boosted - resolution.hpHealed;
+      if (delta > 0) {
+        const applied = Math.min(delta, next.maxHp - next.hp);
+        if (applied > 0) { next.hp += applied; resolution.hpHealed += applied; }
+      } else if (delta < 0) {
+        // Reduce already-applied heal — clamp at 0.
+        const reduction = Math.min(-delta, resolution.hpHealed, next.hp);
+        next.hp -= reduction;
+        resolution.hpHealed -= reduction;
+      }
+    }
+    if (type === 'gold' && modEff.shieldMult !== 1 && resolution.guardGained > 0) {
+      const boosted = Math.round(resolution.guardGained * modEff.shieldMult);
+      const delta = boosted - resolution.guardGained;
+      if (delta !== 0) {
+        next.shieldTurns = Math.max(0, next.shieldTurns + delta);
+        resolution.guardGained = Math.max(0, resolution.guardGained + delta);
+      }
+    }
+
     // ── Chamber layout zones: treasure + hazard (R1) ────────────────────
     // Treasure: bonus score + shards (banked, awarded at finalize so
     // they show up cleanly on the results card alongside other bonuses).
@@ -719,16 +817,20 @@ export default function RuneDelvePlayPage() {
       const treasureHits = countChainInZone(chain, layoutZones.treasure);
       const hazardHits = countChainInZone(chain, layoutZones.hazard);
       if (treasureHits > 0) {
-        setBonusScoreFromTreasure(s => s + treasureHits * TREASURE_SCORE_BONUS);
-        setBonusShardsFromTreasure(s => s + treasureHits * TREASURE_SHARD_BONUS);
+        // R3: treasureMult from active modifier (Treasure Hunter triples).
+        const scoreGain = Math.round(treasureHits * TREASURE_SCORE_BONUS * modEff.treasureMult);
+        const shardGain = Math.round(treasureHits * TREASURE_SHARD_BONUS * modEff.treasureMult);
+        setBonusScoreFromTreasure(s => s + scoreGain);
+        setBonusShardsFromTreasure(s => s + shardGain);
         pushLog({
           kind: 'info',
-          text: `✨ Treasure +${treasureHits * TREASURE_SCORE_BONUS} score · +${treasureHits * TREASURE_SHARD_BONUS} shards`,
+          text: `✨ Treasure +${scoreGain} score · +${shardGain} shards`,
         });
       }
       if (hazardHits > 0) {
-        const rawDamage = hazardHits * HAZARD_DAMAGE;
-        const damage = Math.min(rawDamage, HAZARD_MAX_DAMAGE_PER_CHAIN);
+        // R3: hazardMult from active modifier (Treasure Hunter doubles).
+        const rawDamage = Math.round(hazardHits * HAZARD_DAMAGE * modEff.hazardMult);
+        const damage = Math.min(rawDamage, HAZARD_MAX_DAMAGE_PER_CHAIN * modEff.hazardMult);
         next.hp = Math.max(0, next.hp - damage);
         pushLog({
           kind: 'corruption',
@@ -1571,9 +1673,13 @@ export default function RuneDelvePlayPage() {
     // Added flat (after the momentum multiplier) so it reads as its
     // own line — treasure is a board property, not a chain bonus.
     const treasureScore = bonusScoreFromTreasure;
-    const breakdown = momentumMult > 1
-      ? { ...rawBreakdown, total: Math.round(rawBreakdown.total * momentumMult) + goldEyeBonus + treasureScore }
-      : { ...rawBreakdown, total: rawBreakdown.total + goldEyeBonus + treasureScore };
+    // R3 — Run modifier score multiplier. Applied LAST so it composes
+    // over everything (base + momentum + goldEye + treasure).
+    const modScoreMult = resolveEffect(activeModifier).scoreMult;
+    const preMod = momentumMult > 1
+      ? Math.round(rawBreakdown.total * momentumMult) + goldEyeBonus + treasureScore
+      : rawBreakdown.total + goldEyeBonus + treasureScore;
+    const breakdown = { ...rawBreakdown, total: Math.round(preMod * modScoreMult) };
     const xp = xpForRun(breakdown.total, cleared);
     const reason: 'cleared' | 'defeated' | 'timeout' = cleared ? 'cleared' : final.hp <= 0 ? 'defeated' : 'timeout';
     // OPTIMISTIC isNewBest — used only for the immediate end-state card. The
@@ -2103,6 +2209,18 @@ export default function RuneDelvePlayPage() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* R3 — Chamber boon picker. Shown at run-start with three
+          random modifiers + a Skip ("Steady Path") option. Once the
+          player picks, the modifier persists for the rest of the run
+          (saved into snapshot so backgrounding doesn't lose it). */}
+      {modifierOffer && !activeModifier && !status.over && (
+        <RunModifierPicker
+          offer={modifierOffer}
+          onPick={(mod) => { setActiveModifier(mod); setModifierOffer(null); }}
+          onSkip={() => { setActiveModifier(STEADY_PATH); setModifierOffer(null); }}
+        />
       )}
     </div>
   );

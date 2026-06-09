@@ -40,6 +40,10 @@ export interface RunSnapshot {
   activeRelicsSnapshot: {
     ranks: Array<[string, number]>;
   } | null;
+  /** R3: id of the active run modifier ("steady_path" if none).
+   *  Optional for back-compat with snapshots written before R3 shipped —
+   *  loaders treat absence as Steady Path so old snapshots resume safely. */
+  activeModifierId?: string;
 }
 
 export function snapshotKey(userId: string, levelId: string): string {
@@ -65,6 +69,8 @@ export interface BuildSnapshotInput {
   wavesSpawned: number;
   rngTick: number;
   activeRelicsSnapshot: ActiveRelics | null;
+  /** R3 modifier id — see RunSnapshot. */
+  activeModifierId?: string;
 }
 
 export function buildSnapshot(input: BuildSnapshotInput): RunSnapshot {
@@ -96,6 +102,7 @@ export function buildSnapshot(input: BuildSnapshotInput): RunSnapshot {
           ranks: Array.from(input.activeRelicsSnapshot.ranks.entries()),
         }
       : null,
+    activeModifierId: input.activeModifierId,
   };
 }
 
