@@ -53,8 +53,12 @@ export function ChannelSettingsDialog({ channel, categories, open, isAdmin, onOp
   const [postPermission, setPostPermission] = useState<PostPermission>(channel.post_permission || 'all');
   const [saving, setSaving] = useState(false);
 
-  // Per-user notification preference for this channel
+  // Per-user notification preference for this channel.
+  // `notifLoaded` flips true the moment we know the real mode so we
+  // can dim the selection buttons until then instead of showing a
+  // false-default flash of "All messages".
   const [notifMode, setNotifMode] = useState<NotificationMode>('all');
+  const [notifLoaded, setNotifLoaded] = useState(false);
   const [notifSaving, setNotifSaving] = useState(false);
 
   // Reset form state whenever the channel changes OR dialog opens
@@ -69,10 +73,13 @@ export function ChannelSettingsDialog({ channel, categories, open, isAdmin, onOp
     setPostPermission(channel.post_permission || 'all');
   }, [channel.id, open]);
 
-  // Load this user's notification preference for the channel
+  // Load this user's notification preference for the channel.
+  // Reset to unloaded state on every open/channel change so users
+  // never see a stale value before the fetch resolves.
   useEffect(() => {
     if (!open || !user) return;
     let cancelled = false;
+    setNotifLoaded(false);
     (async () => {
       const { data } = await (supabase as any)
         .from('channel_notification_prefs')
@@ -80,7 +87,10 @@ export function ChannelSettingsDialog({ channel, categories, open, isAdmin, onOp
         .eq('channel_id', channel.id)
         .eq('user_id', user.id)
         .maybeSingle();
-      if (!cancelled) setNotifMode((data?.mode as NotificationMode) || 'all');
+      if (!cancelled) {
+        setNotifMode((data?.mode as NotificationMode) || 'all');
+        setNotifLoaded(true);
+      }
     })();
     return () => { cancelled = true; };
   }, [open, user?.id, channel.id]);
@@ -99,6 +109,11 @@ export function ChannelSettingsDialog({ channel, categories, open, isAdmin, onOp
     if (error) {
       setNotifMode(prev);
       toast.error('Could not update notifications');
+    } else {
+      // Success toast so the user sees confirmation of their tap
+      // (silent saves felt like nothing happened).
+      const label = NOTIF_OPTIONS.find(o => o.value === next)?.label ?? next;
+      toast.success(`Notifications: ${label}`);
     }
     setNotifSaving(false);
   };
@@ -128,9 +143,19 @@ export function ChannelSettingsDialog({ channel, categories, open, isAdmin, onOp
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[calc(100%-2rem)] max-w-md max-h-[85dvh] p-0 rounded-2xl flex flex-col overflow-hidden">
         <DialogHeader className="px-5 pt-5 pb-0 flex-shrink-0">
+          {/* Unified title: always show the channel being configured
+              so users (admin or not) see at a glance which channel
+              they're touching. Admins get an extra subtitle to clarify
+              they're in the full Settings view. */}
           <DialogTitle className="text-base font-bold">
-            {isAdmin ? 'Channel Settings' : `#${channel.name}`}
+            <span className="text-muted-foreground/55 font-medium">#</span>
+            {channel.name}
           </DialogTitle>
+          {isAdmin && (
+            <p className="text-[10.5px] font-bold uppercase tracking-[0.18em] text-muted-foreground/55 mt-0.5">
+              Channel Settings
+            </p>
+          )}
         </DialogHeader>
 
         <ScrollArea className="flex-1 min-h-0">
@@ -141,19 +166,23 @@ export function ChannelSettingsDialog({ channel, categories, open, isAdmin, onOp
               <div className="space-y-1.5">
                 {NOTIF_OPTIONS.map(opt => {
                   const Icon = opt.icon;
-                  const selected = notifMode === opt.value;
+                  // Until the user's actual pref has loaded from the
+                  // server, treat NO option as selected (instead of
+                  // the false-default "all" flashing first). Once
+                  // notifLoaded flips true, the real selection renders.
+                  const selected = notifLoaded && notifMode === opt.value;
                   return (
                     <button
                       key={opt.value}
                       type="button"
-                      disabled={notifSaving}
+                      disabled={notifSaving || !notifLoaded}
                       onClick={() => handleSetNotifMode(opt.value)}
                       className={cn(
                         'w-full flex items-center gap-3 rounded-xl border p-3 text-left transition-all',
                         selected
                           ? 'border-primary bg-primary/10 ring-1 ring-primary/30'
                           : 'border-border/30 hover:bg-muted/40',
-                        notifSaving && 'opacity-60'
+                        (notifSaving || !notifLoaded) && 'opacity-60'
                       )}
                     >
                       <Icon className={cn('w-4 h-4 flex-shrink-0', selected ? 'text-primary' : 'text-muted-foreground/70')} />
@@ -197,13 +226,17 @@ export function ChannelSettingsDialog({ channel, categories, open, isAdmin, onOp
                   />
                 </div>
 
-                {/* Emoji/Icon */}
+                {/* Emoji/Icon — bumped to 40×40 on mobile so each tile
+                    is a comfortable thumb target in the picker grid;
+                    desktop keeps the tighter 36×36 since pointer
+                    precision is higher. */}
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold text-muted-foreground">Icon</Label>
                   <div className="flex flex-wrap gap-2">
                     <button
                       onClick={() => setIcon('')}
-                      className={`w-9 h-9 rounded-lg flex items-center justify-center text-xs border transition-all ${!icon ? 'border-primary bg-primary/10 ring-1 ring-primary/30' : 'border-border/30 hover:bg-muted/50'}`}
+                      className={`w-10 h-10 lg:w-9 lg:h-9 rounded-lg flex items-center justify-center text-xs border transition-all ${!icon ? 'border-primary bg-primary/10 ring-1 ring-primary/30' : 'border-border/30 hover:bg-muted/50'}`}
+                      aria-label="No icon"
                     >
                       #
                     </button>
@@ -211,7 +244,8 @@ export function ChannelSettingsDialog({ channel, categories, open, isAdmin, onOp
                       <button
                         key={e}
                         onClick={() => setIcon(e)}
-                        className={`w-9 h-9 rounded-lg flex items-center justify-center text-lg transition-all ${icon === e ? 'border border-primary bg-primary/10 ring-1 ring-primary/30' : 'hover:bg-muted/50'}`}
+                        className={`w-10 h-10 lg:w-9 lg:h-9 rounded-lg flex items-center justify-center text-lg transition-all ${icon === e ? 'border border-primary bg-primary/10 ring-1 ring-primary/30' : 'hover:bg-muted/50'}`}
+                        aria-label={`Set icon to ${e}`}
                       >
                         {e}
                       </button>
@@ -263,19 +297,32 @@ export function ChannelSettingsDialog({ channel, categories, open, isAdmin, onOp
                   </div>
                 </div>
 
-                {/* Post permission */}
-                {channelType === 'general' && (
-                  <div className="flex items-center justify-between py-1">
-                    <div>
-                      <Label className="text-xs font-semibold">Admins-only Posting</Label>
-                      <p className="text-[11px] text-muted-foreground/70">Members can still read; only admins can post.</p>
+                {/* Post permission — always visible so the user
+                    understands the current rule. When the channel
+                    type implies admin-only posting (announcements,
+                    admin_only), the switch is locked ON with an
+                    explanation so it doesn't look broken / vanished.
+                    For 'general' channels the switch is interactive. */}
+                {(() => {
+                  const forced = channelType === 'announcements' || channelType === 'admin_only';
+                  return (
+                    <div className={cn('flex items-center justify-between py-1', forced && 'opacity-90')}>
+                      <div className="min-w-0 flex-1 pr-3">
+                        <Label className="text-xs font-semibold">Admins-only Posting</Label>
+                        <p className="text-[11px] text-muted-foreground/70">
+                          {forced
+                            ? `Locked on by "${CHANNEL_TYPE_META[channelType].label}" channel type.`
+                            : 'Members can still read; only admins can post.'}
+                        </p>
+                      </div>
+                      <Switch
+                        checked={forced ? true : postPermission === 'admins'}
+                        disabled={forced}
+                        onCheckedChange={(v) => setPostPermission(v ? 'admins' : 'all')}
+                      />
                     </div>
-                    <Switch
-                      checked={postPermission === 'admins'}
-                      onCheckedChange={(v) => setPostPermission(v ? 'admins' : 'all')}
-                    />
-                  </div>
-                )}
+                  );
+                })()}
 
                 {/* Default toggle */}
                 <div className="flex items-center justify-between py-1">
@@ -286,7 +333,9 @@ export function ChannelSettingsDialog({ channel, categories, open, isAdmin, onOp
                   <Switch checked={isDefault} onCheckedChange={setIsDefault} />
                 </div>
 
-                <Button onClick={handleSave} disabled={saving || !name.trim()} className="w-full h-10 text-sm font-bold">
+                {/* Save: 44px on mobile, 40px on lg+ — primary
+                    confirmation action so it earns the HIG target. */}
+                <Button onClick={handleSave} disabled={saving || !name.trim()} className="w-full h-11 lg:h-10 text-sm font-bold">
                   {saving ? 'Saving…' : 'Save Changes'}
                 </Button>
 
@@ -297,7 +346,10 @@ export function ChannelSettingsDialog({ channel, categories, open, isAdmin, onOp
                   <p className="text-[10px] font-bold uppercase tracking-wider text-destructive/70">Danger Zone</p>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="destructive" size="sm" className="w-full h-9 text-xs gap-1.5">
+                      {/* Destructive action — give it a comfortable 44px
+                          target on mobile so accidental misfires are
+                          rarer; desktop keeps the tighter h-9. */}
+                      <Button variant="destructive" size="sm" className="w-full h-11 lg:h-9 text-xs gap-1.5">
                         <Trash2 className="w-3.5 h-3.5" /> Delete Channel
                       </Button>
                     </AlertDialogTrigger>
