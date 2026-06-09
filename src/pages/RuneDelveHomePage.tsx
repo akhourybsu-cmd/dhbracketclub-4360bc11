@@ -4,6 +4,8 @@ import { Sparkles, Trophy, Flame, ChevronRight, Swords, BookOpen, Map, ShoppingB
 import { dailyChamberFor, hasPlayedDailyChamber } from '@/lib/runedelve/dailyChamber';
 import { getLayoutIdForLevel } from '@/lib/runedelve/chamberAssignment';
 import { getLayout } from '@/lib/runedelve/runeLayouts';
+import { getClassTrials, classTrialProgressCount } from '@/lib/runedelve/classTrials';
+import { Check } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useRuneDelveHero, useEnsureHero } from '@/hooks/useRuneDelveHero';
 import { useAllClassProgress } from '@/hooks/useRuneDelveClassProgress';
@@ -318,6 +320,74 @@ export default function RuneDelveHomePage() {
               </div>
             </div>
           </Link>
+        );
+      })()}
+
+      {/* CLASS TRIALS (R6) — lifetime per-class achievement chain.
+          Each class has 4 trials that unlock a cosmetic title. Progress
+          is derived live from hero + progress stats (no schema work)
+          so future stat-tracking additions can layer cleanly. */}
+      {(() => {
+        const stats = {
+          lifetimeRuns: hero.lifetime_runs ?? 0,
+          bestStreak: hero.best_streak ?? 0,
+          lifetimeScore: hero.lifetime_score ?? 0,
+          highestUnlockedLevel: progress.highest_unlocked_level,
+        };
+        const trials = getClassTrials(hero.class);
+        const { done, total } = classTrialProgressCount(hero.class, stats);
+        return (
+          <div className="glass-card p-3.5">
+            <div className="flex items-center gap-1.5 mb-2.5">
+              <Trophy className="w-3.5 h-3.5 text-gold" />
+              <span className="font-rd-display text-[10px] font-extrabold tracking-[0.18em] uppercase text-gold">
+                Class Trials
+              </span>
+              <span className="ml-auto text-[10px] font-extrabold tabular-nums text-foreground/70">
+                {done} / {total}
+              </span>
+            </div>
+            <div className="space-y-1.5">
+              {trials.map(t => {
+                const { progress: p, target } = t.evaluate(stats);
+                const isDone = p >= target;
+                const pct = Math.min(100, Math.round((p / target) * 100));
+                return (
+                  <div
+                    key={t.id}
+                    className={`rounded-lg p-2.5 ${isDone ? 'bg-gold/8 border border-gold/35' : 'bg-muted/20 border border-border/25'}`}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      {isDone ? (
+                        <Check className="w-3 h-3 flex-shrink-0 text-gold" strokeWidth={3} />
+                      ) : (
+                        <span className="w-3 h-3 rounded-full border-[1.5px] border-muted-foreground/40 flex-shrink-0" aria-hidden />
+                      )}
+                      <p className={`text-[11.5px] font-extrabold tracking-tight leading-none truncate ${isDone ? 'text-gold' : 'text-foreground/85'}`}>
+                        {t.title}
+                      </p>
+                      <span className="ml-auto text-[9px] font-bold tabular-nums text-muted-foreground/55 flex-shrink-0">
+                        {isDone ? '✓' : `${p.toLocaleString()}/${target.toLocaleString()}`}
+                      </span>
+                    </div>
+                    {/* Subtle progress bar — shown when in-progress only;
+                        completed rows already read as done via the icon. */}
+                    {!isDone && (
+                      <div className="h-1 rounded-full bg-foreground/8 overflow-hidden">
+                        <div
+                          className="h-full bg-gold/55 transition-[width]"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    )}
+                    <p className={`text-[10px] leading-snug mt-1 ${isDone ? 'text-foreground/70' : 'text-muted-foreground/60'}`}>
+                      {t.description}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         );
       })()}
 
