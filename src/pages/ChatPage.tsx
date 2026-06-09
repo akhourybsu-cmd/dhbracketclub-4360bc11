@@ -682,6 +682,13 @@ export default function ChatPage() {
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5">
+              {/* Discord-style "#" prefix on the channel name. Hidden
+                  for elevated channels (announcements/admin-only) since
+                  they already have a typed pill that makes their nature
+                  obvious. */}
+              {!isElevated && selectedChannel && (
+                <span className="font-bold text-[15px] text-muted-foreground/45 leading-tight flex-shrink-0" aria-hidden>#</span>
+              )}
               <h2 className="font-bold text-[15px] tracking-tight leading-tight truncate">{selectedChannel?.name}</h2>
               {isElevated && (
                 <StatusPill accent={typeMeta.accent} size="xs" className="flex-shrink-0">

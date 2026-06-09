@@ -1,6 +1,6 @@
-import { useState, useMemo, memo } from 'react';
+import { useState, useMemo, memo, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence, Reorder, useDragControls } from 'framer-motion';
-import { Hash, Plus, Settings, GripVertical, FolderPlus, Menu } from 'lucide-react';
+import { Hash, Plus, Settings, GripVertical, FolderPlus, Menu, ChevronDown } from 'lucide-react';
 import { useNavDrawer } from '@/contexts/NavDrawerContext';
 import { cn } from '@/lib/utils';
 import { format, isToday, isYesterday, differenceInDays } from 'date-fns';
@@ -85,26 +85,39 @@ const ChannelRow = memo(function ChannelRow({ ch, meta, isCurrent, currentUserId
       <div
         onClick={onSelect}
         className={cn(
-          "w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left transition-colors duration-150 cursor-pointer group border border-transparent active:bg-muted/50 active:scale-[0.995]",
-          isUnread
-            ? "bg-muted/35 hover:bg-muted/45"
-            : "hover:bg-muted/25",
+          // Discord-style row: a thin left-edge accent bar appears
+          // on the active channel via a pseudo-element. Inactive rows
+          // get the standard hover-tint; unread rows lift slightly.
+          "relative w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left transition-colors duration-150 cursor-pointer group active:bg-muted/50 active:scale-[0.995]",
+          // Active state — stronger bg + dedicated treatment
+          isCurrent
+            ? "bg-primary/12 hover:bg-primary/15"
+            : isUnread
+              ? "bg-muted/35 hover:bg-muted/45"
+              : "hover:bg-muted/25",
         )}
       >
+        {/* Active channel left-edge accent strip — Discord's signature
+            "you are here" cue. Only renders on the selected row. */}
+        {isCurrent && (
+          <span
+            aria-hidden
+            className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-full bg-primary"
+            style={{ boxShadow: '0 0 8px hsl(var(--primary) / 0.6)' }}
+          />
+        )}
+
         {/* Icon tile */}
         <div
           className={cn(
             "w-10 h-10 rounded-xl flex items-center justify-center text-base flex-shrink-0 transition-colors relative",
-            !isElevated && (isUnread ? "bg-primary/12" : "bg-muted/40"),
+            !isElevated && (isCurrent ? "bg-primary/20" : isUnread ? "bg-primary/12" : "bg-muted/40"),
           )}
           style={isElevated ? { background: `hsl(${typeMeta.accent} / ${isUnread ? 0.22 : 0.14})` } : undefined}
         >
           {isElevated
             ? <TypeIcon className="w-4 h-4" style={{ color: `hsl(${typeMeta.accent})` }} />
             : emoji ? emoji : <Hash className="w-4 h-4 text-muted-foreground/60" />}
-          {isCurrent && (
-            <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-primary ring-2 ring-background" />
-          )}
         </div>
 
         {/* Title + preview */}
@@ -112,8 +125,14 @@ const ChannelRow = memo(function ChannelRow({ ch, meta, isCurrent, currentUserId
           <div className="flex items-center justify-between gap-2">
             <span className={cn(
               "text-[14px] tracking-tight truncate flex items-center gap-1.5",
-              isUnread ? "font-bold text-foreground" : "font-semibold text-foreground/85",
+              isUnread ? "font-bold text-foreground" : isCurrent ? "font-bold text-foreground" : "font-semibold text-foreground/85",
             )}>
+              {/* Discord-style "# " prefix when the channel has no
+                  custom emoji icon — makes the row read as a true
+                  text channel instead of a generic list item. */}
+              {!emoji && !isElevated && (
+                <span className="text-muted-foreground/45 font-medium flex-shrink-0">#</span>
+              )}
               <span className="truncate">{ch.name}</span>
               {isElevated && (
                 <StatusPill accent={typeMeta.accent} size="xs" className="flex-shrink-0">
@@ -187,6 +206,27 @@ const ChannelRow = memo(function ChannelRow({ ch, meta, isCurrent, currentUserId
   prev.isAdmin === next.isAdmin
 );
 
+// localStorage key for collapsed category IDs. Per-user persistence
+// would require keying off user_id, but for now this is a simple
+// device-local UX setting — the same user sees their collapse state
+// across sessions regardless of which DH club they're in.
+const COLLAPSED_CATEGORIES_KEY = 'dh_chat_collapsed_categories_v1';
+
+function readCollapsedCategories(): Set<string> {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const raw = window.localStorage.getItem(COLLAPSED_CATEGORIES_KEY);
+    if (!raw) return new Set();
+    const arr = JSON.parse(raw);
+    return new Set(Array.isArray(arr) ? arr : []);
+  } catch { return new Set(); }
+}
+
+function writeCollapsedCategories(s: Set<string>) {
+  if (typeof window === 'undefined') return;
+  try { window.localStorage.setItem(COLLAPSED_CATEGORIES_KEY, JSON.stringify([...s])); } catch { /* full storage */ }
+}
+
 export function ChannelList({
   channels, categories, channelMeta, selectedChannel, currentUserId, isAdmin,
   loading, onSelectChannel, onCreateChannel, onReorderChannels,
@@ -198,6 +238,32 @@ export function ChannelList({
   const [newChannelCategory, setNewChannelCategory] = useState('');
   const [showNewCategory, setShowNewCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
+  const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(readCollapsedCategories);
+
+  // Persist collapse state on change.
+  useEffect(() => { writeCollapsedCategories(collapsedCategories); }, [collapsedCategories]);
+
+  // Defensive: if the active channel is inside a collapsed category,
+  // auto-expand that category so the active row is always visible.
+  // Without this, picking a channel from search / mobile drawer could
+  // hide it on return to the list — confusing.
+  useEffect(() => {
+    if (!selectedChannel?.category_id) return;
+    if (!collapsedCategories.has(selectedChannel.category_id)) return;
+    setCollapsedCategories(prev => {
+      const next = new Set(prev);
+      next.delete(selectedChannel.category_id);
+      return next;
+    });
+  }, [selectedChannel?.category_id, collapsedCategories]);
+
+  const toggleCategory = useCallback((id: string) => {
+    setCollapsedCategories(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
 
   // Sort channels within each category by most recent activity (unread/recent on top), preserving fallback to position
   const groupedChannels = useMemo(() => categories.map(cat => {
@@ -296,35 +362,78 @@ export function ChannelList({
         </AnimatePresence>
 
         <div className="space-y-4">
-          {groupedChannels.map(group => (
-            group.channels.length > 0 && (
+          {groupedChannels.map(group => {
+            if (group.channels.length === 0) return null;
+            const isCollapsed = collapsedCategories.has(group.id);
+            // Count unread channels in this group so the badge on a
+            // collapsed category can show "you have things to read."
+            const unreadInGroup = group.channels.reduce((n, ch) => {
+              const m = channelMeta.get(ch.id);
+              const lastIsMine = !!currentUserId && m?.lastAuthorId === currentUserId;
+              return n + (m?.unread && !lastIsMine ? 1 : 0);
+            }, 0);
+            return (
               <div key={group.id}>
-                <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/60 px-2 mb-1.5">
-                  {group.name}
-                </p>
-                <Reorder.Group
-                  axis="y"
-                  values={group.channels}
-                  onReorder={(newOrder) => onReorderChannels?.(group.id, newOrder)}
-                  className="space-y-0.5"
+                {/* Discord-style category header: clickable chevron +
+                    uppercase label + optional unread count when
+                    collapsed. The whole row toggles. */}
+                <button
+                  type="button"
+                  onClick={() => toggleCategory(group.id)}
+                  className="w-full flex items-center gap-1.5 px-2 mb-1.5 group/cat rounded-md hover:bg-muted/15 transition-colors active:scale-[0.99]"
+                  aria-expanded={!isCollapsed}
                 >
-                  {group.channels.map((ch) => (
-                    <ChannelRow
-                      key={ch.id}
-                      ch={ch}
-                      meta={channelMeta.get(ch.id)}
-                      isCurrent={selectedChannel?.id === ch.id}
-                      currentUserId={currentUserId}
-                      isAdmin={isAdmin}
-                      reorderEnabled={!!onReorderChannels && !!isAdmin}
-                      onSelect={() => onSelectChannel(ch)}
-                      onOpenSettings={onOpenSettings}
-                    />
-                  ))}
-                </Reorder.Group>
+                  <ChevronDown
+                    className={cn(
+                      'w-3 h-3 text-muted-foreground/55 transition-transform',
+                      isCollapsed && '-rotate-90',
+                    )}
+                  />
+                  <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-muted-foreground/65 group-hover/cat:text-muted-foreground/85 transition-colors">
+                    {group.name}
+                  </p>
+                  {isCollapsed && unreadInGroup > 0 && (
+                    <span className="ml-auto inline-flex items-center justify-center min-w-[18px] h-[16px] px-1 rounded-full bg-primary text-[9px] font-extrabold text-primary-foreground tabular-nums">
+                      {unreadInGroup}
+                    </span>
+                  )}
+                </button>
+
+                <AnimatePresence initial={false}>
+                  {!isCollapsed && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.15, ease: 'easeOut' }}
+                      className="overflow-hidden"
+                    >
+                      <Reorder.Group
+                        axis="y"
+                        values={group.channels}
+                        onReorder={(newOrder) => onReorderChannels?.(group.id, newOrder)}
+                        className="space-y-0.5"
+                      >
+                        {group.channels.map((ch) => (
+                          <ChannelRow
+                            key={ch.id}
+                            ch={ch}
+                            meta={channelMeta.get(ch.id)}
+                            isCurrent={selectedChannel?.id === ch.id}
+                            currentUserId={currentUserId}
+                            isAdmin={isAdmin}
+                            reorderEnabled={!!onReorderChannels && !!isAdmin}
+                            onSelect={() => onSelectChannel(ch)}
+                            onOpenSettings={onOpenSettings}
+                          />
+                        ))}
+                      </Reorder.Group>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
-            )
-          ))}
+            );
+          })}
         </div>
 
         {loading && channels.length === 0 && (
