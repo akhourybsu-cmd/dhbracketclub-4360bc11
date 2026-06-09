@@ -299,8 +299,14 @@ export function ChannelList({
       style={{ touchAction: 'pan-y', WebkitOverflowScrolling: 'touch' }}
     >
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-        {/* Header */}
-        <div className="flex items-center gap-2 border-b border-border/10 pb-3 mb-4 px-1">
+        {/* Header — slim treatment to match the rest of the app's
+            compact section headers. Title was previously text-2xl
+            (24px) on every breakpoint which made this header feel
+            disproportionately large vs. the channel rows below;
+            shrunk to text-[17px] / sm:text-lg and tightened the
+            vertical chrome (pb-2 mb-3) so the channel list reads
+            as the primary content of this column. */}
+        <div className="flex items-center gap-2 border-b border-border/10 pb-2 mb-3 px-1">
           <button
             type="button"
             aria-label="Open navigation menu"
@@ -310,8 +316,8 @@ export function ChannelList({
             <Menu className="w-5 h-5 text-foreground/85" />
           </button>
           <div className="flex-1 min-w-0">
-            <h1 className="text-2xl font-extrabold tracking-tight">Chat</h1>
-            <p className="text-[11px] text-muted-foreground/50 font-medium mt-0.5">DH conversations</p>
+            <h1 className="text-[17px] sm:text-lg font-extrabold tracking-tight leading-tight">Chat</h1>
+            <p className="text-[10.5px] text-muted-foreground/55 font-medium leading-none mt-0.5">DH conversations</p>
           </div>
           {isAdmin && (
             <div className="flex items-center gap-1">
