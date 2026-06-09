@@ -1286,7 +1286,11 @@ export default function DraftsListPage() {
         setDrafts(data);
       }
     }
-    setLoading(false);
+    } catch (err) {
+      console.error('[DraftsListPage] fetchDrafts failed', err);
+    } finally {
+      setLoading(false);
+    }
   }, [user]);
 
   useEffect(() => { fetchDrafts(); }, [fetchDrafts]);
