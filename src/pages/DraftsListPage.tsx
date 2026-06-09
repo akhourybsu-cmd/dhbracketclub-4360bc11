@@ -1201,22 +1201,27 @@ export default function DraftsListPage() {
 
   const fetchDrafts = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase
-      .from('drafts')
-      .select('*, competitions(title, status), profiles:created_by(display_name), current_pick_profiles:current_pick_user_id(display_name)')
-      .order('created_at', { ascending: false });
+    try {
+    const { data } = await withTimeout(
+      supabase
+        .from('drafts')
+        .select('*, competitions(title, status), profiles:created_by(display_name), current_pick_profiles:current_pick_user_id(display_name)')
+        .order('created_at', { ascending: false }),
+      QUERY_TIMEOUT_MS,
+      'drafts list query',
+    );
 
     if (data) {
       const draftIds = data.map(d => d.id);
       if (draftIds.length > 0) {
-        const [{ data: parts }, picks, { data: seasonEntriesAll }, { data: seasonsAll }] = await Promise.all([
+        const [{ data: parts }, picks, { data: seasonEntriesAll }, { data: seasonsAll }] = await withTimeout(Promise.all([
           supabase.from('draft_participants').select('draft_id, user_id, pick_order, profiles:user_id(display_name)').in('draft_id', draftIds),
           fetchAllDraftListRows<any>((from, to) =>
             supabase.from('draft_picks').select('draft_id').in('draft_id', draftIds).range(from, to),
           ),
           supabase.from('draft_season_entries' as any).select('draft_id, season_id').in('draft_id', draftIds),
           supabase.from('draft_seasons' as any).select('id, name, season_number, subtitle, starts_at, status').order('season_number', { ascending: false, nullsFirst: false }).order('starts_at', { ascending: false }),
-        ]);
+        ]), HYDRATE_TIMEOUT_MS, 'drafts list hydrate');
         // Build season-by-draft map and seasons list
         const seasonsById = new Map<string, { id: string; name: string; startsAt: string; status: string }>();
         (seasonsAll || []).forEach((s: any) => {
