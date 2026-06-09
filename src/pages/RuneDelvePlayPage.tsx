@@ -62,6 +62,9 @@ import {
 import { RunModifierPicker } from '@/components/runedelve/RunModifierPicker';
 import { todayUtcDateString } from '@/lib/runedelve/dailyChallenge';
 import { markDailyChamberPlayed } from '@/lib/runedelve/dailyChamber';
+import { rollRelicDrop } from '@/lib/runedelve/relicDrops';
+import type { RelicDef } from '@/lib/runedelve/relics';
+import { useUnlockRelic } from '@/hooks/useRelicCollection';
 import { applyInitialIntents } from '@/lib/runedelve/telegraph';
 import {
   buildInitialCorruption,
@@ -174,6 +177,10 @@ export default function RuneDelvePlayPage() {
   const updateClass = useUpdateClassProgress();
   const { data: loadout } = useLoadout(hero?.class);
   const { data: ownedRelics } = useRelicCollection();
+  const unlockRelic = useUnlockRelic();
+  // R7: a relic dropped on this clear (if any). Surfaced in the
+  // endState card so the player sees the find.
+  const [droppedRelic, setDroppedRelic] = useState<RelicDef | null>(null);
   const { data: wallet } = useRuneWallet();
   const { data: failureRow } = useFailureRow(level?.level_number ?? null);
   const earnShards = useEarnShards();
@@ -1672,6 +1679,32 @@ export default function RuneDelvePlayPage() {
       const dateStr = todayUtcDateString();
       markDailyChamberPlayed(user.id, dateStr);
     }
+    // R7: roll for a random relic drop on clear. Independent of the
+    // shard reward — gives every chamber clear a "what will I pull?"
+    // moment. The drop is persisted via the existing relic-unlock
+    // mutation so it appears in the user's collection immediately.
+    if (cleared && user?.id) {
+      const ownedSet = new Set((ownedRelics ?? []).map(r => r.relic_id));
+      const drop = rollRelicDrop({
+        cleared: true,
+        levelNumber: level.level_number,
+        ownedRelicIds: ownedSet,
+      });
+      if (drop) {
+        setDroppedRelic(drop.relic);
+        try {
+          await unlockRelic.mutateAsync({
+            relic_id: drop.relic.id,
+            level: level.level_number,
+          });
+        } catch {
+          // If the insert fails (e.g. a stale dup race), the local
+          // UI still shows the drop card — server state will catch
+          // up on the next collection refetch. Swallowing keeps the
+          // finalize flow non-blocking.
+        }
+      }
+    }
     const turnsUsed = level.turn_limit - final.turnsRemaining;
     const relicsForFinal = activeRelicsSnapshot ?? activeRelics;
     const rawBreakdown = calculateScore({
@@ -2215,6 +2248,44 @@ export default function RuneDelvePlayPage() {
                   style={{ background: 'hsl(var(--primary) / 0.15)', color: 'hsl(var(--primary))' }}>
                   💠 +{endState.shards} Rune Shards
                 </div>
+              )}
+              {/* R7: relic drop banner — celebratory card when the
+                  clear rolled a free unlock. Sits below the shard
+                  bonus so the visual order is: score → shards → relic. */}
+              {droppedRelic && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.92, y: 6 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  transition={{ type: 'spring', stiffness: 280, damping: 22, delay: 0.15 }}
+                  className="mt-3 rounded-xl p-3 flex items-center gap-3 text-left"
+                  style={{
+                    background: 'linear-gradient(135deg, hsl(var(--gold) / 0.18), hsl(var(--gold) / 0.05))',
+                    border: '1px solid hsl(var(--gold) / 0.45)',
+                    boxShadow: '0 0 24px -6px hsl(var(--gold) / 0.45)',
+                  }}
+                >
+                  <div
+                    className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0"
+                    style={{
+                      background: 'linear-gradient(135deg, hsl(var(--gold) / 0.28), hsl(var(--gold) / 0.08))',
+                      border: '1px solid hsl(var(--gold) / 0.55)',
+                    }}
+                    aria-hidden
+                  >
+                    {droppedRelic.icon}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[9px] font-extrabold uppercase tracking-[0.22em]" style={{ color: 'hsl(var(--gold))' }}>
+                      ✨ Relic dropped
+                    </p>
+                    <p className="text-[13px] font-extrabold tracking-tight leading-tight mt-0.5">
+                      {droppedRelic.name}
+                    </p>
+                    <p className="text-[10.5px] text-foreground/70 leading-snug mt-0.5 line-clamp-2">
+                      {droppedRelic.description}
+                    </p>
+                  </div>
+                </motion.div>
               )}
             </div>
             <button
