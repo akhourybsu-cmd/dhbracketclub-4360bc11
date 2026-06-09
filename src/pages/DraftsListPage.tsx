@@ -1295,6 +1295,121 @@ export default function DraftsListPage() {
 
   const canSeeCommissioner = isCommissioner || isAppAdmin;
 
+  // ── renderDraftRow ────────────────────────────────────────────────
+  // Shared row renderer used by BOTH the Drafts tab (inside season
+  // accordions) and the Misc tab (flat list). Lifted to component
+  // scope so the visual treatment stays in lockstep across both.
+  // Closes over component-level state (participantCounts,
+  // statusConfig, draftWinners, playoffMatchByDraft, user) — no need
+  // to pass deps explicitly.
+  const renderDraftRow = (d: any, i: number) => {
+    const count = participantCounts.get(d.id) || 0;
+    const sc = statusConfig[d.status] || statusConfig.setup;
+    const winner = draftWinners.get(d.id);
+    const playoffMatch = playoffMatchByDraft.get(d.id);
+    const isPlayoff = !!playoffMatch;
+    const isLive = d.status === 'in_progress';
+    const isMyTurn = isLive && d.current_pick_user_id === user?.id;
+    const staggerIdx = Math.min(i, 8);
+    // Left-edge accent — drives the visual identity at a glance:
+    //   playoff   → bright gold (championship vibe)
+    //   my turn   → gold (you should act)
+    //   live(other) → success-green
+    //   default   → none
+    const edgeAccent =
+      isPlayoff ? 'hsl(45 93% 52%)'
+      : isMyTurn ? 'hsl(var(--gold))'
+      : isLive  ? 'hsl(var(--success))'
+      : null;
+    return (
+      <motion.div key={d.id} variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0, transition: { ...springSnap, delay: staggerIdx * 0.04 } } }}>
+        <Link to={`/drafts/${d.id}`} className="block group">
+          <div className={cn('da-glass p-4 hover-lift cursor-pointer relative overflow-hidden transition-transform',
+            isPlayoff && 'arena-edge', isLive && !isPlayoff && 'draft-row-live', isMyTurn && !isPlayoff && 'draft-row-mine')}
+            style={isPlayoff ? {
+              borderLeft: '3px solid hsl(45 93% 52%)',
+              background: 'linear-gradient(135deg, hsl(45 93% 52% / 0.08), transparent 60%), linear-gradient(180deg, hsl(160 35% 7% / 0.88), hsl(160 50% 4% / 0.94))',
+              boxShadow: '0 0 22px -4px hsl(45 93% 52% / 0.32)',
+            } : edgeAccent ? {
+              borderLeft: `3px solid ${edgeAccent}`,
+            } : undefined}>
+            {isPlayoff && (
+              <div
+                aria-hidden
+                className="absolute inset-x-0 top-0 h-px pointer-events-none"
+                style={{ background: 'linear-gradient(90deg, transparent, hsl(45 93% 52% / 0.7), transparent)' }}
+              />
+            )}
+            {isPlayoff && <div className="absolute -right-2 -top-2 text-3xl opacity-10 select-none pointer-events-none" aria-hidden>✦</div>}
+            {isLive && !isPlayoff && <div className="absolute -right-2 -top-2 text-2xl opacity-[0.07] select-none pointer-events-none" aria-hidden>✦</div>}
+            <div className="flex items-center justify-between relative z-10">
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={isPlayoff ? { background: 'linear-gradient(135deg, hsl(45 93% 52% / 0.28), hsl(38 92% 50% / 0.10))', boxShadow: '0 0 10px hsl(45 93% 52% / 0.25)' } : { background: 'linear-gradient(135deg, hsl(var(--gold) / 0.15), hsl(var(--gold) / 0.04))' }}>
+                  {isPlayoff ? <Trophy className="w-5 h-5" style={{ color: 'hsl(45 93% 52%)' }} strokeWidth={2.5} /> : <Bookmark className="w-5 h-5" style={{ color: 'hsl(var(--gold))' }} />}
+                </div>
+                <div className="min-w-0">
+                  {isPlayoff && <div className="mb-0.5"><PlayoffBadge round={playoffMatch!.round} matchNumber={playoffMatch!.match_number} size="xs" /></div>}
+                  <h3 className="font-extrabold text-[15px] tracking-tight truncate leading-tight">{d.topic}</h3>
+                  <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                    {isPlayoff ? (
+                      <span className="text-[10px] font-bold tracking-wide" style={{ color: 'hsl(45 93% 52%)' }}>{getPlayoffGameLabel(playoffMatch!.round, playoffMatch!.match_number)}</span>
+                    ) : (
+                      <span className="text-[10px] text-muted-foreground/70 font-medium">{d.num_rounds} rounds</span>
+                    )}
+                    <span className="w-1 h-1 rounded-full bg-gold/25" />
+                    <span className="text-[10px] text-muted-foreground/75 flex items-center gap-1 font-medium">
+                      <Users className="w-2.5 h-2.5 text-muted-foreground/55" /> {count}
+                    </span>
+                    {winner && (
+                      <>
+                        <span className="w-1 h-1 rounded-full bg-gold/25" />
+                        <span className="text-[10px] flex items-center gap-1 font-bold" style={{ color: 'hsl(var(--gold))' }}>
+                          <Trophy className="w-2.5 h-2.5" /> {winner.display_name}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                  {d.status === 'in_progress' && d.current_pick_user_id && (
+                    isMyTurn ? (
+                      <motion.span
+                        initial={{ scale: 0.96 }}
+                        animate={{ scale: [0.96, 1, 0.96] }}
+                        transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+                        className="inline-flex items-center gap-1 mt-1.5 px-1.5 py-[2px] rounded-full text-[9px] font-extrabold uppercase tracking-[0.18em]"
+                        style={{
+                          background: 'hsl(var(--gold) / 0.18)',
+                          color: 'hsl(var(--gold))',
+                          border: '1px solid hsl(var(--gold) / 0.5)',
+                          boxShadow: '0 0 8px hsl(var(--gold) / 0.25)',
+                        }}
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: 'hsl(var(--gold))', boxShadow: '0 0 5px hsl(var(--gold))' }} />
+                        You're up
+                      </motion.span>
+                    ) : (
+                      <p className="text-[10px] font-semibold mt-1" style={{ color: 'hsl(var(--success))' }}>
+                        <span className="inline-block w-1.5 h-1.5 rounded-full mr-1 align-middle animate-pulse" style={{ background: 'hsl(var(--success))' }} />
+                        {(d as any).current_pick_profiles?.display_name || 'Someone'}'s pick
+                      </p>
+                    )
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                <span className={cn(isPlayoff ? 'da-status-complete' : sc.cls)}>
+                  {d.status === 'in_progress' && <Play className="w-2.5 h-2.5 mr-0.5" />}
+                  {sc.label}
+                </span>
+                <ArrowRight className="w-4 h-4 text-muted-foreground/60 group-hover:text-muted-foreground draft-chevron" />
+              </div>
+            </div>
+          </div>
+        </Link>
+      </motion.div>
+    );
+  };
+
   return (
     <div className="pb-6">
       <Tabs defaultValue={defaultTab} className="w-full">
@@ -1321,6 +1436,10 @@ export default function DraftsListPage() {
             <TabsTrigger value="stats"
               className="text-[10px] font-bold px-3 py-1.5 rounded-lg data-[state=active]:bg-[hsl(45_95%_55%)] data-[state=active]:text-[hsl(160_30%_6%)] data-[state=active]:shadow-[0_0_12px_hsl(45_95%_55%/0.45)] data-[state=inactive]:text-white/60">
               Stats
+            </TabsTrigger>
+            <TabsTrigger value="misc"
+              className="text-[10px] font-bold px-3 py-1.5 rounded-lg data-[state=active]:bg-[hsl(45_95%_55%)] data-[state=active]:text-[hsl(160_30%_6%)] data-[state=active]:shadow-[0_0_12px_hsl(45_95%_55%/0.45)] data-[state=inactive]:text-white/60">
+              Misc
             </TabsTrigger>
             {canSeeCommissioner && (
               <TabsTrigger value="commissioner"
@@ -1483,26 +1602,45 @@ export default function DraftsListPage() {
               </Link>
             </motion.div>
           ) : (() => {
-            // ── Group drafts by season, with a fallback "Miscellaneous" bucket ──
+            // ── Group drafts by season ──
+            // Misc drafts (no season_id) are NOT shown here anymore —
+            // they live in the dedicated "Misc" tab. This page-section
+            // now only renders season-grouped accordions.
             type Group = { id: string; name: string; status: string | null; startsAt: string | null; drafts: any[] };
             const groupsMap = new Map<string, Group>();
             for (const s of allSeasons) {
               groupsMap.set(s.id, { id: s.id, name: s.name, status: s.status, startsAt: s.startsAt, drafts: [] });
             }
-            const misc: Group = { id: '__misc__', name: 'Miscellaneous', status: null, startsAt: null, drafts: [] };
+            let miscCount = 0;
             for (const d of drafts) {
               const meta = seasonByDraft.get(d.id);
               if (meta && groupsMap.has(meta.seasonId)) groupsMap.get(meta.seasonId)!.drafts.push(d);
-              else misc.drafts.push(d);
+              else miscCount++; // counted for the empty-state hint below
             }
             // Only show seasons that have drafts. Sort newest → oldest.
             const seasonGroups = Array.from(groupsMap.values())
               .filter(g => g.drafts.length > 0)
               .sort((a, b) => (b.startsAt || '').localeCompare(a.startsAt || ''));
             const orderedGroups: Group[] = [...seasonGroups];
-            if (misc.drafts.length > 0) orderedGroups.push(misc);
 
-            // Default-open: current/most-recent active season + misc (if no seasons present).
+            // Edge case: user has drafts, but they're all misc. The
+            // accordion would render empty. Surface a small inline
+            // hint pointing to the Misc tab instead.
+            if (orderedGroups.length === 0 && miscCount > 0) {
+              return (
+                <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+                  className="rounded-2xl border border-gold/25 bg-card/50 px-4 py-5 text-center">
+                  <Archive className="w-6 h-6 mx-auto mb-2 text-muted-foreground/60" />
+                  <p className="text-[12.5px] font-extrabold">No season drafts yet</p>
+                  <p className="text-[11px] text-muted-foreground/70 leading-snug mt-1">
+                    You have {miscCount} {miscCount === 1 ? 'draft' : 'drafts'} not tied to a season.
+                    {' '}Find {miscCount === 1 ? 'it' : 'them'} on the <strong className="font-extrabold" style={{ color: 'hsl(var(--gold))' }}>Misc</strong> tab.
+                  </p>
+                </motion.div>
+              );
+            }
+
+            // Default-open: most-recent + currently-active season groups.
             const defaultOpen = orderedGroups
               .filter((g, idx) => idx === 0 || g.status === 'regular_season' || g.status === 'playoffs')
               .map(g => g.id);
@@ -1518,122 +1656,10 @@ export default function DraftsListPage() {
               }
             };
 
-            const renderRow = (d: any, i: number) => {
-              const count = participantCounts.get(d.id) || 0;
-              const sc = statusConfig[d.status] || statusConfig.setup;
-              const winner = draftWinners.get(d.id);
-              const playoffMatch = playoffMatchByDraft.get(d.id);
-              const isPlayoff = !!playoffMatch;
-              const isLive = d.status === 'in_progress';
-              const isMyTurn = isLive && d.current_pick_user_id === user?.id;
-              const staggerIdx = Math.min(i, 8);
-              // Left-edge accent color — drives the visual identity of the
-              // row at a glance from across the page:
-              //   playoff      → bright gold (championship vibe)
-              //   my turn      → gold (you should act)
-              //   live (other) → success-green (someone else is acting)
-              //   default      → none (calm row)
-              const edgeAccent =
-                isPlayoff ? 'hsl(45 93% 52%)'
-                : isMyTurn ? 'hsl(var(--gold))'
-                : isLive  ? 'hsl(var(--success))'
-                : null;
-              return (
-                <motion.div key={d.id} variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0, transition: { ...springSnap, delay: staggerIdx * 0.04 } } }}>
-                  <Link to={`/drafts/${d.id}`} className="block group">
-                    <div className={cn('da-glass p-4 hover-lift cursor-pointer relative overflow-hidden transition-transform',
-                      isPlayoff && 'arena-edge', isLive && !isPlayoff && 'draft-row-live', isMyTurn && !isPlayoff && 'draft-row-mine')}
-                      style={isPlayoff ? {
-                        borderLeft: '3px solid hsl(45 93% 52%)',
-                        background: 'linear-gradient(135deg, hsl(45 93% 52% / 0.08), transparent 60%), linear-gradient(180deg, hsl(160 35% 7% / 0.88), hsl(160 50% 4% / 0.94))',
-                        boxShadow: '0 0 22px -4px hsl(45 93% 52% / 0.32)',
-                      } : edgeAccent ? {
-                        borderLeft: `3px solid ${edgeAccent}`,
-                      } : undefined}>
-                      {/* Playoff rows get a gold sweep along the top edge plus
-                          the existing ✦ watermark — unmistakable identity. */}
-                      {isPlayoff && (
-                        <div
-                          aria-hidden
-                          className="absolute inset-x-0 top-0 h-px pointer-events-none"
-                          style={{ background: 'linear-gradient(90deg, transparent, hsl(45 93% 52% / 0.7), transparent)' }}
-                        />
-                      )}
-                      {isPlayoff && <div className="absolute -right-2 -top-2 text-3xl opacity-10 select-none pointer-events-none" aria-hidden>✦</div>}
-                      {isLive && !isPlayoff && <div className="absolute -right-2 -top-2 text-2xl opacity-[0.07] select-none pointer-events-none" aria-hidden>✦</div>}
-                      <div className="flex items-center justify-between relative z-10">
-                        <div className="flex items-center gap-3 min-w-0 flex-1">
-                          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                            style={isPlayoff ? { background: 'linear-gradient(135deg, hsl(45 93% 52% / 0.28), hsl(38 92% 50% / 0.10))', boxShadow: '0 0 10px hsl(45 93% 52% / 0.25)' } : { background: 'linear-gradient(135deg, hsl(var(--gold) / 0.15), hsl(var(--gold) / 0.04))' }}>
-                            {isPlayoff ? <Trophy className="w-5 h-5" style={{ color: 'hsl(45 93% 52%)' }} strokeWidth={2.5} /> : <Bookmark className="w-5 h-5" style={{ color: 'hsl(var(--gold))' }} />}
-                          </div>
-                          <div className="min-w-0">
-                            {isPlayoff && <div className="mb-0.5"><PlayoffBadge round={playoffMatch!.round} matchNumber={playoffMatch!.match_number} size="xs" /></div>}
-                            {/* Topic — bumped from text-sm → text-[15px] with
-                                tighter tracking so it reads as the row title. */}
-                            <h3 className="font-extrabold text-[15px] tracking-tight truncate leading-tight">{d.topic}</h3>
-                            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                              {isPlayoff ? (
-                                <span className="text-[10px] font-bold tracking-wide" style={{ color: 'hsl(45 93% 52%)' }}>{getPlayoffGameLabel(playoffMatch!.round, playoffMatch!.match_number)}</span>
-                              ) : (
-                                <span className="text-[10px] text-muted-foreground/70 font-medium">{d.num_rounds} rounds</span>
-                              )}
-                              {/* Inline gold dot separator — small visual lift over the grey pellets. */}
-                              <span className="w-1 h-1 rounded-full bg-gold/25" />
-                              <span className="text-[10px] text-muted-foreground/75 flex items-center gap-1 font-medium">
-                                <Users className="w-2.5 h-2.5 text-muted-foreground/55" /> {count}
-                              </span>
-                              {winner && (
-                                <>
-                                  <span className="w-1 h-1 rounded-full bg-gold/25" />
-                                  <span className="text-[10px] flex items-center gap-1 font-bold" style={{ color: 'hsl(var(--gold))' }}>
-                                    <Trophy className="w-2.5 h-2.5" /> {winner.display_name}
-                                  </span>
-                                </>
-                              )}
-                            </div>
-                            {/* "Your turn" treatment: pill chip instead of a
-                                small text line so it reads from across the page.
-                                Other-player turn stays as a quieter line. */}
-                            {d.status === 'in_progress' && d.current_pick_user_id && (
-                              isMyTurn ? (
-                                <motion.span
-                                  initial={{ scale: 0.96 }}
-                                  animate={{ scale: [0.96, 1, 0.96] }}
-                                  transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
-                                  className="inline-flex items-center gap-1 mt-1.5 px-1.5 py-[2px] rounded-full text-[9px] font-extrabold uppercase tracking-[0.18em]"
-                                  style={{
-                                    background: 'hsl(var(--gold) / 0.18)',
-                                    color: 'hsl(var(--gold))',
-                                    border: '1px solid hsl(var(--gold) / 0.5)',
-                                    boxShadow: '0 0 8px hsl(var(--gold) / 0.25)',
-                                  }}
-                                >
-                                  <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: 'hsl(var(--gold))', boxShadow: '0 0 5px hsl(var(--gold))' }} />
-                                  You're up
-                                </motion.span>
-                              ) : (
-                                <p className="text-[10px] font-semibold mt-1" style={{ color: 'hsl(var(--success))' }}>
-                                  <span className="inline-block w-1.5 h-1.5 rounded-full mr-1 align-middle animate-pulse" style={{ background: 'hsl(var(--success))' }} />
-                                  {(d as any).current_pick_profiles?.display_name || 'Someone'}'s pick
-                                </p>
-                              )
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1.5 flex-shrink-0">
-                          <span className={cn(isPlayoff ? 'da-status-complete' : sc.cls)}>
-                            {d.status === 'in_progress' && <Play className="w-2.5 h-2.5 mr-0.5" />}
-                            {sc.label}
-                          </span>
-                          <ArrowRight className="w-4 h-4 text-muted-foreground/60 group-hover:text-muted-foreground draft-chevron" />
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
-                </motion.div>
-              );
-            };
+            // renderRow is the shared component-scope renderer
+            // (`renderDraftRow`) so the Drafts tab and Misc tab stay
+            // in visual lockstep.
+            const renderRow = renderDraftRow;
 
             return (
               <Accordion type="multiple" defaultValue={defaultOpen} className="space-y-2.5">
@@ -1827,6 +1853,67 @@ export default function DraftsListPage() {
           }>
             <DraftStatsHub />
           </Suspense>
+        </TabsContent>
+
+        {/* ── MISC TAB ──
+            Drafts that aren't tied to any season (no entry in
+            `season_draft_entries` → `seasonByDraft` Map miss).
+            Renders as a flat list using the same renderRow output the
+            Drafts tab uses, so the visual treatment matches. Per-season
+            stats in the Stats tab are unaffected because misc drafts
+            have no season_id (filterDatasetByScope naturally excludes
+            them from any season-scoped query). */}
+        <TabsContent value="misc" className="mt-0">
+          {loading ? (
+            <div className="space-y-2.5">
+              {[1, 2].map(i => (
+                <div key={i} className="da-glass p-5">
+                  <div className="h-4 rounded-lg w-1/3 mb-2.5 da-shimmer" />
+                  <div className="h-3 rounded-lg w-1/2 da-shimmer" />
+                </div>
+              ))}
+            </div>
+          ) : (() => {
+            const miscDrafts = drafts.filter(d => !seasonByDraft.has(d.id));
+            if (miscDrafts.length === 0) {
+              return (
+                <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} className="empty-state">
+                  <div className="da-page-icon" style={{ width: '3.5rem', height: '3.5rem', borderRadius: '1rem' }}>
+                    <Archive className="w-7 h-7" />
+                  </div>
+                  <p className="empty-state-title">No misc drafts</p>
+                  <p className="empty-state-desc mb-6">
+                    Drafts not tied to a season will appear here. Run a one-off draft on any topic with your crew.
+                  </p>
+                  <Link to="/drafts/create">
+                    <Button className="font-bold rounded-xl gap-2 btn-press da-cta"><Plus className="w-4 h-4" /> Create Draft</Button>
+                  </Link>
+                </motion.div>
+              );
+            }
+            return (
+              <>
+                <div className="rounded-xl border border-border/30 bg-card/40 px-3.5 py-2.5 mb-3 flex items-start gap-2.5">
+                  <Archive className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-muted-foreground/70" />
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground/80">Misc</p>
+                    <p className="text-[10.5px] text-muted-foreground/65 leading-snug mt-0.5">
+                      {miscDrafts.length} {miscDrafts.length === 1 ? 'draft' : 'drafts'} not tied to a season.
+                      Season stats and standings exclude these.
+                    </p>
+                  </div>
+                </div>
+                <motion.div
+                  className="space-y-2"
+                  initial="hidden"
+                  animate="show"
+                  variants={{ hidden: {}, show: { transition: { staggerChildren: 0.04 } } }}
+                >
+                  {miscDrafts.map((d, i) => renderDraftRow(d, i))}
+                </motion.div>
+              </>
+            );
+          })()}
         </TabsContent>
 
         {/* ── COMMISSIONER TAB ── */}
