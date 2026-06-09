@@ -1204,10 +1204,12 @@ export default function DraftsListPage() {
     if (!user) return;
     try {
     const { data } = await withTimeout(
-      supabase
-        .from('drafts')
-        .select('*, competitions(title, status), profiles:created_by(display_name), current_pick_profiles:current_pick_user_id(display_name)')
-        .order('created_at', { ascending: false }),
+      Promise.resolve(
+        supabase
+          .from('drafts')
+          .select('*, competitions(title, status), profiles:created_by(display_name), current_pick_profiles:current_pick_user_id(display_name)')
+          .order('created_at', { ascending: false }),
+      ),
       QUERY_TIMEOUT_MS,
       'drafts list query',
     );
