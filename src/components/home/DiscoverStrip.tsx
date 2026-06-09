@@ -111,8 +111,12 @@ export function DiscoverStrip({ allAssets, installedAssets, isAdmin, accent }: P
                   <Icon className="w-4 h-4" strokeWidth={2.2} />
                 </div>
                 <div className="min-w-0 flex-1">
+                  {/* Label + description bumped from text-[8.5/9.5px]
+                      to 10/10.5px so they stay readable on mobile.
+                      Desktop also benefits — those sizes were below
+                      the comfortable floor on every screen. */}
                   <p
-                    className="text-[8.5px] font-extrabold uppercase tracking-[0.22em] truncate"
+                    className="text-[10px] font-extrabold uppercase tracking-[0.22em] truncate"
                     style={{ color: `hsl(${tint})` }}
                   >
                     + Install
@@ -121,7 +125,7 @@ export function DiscoverStrip({ allAssets, installedAssets, isAdmin, accent }: P
                     {asset.name}
                   </p>
                   {asset.short_description && (
-                    <p className="text-[9.5px] text-muted-foreground/65 leading-tight line-clamp-2 mt-0.5">
+                    <p className="text-[10.5px] text-muted-foreground/65 leading-tight line-clamp-2 mt-0.5">
                       {asset.short_description}
                     </p>
                   )}

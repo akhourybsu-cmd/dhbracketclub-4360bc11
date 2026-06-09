@@ -105,7 +105,9 @@ export function QuickBarSheet({
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground/60 hover:text-foreground active:scale-90 transition"
+            // Mobile: 40×40 (close to HIG 44 without dominating the
+            // sheet header). Desktop: original w-8 h-8 (32×32).
+            className="w-10 h-10 lg:w-8 lg:h-8 rounded-lg flex items-center justify-center text-muted-foreground/60 hover:text-foreground active:scale-90 transition"
             style={{ background: 'hsl(var(--muted) / 0.4)' }}
           >
             <X className="w-3.5 h-3.5" />
@@ -252,7 +254,7 @@ function Row({
             type="button"
             onClick={onMoveUp}
             disabled={isFirst}
-            className="w-8 h-8 rounded-lg flex items-center justify-center disabled:opacity-30 active:scale-90 transition"
+            className="w-10 h-10 lg:w-8 lg:h-8 rounded-lg flex items-center justify-center disabled:opacity-30 active:scale-90 transition"
             style={{ background: 'hsl(var(--muted) / 0.35)', color: 'hsl(var(--foreground))' }}
             aria-label={`Move ${asset.asset.name} up`}
           >
@@ -262,7 +264,7 @@ function Row({
             type="button"
             onClick={onMoveDown}
             disabled={isLast}
-            className="w-8 h-8 rounded-lg flex items-center justify-center disabled:opacity-30 active:scale-90 transition"
+            className="w-10 h-10 lg:w-8 lg:h-8 rounded-lg flex items-center justify-center disabled:opacity-30 active:scale-90 transition"
             style={{ background: 'hsl(var(--muted) / 0.35)', color: 'hsl(var(--foreground))' }}
             aria-label={`Move ${asset.asset.name} down`}
           >
@@ -271,7 +273,7 @@ function Row({
           <button
             type="button"
             onClick={onAction}
-            className="w-8 h-8 rounded-lg flex items-center justify-center active:scale-90 transition"
+            className="w-10 h-10 lg:w-8 lg:h-8 rounded-lg flex items-center justify-center active:scale-90 transition"
             style={{
               background: 'hsl(var(--destructive) / 0.16)',
               color: 'hsl(var(--destructive))',

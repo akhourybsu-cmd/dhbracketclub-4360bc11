@@ -75,7 +75,9 @@ export function QuickBar({ pinned, accent, onEditClick }: Props) {
         <button
           type="button"
           onClick={onEditClick}
-          className="text-[11.5px] font-semibold text-muted-foreground/80 hover:text-foreground transition-colors inline-flex items-center gap-1 flex-shrink-0"
+          // Bumped from a bare inline button to a min-h-9 tap zone on
+          // mobile (36px), keeps the tighter look on lg+ desktop.
+          className="text-[11.5px] font-semibold text-muted-foreground/80 hover:text-foreground transition-colors inline-flex items-center gap-1 flex-shrink-0 min-h-9 lg:min-h-0 px-1.5 lg:px-0 -mr-1.5 lg:mr-0 rounded-md active:bg-muted/30 lg:active:bg-transparent"
           aria-label="Customize quick access"
         >
           <Pencil className="w-3 h-3" strokeWidth={2.4} />

@@ -46,7 +46,10 @@ export function RightNowCard({ actions }: Props) {
           <button
             type="button"
             onClick={() => setExpanded(v => !v)}
-            className="mt-1.5 w-full inline-flex items-center justify-center gap-1.5 h-7 px-3 rounded-lg text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground/70 hover:text-foreground transition-colors"
+            // Mobile: h-9 (36px) for a comfortable thumb target.
+            // Desktop: original h-7 (28px) so the "X more" affordance
+            // stays compact under the list.
+            className="mt-1.5 w-full inline-flex items-center justify-center gap-1.5 h-9 lg:h-7 px-3 rounded-lg text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground/70 hover:text-foreground transition-colors"
             aria-expanded={expanded}
           >
             <ChevronDown className={`w-3 h-3 transition-transform ${expanded ? 'rotate-180' : ''}`} />
