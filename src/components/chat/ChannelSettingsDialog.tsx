@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Trash2, Bell, AtSign, BellOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -158,7 +157,17 @@ export function ChannelSettingsDialog({ channel, categories, open, isAdmin, onOp
           )}
         </DialogHeader>
 
-        <ScrollArea className="flex-1 min-h-0">
+        {/* Native overflow container — replaced the Radix ScrollArea
+            because its overlay scrollbar pattern doesn't always
+            propagate touch-drag events on mobile inside a Dialog.
+            Symptom: users could see the first row of the icon picker
+            but couldn't scroll past it to reach Channel Type / Save /
+            Delete. A plain `overflow-y-auto` div uses the platform's
+            native scroll which works everywhere. */}
+        <div
+          className="flex-1 min-h-0 overflow-y-auto overscroll-contain"
+          style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
+        >
           <div className="px-5 pb-5 pt-3 space-y-5">
             {/* Notifications — visible to ALL members */}
             <div className="space-y-2">
@@ -375,7 +384,7 @@ export function ChannelSettingsDialog({ channel, categories, open, isAdmin, onOp
               </>
             )}
           </div>
-        </ScrollArea>
+        </div>{/* /native scroll container */}
       </DialogContent>
     </Dialog>
   );
