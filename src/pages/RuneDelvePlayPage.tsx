@@ -60,6 +60,8 @@ import {
   type RunModifier, pickModifierOffer, resolveEffect, getModifierById, STEADY_PATH,
 } from '@/lib/runedelve/runModifiers';
 import { RunModifierPicker } from '@/components/runedelve/RunModifierPicker';
+import { todayUtcDateString } from '@/lib/runedelve/dailyChallenge';
+import { markDailyChamberPlayed } from '@/lib/runedelve/dailyChamber';
 import { applyInitialIntents } from '@/lib/runedelve/telegraph';
 import {
   buildInitialCorruption,
@@ -533,8 +535,18 @@ export default function RuneDelvePlayPage() {
     // if no modifier is set yet (this guard exists because the run
     // can re-init mid-session in some flows; we never want to wipe
     // a choice the user already made).
+    // R4: Daily Chamber locks a specific modifier — read it from
+    // the search param. If present and valid, we skip the picker and
+    // pre-set the modifier so the run starts with daily rules in
+    // place. The home card sets this when launching the daily.
+    const lockedModId = searchParams.get('dailyMod');
+    const lockedMod = lockedModId ? getModifierById(lockedModId) : null;
     if (!activeModifier) {
-      setModifierOffer(pickModifierOffer());
+      if (lockedMod) {
+        setActiveModifier(lockedMod);
+      } else {
+        setModifierOffer(pickModifierOffer());
+      }
     }
     braceFiredRef.current = false;
     aegisFiredRef.current = false;
@@ -1651,6 +1663,15 @@ export default function RuneDelvePlayPage() {
   async function finalize(final: CombatState, cleared: boolean) {
     if (submitting || !level || !hero) return;
     setSubmitting(true);
+    // R4: if this was a Daily Chamber run (entered with ?dailyMod
+    // query param), mark today's daily as played so the home card
+    // gates against re-entry until UTC midnight. We mark on finalize
+    // (clear OR fail) so abandoning mid-run doesn't burn the slot.
+    const lockedModId = searchParams.get('dailyMod');
+    if (lockedModId && user?.id) {
+      const dateStr = todayUtcDateString();
+      markDailyChamberPlayed(user.id, dateStr);
+    }
     const turnsUsed = level.turn_limit - final.turnsRemaining;
     const relicsForFinal = activeRelicsSnapshot ?? activeRelics;
     const rawBreakdown = calculateScore({

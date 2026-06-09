@@ -1,6 +1,9 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Sparkles, Trophy, Flame, ChevronRight, Swords, BookOpen, Map, ShoppingBag, Shield, Calendar, Target, ChevronDown, Wrench, HelpCircle, ScrollText, History as HistoryIcon, User as UserIcon } from 'lucide-react';
+import { Sparkles, Trophy, Flame, ChevronRight, Swords, BookOpen, Map, ShoppingBag, Shield, Calendar, Target, ChevronDown, Wrench, HelpCircle, ScrollText, History as HistoryIcon, User as UserIcon, Gem, Lock } from 'lucide-react';
+import { dailyChamberFor, hasPlayedDailyChamber } from '@/lib/runedelve/dailyChamber';
+import { getLayoutIdForLevel } from '@/lib/runedelve/chamberAssignment';
+import { getLayout } from '@/lib/runedelve/runeLayouts';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useRuneDelveHero, useEnsureHero } from '@/hooks/useRuneDelveHero';
 import { useAllClassProgress } from '@/hooks/useRuneDelveClassProgress';
@@ -236,6 +239,87 @@ export default function RuneDelveHomePage() {
           </div>
         </Link>
       </div>
+
+      {/* DAILY CHAMBER (R4) — campaign-mode daily challenge with a
+          deterministic level + locked modifier. Sits below the
+          Daily/Quests grid since it's a fresh hook, not a slot in
+          the existing Today rotation. */}
+      {(() => {
+        const cap = progress.highest_unlocked_level;
+        const daily = dailyChamberFor(new Date(), cap);
+        const played = user?.id ? hasPlayedDailyChamber(user.id, daily.date) : false;
+        const layout = getLayout(getLayoutIdForLevel(daily.levelNumber));
+        const mod = daily.modifier;
+        return (
+          <Link
+            to={`/rune-delve/play/${daily.levelNumber}?dailyMod=${mod.id}`}
+            className="block btn-press"
+            aria-label={`Daily Chamber — Level ${daily.levelNumber} with ${mod.name}`}
+          >
+            <div
+              className="rounded-2xl p-3.5 relative overflow-hidden"
+              style={{
+                background: `linear-gradient(135deg, hsl(${mod.accent} / 0.14), hsl(${mod.accent} / 0.04) 60%, hsl(var(--card) / 0.7))`,
+                border: `1px solid hsl(${mod.accent} / ${played ? 0.25 : 0.42})`,
+                boxShadow: played ? undefined : `0 0 22px -8px hsl(${mod.accent} / 0.35)`,
+              }}
+            >
+              <div className="flex items-center gap-1.5 mb-2">
+                <Gem className="w-3.5 h-3.5" style={{ color: `hsl(${mod.accent})` }} />
+                <span
+                  className="font-rd-display text-[10px] font-extrabold tracking-[0.18em] uppercase"
+                  style={{ color: `hsl(${mod.accent})` }}
+                >
+                  Daily Chamber
+                </span>
+                <div className="ml-auto flex items-center gap-1.5">
+                  {played && (
+                    <span
+                      className="inline-flex items-center gap-1 text-[9px] font-extrabold uppercase tracking-wider px-1.5 py-[1px] rounded-full"
+                      style={{
+                        background: 'hsl(var(--muted) / 0.5)',
+                        color: 'hsl(var(--muted-foreground))',
+                      }}
+                    >
+                      <Lock className="w-2.5 h-2.5" /> Played
+                    </span>
+                  )}
+                  <ChevronRight className="w-3.5 h-3.5" style={{ color: `hsl(${mod.accent} / 0.7)` }} />
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <div
+                  className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
+                  style={{
+                    background: `linear-gradient(135deg, hsl(${mod.accent} / 0.28), hsl(${mod.accent} / 0.08))`,
+                    border: `1px solid hsl(${mod.accent} / 0.4)`,
+                    color: `hsl(${mod.accent})`,
+                  }}
+                  aria-hidden
+                >
+                  {mod.glyph}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[13px] font-extrabold tracking-tight leading-tight">
+                    Level {daily.levelNumber}
+                    {layout && <span className="text-foreground/55 font-bold"> · {layout.name}</span>}
+                  </p>
+                  <p
+                    className="text-[11px] font-extrabold leading-tight mt-0.5"
+                    style={{ color: `hsl(${mod.accent})` }}
+                  >
+                    {mod.name}
+                  </p>
+                  <p className="text-[10.5px] text-foreground/70 leading-snug mt-1 line-clamp-2">
+                    {mod.description}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </Link>
+        );
+      })()}
 
       {/* Hero snapshot */}
       <Link to="/rune-delve/hero" className="block">
