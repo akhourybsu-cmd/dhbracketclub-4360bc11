@@ -82,6 +82,11 @@ interface AdminTaskLite {
   to: string;
 }
 
+interface UnreadChannelLite {
+  id: string;
+  name: string;
+}
+
 export interface RankInput {
   userId: string | undefined;
   /** Slugs of assets installed for this club. */
@@ -95,6 +100,9 @@ export interface RankInput {
   endlessSavedRun?: { missionName: string; waveLabel: string } | null;
   adminTasks?: AdminTaskLite[];
   isClubAdmin?: boolean;
+  /** Channels where this user has unread messages AND notifications
+   *  are not muted. Drives the "New chat in #X" home surface. */
+  unreadChannels?: UnreadChannelLite[];
 }
 
 export function rankNextActions(input: RankInput): NextAction[] {
@@ -219,6 +227,35 @@ export function rankNextActions(input: RankInput): NextAction[] {
       accent: 'warning',
       assetSlug: 'nexus-defense',
       tag: 'ENDLESS',
+    });
+  }
+
+  // ── Chat: unread channels ────────────────────────────────────────
+  // Engagement-tier signal (above generic feed catch-up at 50,
+  // below all blocking actions, daily windows, and season events).
+  // Only emitted when the user has the chat asset installed AND has
+  // unread messages in at least one non-muted channel.
+  if (has('chat') && input.unreadChannels && input.unreadChannels.length > 0) {
+    const channels = input.unreadChannels;
+    const single = channels.length === 1;
+    out.push({
+      id: 'chat-unread',
+      priority: 55,
+      label: single
+        ? `New chat in #${channels[0].name}`
+        : `New chats in ${channels.length} channels`,
+      sub: single
+        ? 'Tap to read'
+        // Multi-channel summary — list up to the first three channel
+        // names so users can decide whether the unread is somewhere
+        // they actually care about.
+        : channels.slice(0, 3).map(c => `#${c.name}`).join(' · ')
+          + (channels.length > 3 ? ` +${channels.length - 3} more` : ''),
+      to: '/chat',
+      icon: MessageCircle,
+      accent: 'accent',
+      assetSlug: 'chat',
+      tag: 'CHAT',
     });
   }
 

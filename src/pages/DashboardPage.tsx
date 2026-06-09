@@ -30,6 +30,7 @@ import {
 import { useActivityFeedUpdates, useDraftListUpdates } from '@/hooks/useRealtimeSubscription';
 import { useNarrativeCampaigns } from '@/hooks/useNarrativeCampaigns';
 import { useUpcomingCelebrations, useTodayCelebrations, useCelebrationSettings } from '@/hooks/useCelebrations';
+import { useUnreadChannels } from '@/hooks/useUnreadChannels';
 
 import { HomeHero } from '@/components/home/HomeHero';
 import { HeroAction } from '@/components/home/HeroAction';
@@ -107,6 +108,10 @@ export default function DashboardPage() {
   const { today: todayCelebrations } = useTodayCelebrations();
   const { upcoming: upcomingCelebrations } = useUpcomingCelebrations(4);
   const { settings: celebrationSettings } = useCelebrationSettings();
+  // Powers the "New chat to view in #X" Home surface. Hook handles
+  // its own polling + filters out muted channels; we just forward
+  // the list into rankNextActions below.
+  const { unreadChannels } = useUnreadChannels();
 
   const [displayName, setDisplayName] = useState('');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -251,7 +256,8 @@ export default function DashboardPage() {
     draftsRemaining,
     isClubAdmin,
     endlessSavedRun,
-  }), [user?.id, installedSlugs, drafts, season, draftsRemaining, isClubAdmin, endlessSavedRun]);
+    unreadChannels,
+  }), [user?.id, installedSlugs, drafts, season, draftsRemaining, isClubAdmin, endlessSavedRun, unreadChannels]);
 
   // ─── Build TodayFeed items from multiple sources ─────────────────
   const todayItems = useMemo<TodayFeedItem[]>(() => {
