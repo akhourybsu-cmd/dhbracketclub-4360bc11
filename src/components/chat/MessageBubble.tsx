@@ -35,18 +35,142 @@ function stripImageUrls(text: string): string {
 
 const MENTION_RE = /@([\w\s]+?)(?=\s@|\s|$)/g;
 
-function renderContent(text: string, currentUserId?: string, currentDisplayName?: string) {
+/* ═══ Markdown layer ═══
+ *
+ * Layered on TOP of the existing URL + mention pipeline so the
+ * established behaviour stays exactly the same — markdown just
+ * pre-wraps plain-text segments with styling spans before they're
+ * passed to the URL/mention renderer.
+ *
+ * Order of operations (Discord-style):
+ *   1. Extract triple-backtick code blocks (block-level, opaque)
+ *   2. On the remaining text:
+ *      a. Inline tokens — `code`, **bold**, *italic*, ~~strike~~
+ *      b. URLs (existing)
+ *      c. @mentions (existing)
+ *
+ * Code blocks are completely opaque to URL/mention parsing — content
+ * inside triple-backticks renders verbatim, which matches Discord.
+ */
+
+const CODE_BLOCK_RE = /```([a-zA-Z0-9_-]*)\r?\n?([\s\S]*?)```/g;
+const INLINE_TOKEN_PATTERNS: Array<{ type: 'code' | 'bold' | 'strike' | 'italic'; re: RegExp }> = [
+  // Order matters: `code` first so backtick-wrapped content is opaque,
+  // **bold** before *italic* so ** isn't confused with two italic *s,
+  // ~~strike~~ standalone.
+  { type: 'code',   re: /`([^`\n]+?)`/ },
+  { type: 'bold',   re: /\*\*([^*\n]+?)\*\*/ },
+  { type: 'strike', re: /~~([^~\n]+?)~~/ },
+  { type: 'italic', re: /(?<!\*)\*([^*\n]+?)\*(?!\*)/ },
+];
+
+interface InlineToken { type: 'text' | 'code' | 'bold' | 'strike' | 'italic'; value: string }
+
+function tokenizeInline(text: string): InlineToken[] {
+  const tokens: InlineToken[] = [];
+  let cursor = 0;
+  while (cursor < text.length) {
+    let earliest: { idx: number; type: InlineToken['type']; raw: string; inner: string } | null = null;
+    for (const p of INLINE_TOKEN_PATTERNS) {
+      const re = new RegExp(p.re.source, 'g');
+      re.lastIndex = cursor;
+      const m = re.exec(text);
+      if (m && (!earliest || m.index < earliest.idx)) {
+        earliest = { idx: m.index, type: p.type, raw: m[0], inner: m[1] };
+      }
+    }
+    if (!earliest) {
+      tokens.push({ type: 'text', value: text.slice(cursor) });
+      break;
+    }
+    if (earliest.idx > cursor) tokens.push({ type: 'text', value: text.slice(cursor, earliest.idx) });
+    tokens.push({ type: earliest.type, value: earliest.inner });
+    cursor = earliest.idx + earliest.raw.length;
+  }
+  return tokens;
+}
+
+function renderInlineTokens(text: string, currentDisplayName?: string, keyPrefix = ''): React.ReactNode[] {
+  const tokens = tokenizeInline(text);
+  return tokens.map((t, i) => {
+    const k = `${keyPrefix}-tok-${i}`;
+    switch (t.type) {
+      case 'code':
+        return (
+          <code key={k} className="px-1 py-0.5 rounded text-[12.5px] font-mono bg-black/25 dark:bg-black/40 text-foreground/95">
+            {t.value}
+          </code>
+        );
+      case 'bold':
+        return <strong key={k} className="font-extrabold">{renderUrlsAndMentions(t.value, currentDisplayName, k)}</strong>;
+      case 'italic':
+        return <em key={k} className="italic">{renderUrlsAndMentions(t.value, currentDisplayName, k)}</em>;
+      case 'strike':
+        return <span key={k} className="line-through opacity-75">{renderUrlsAndMentions(t.value, currentDisplayName, k)}</span>;
+      case 'text':
+      default:
+        return <Fragment key={k}>{renderUrlsAndMentions(t.value, currentDisplayName, k)}</Fragment>;
+    }
+  });
+}
+
+// Renders URLs + mentions on a plain-text leaf — exactly what the
+// previous `renderContent` did, just extracted so the markdown layer
+// can call it for each text token.
+function renderUrlsAndMentions(text: string, currentDisplayName?: string, keyPrefix = ''): React.ReactNode {
   const urlParts = text.split(URL_RE);
   if (urlParts.length === 1) return renderMentions(text, currentDisplayName);
   return urlParts.map((part, i) =>
     URL_RE.test(part) ? (
-      <a key={i} href={part} target="_blank" rel="noopener noreferrer"
+      <a key={`${keyPrefix}-url-${i}`} href={part} target="_blank" rel="noopener noreferrer"
         className="text-primary underline underline-offset-2 hover:text-primary/80 break-all"
         onClick={e => e.stopPropagation()}>{part}</a>
     ) : (
-      <Fragment key={i}>{renderMentions(part, currentDisplayName, i)}</Fragment>
+      <Fragment key={`${keyPrefix}-txt-${i}`}>{renderMentions(part, currentDisplayName, i)}</Fragment>
     )
   );
+}
+
+function renderContent(text: string, currentUserId?: string, currentDisplayName?: string) {
+  // Step 1: split out triple-backtick code blocks (block-level,
+  // opaque). Everything inside ``` is rendered verbatim — no URL,
+  // mention, or inline-mark parsing happens inside a code block.
+  const segments: Array<{ kind: 'code' | 'text'; content: string; lang?: string }> = [];
+  let cursor = 0;
+  const re = new RegExp(CODE_BLOCK_RE.source, 'g');
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > cursor) segments.push({ kind: 'text', content: text.slice(cursor, m.index) });
+    segments.push({ kind: 'code', content: m[2] ?? '', lang: m[1] || undefined });
+    cursor = re.lastIndex;
+  }
+  if (cursor < text.length) segments.push({ kind: 'text', content: text.slice(cursor) });
+
+  // No code blocks AND no inline-mark candidates → take the original
+  // fast path so we don't change behaviour for the most common case
+  // (plain text + maybe a URL + maybe a mention).
+  if (segments.length === 1 && segments[0].kind === 'text' && !/[*~`]/.test(text)) {
+    return renderUrlsAndMentions(text, currentDisplayName, 'root');
+  }
+
+  return segments.map((seg, i) => {
+    if (seg.kind === 'code') {
+      return (
+        <pre
+          key={`cb-${i}`}
+          className="my-1.5 rounded-md bg-black/35 dark:bg-black/55 border border-border/20 px-3 py-2 overflow-x-auto"
+        >
+          {seg.lang && (
+            <div className="text-[9px] font-bold uppercase tracking-[0.15em] text-muted-foreground/65 mb-1">{seg.lang}</div>
+          )}
+          <code className="text-[12.5px] font-mono leading-snug whitespace-pre-wrap break-words text-foreground/95">
+            {seg.content.replace(/\n$/, '')}
+          </code>
+        </pre>
+      );
+    }
+    return <Fragment key={`txt-${i}`}>{renderInlineTokens(seg.content, currentDisplayName, `s${i}`)}</Fragment>;
+  });
 }
 
 function renderMentions(text: string, currentDisplayName?: string, keyPrefix: number = 0): React.ReactNode {
