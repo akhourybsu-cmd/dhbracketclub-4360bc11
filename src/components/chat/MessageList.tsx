@@ -26,6 +26,9 @@ interface MessageListProps {
   isSearchActive?: boolean;
   lastReadAt?: string | null;
   scrollToBottomTrigger?: number;
+  /** Set of user IDs currently online in the user's club, surfaced
+   *  as a green dot on each message's avatar (Discord-style). */
+  onlineUserIds?: Set<string>;
 }
 
 function getDateLabel(dateStr: string) {
@@ -46,7 +49,7 @@ export function MessageList({
   onStartEditing, onDeleteMessage, onSaveEdit,
   editingMessageId, editContent, onEditContentChange, onCancelEdit,
   onLoadMore, hasMore, loadingMore, isSearchActive, lastReadAt,
-  scrollToBottomTrigger,
+  scrollToBottomTrigger, onlineUserIds,
 }: MessageListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -267,6 +270,7 @@ export function MessageList({
                 nextSameAuthor={nextSameAuthor}
                 currentUserId={userId}
                 currentDisplayName={currentDisplayName}
+                isAuthorOnline={!!onlineUserIds?.has(msg.user_id)}
                 onToggleReaction={onToggleReaction}
                 onOpenThread={onOpenThread}
                 onTogglePin={onTogglePin}

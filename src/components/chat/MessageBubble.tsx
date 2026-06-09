@@ -248,6 +248,10 @@ interface MessageBubbleProps {
   onCancelEdit: () => void;
   isOverlayOpen?: boolean;
   onToggleOverlay?: (msgId: string | null) => void;
+  /** Optional — set true to render a green presence dot on this
+   *  message's avatar. The parent passes this from a shared
+   *  useClubPresence subscription so all bubbles agree. */
+  isAuthorOnline?: boolean;
 }
 
 const SWIPE_THRESHOLD = 60;
@@ -260,6 +264,7 @@ function MessageBubbleInner({
   onStartEditing, onDeleteMessage, onSaveEdit,
   editingMessageId, editContent, onEditContentChange, onCancelEdit,
   isOverlayOpen, onToggleOverlay,
+  isAuthorOnline,
 }: MessageBubbleProps) {
   const showOverlay = !!isOverlayOpen;
   const setShowOverlay = useCallback((open: boolean) => {
@@ -460,7 +465,7 @@ function MessageBubbleInner({
           {!isOwn && (
             <div className="w-7 flex-shrink-0">
               {isLastInBlock ? (
-                <UserAvatar userId={msg.user_id} name={msg.profiles?.display_name || '?'} avatarUrl={msg.profiles?.avatar_url} size={28} />
+                <UserAvatar userId={msg.user_id} name={msg.profiles?.display_name || '?'} avatarUrl={msg.profiles?.avatar_url} size={28} isOnline={isAuthorOnline} />
               ) : (
                 <div className="w-7" />
               )}

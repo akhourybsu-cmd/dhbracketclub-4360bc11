@@ -29,6 +29,7 @@ import { useChatRealtime, useChatTyping } from '@/hooks/useChatRealtime';
 import { useChatActions } from '@/hooks/useChatActions';
 import { notifyThreadReply } from '@/lib/chatNotifications';
 import { applySlashCommand } from '@/lib/chatSlashCommands';
+import { useClubPresence } from '@/hooks/useClubPresence';
 
 export default function ChatPage() {
   const { user } = useAuth();
@@ -137,6 +138,15 @@ export default function ChatPage() {
     user?.id,
     currentDisplayName || user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'Someone',
   );
+
+  // Club-wide presence — drives the green online dot on message
+  // avatars (Discord-style). Reuses the same presence channel that
+  // the Home page's MembersOnline strip uses, so opening Chat
+  // doesn't fire a second WebSocket.
+  const { onlineIds } = useClubPresence({
+    displayName: currentDisplayName || user?.user_metadata?.display_name || undefined,
+    avatarUrl: user?.user_metadata?.avatar_url || null,
+  });
 
   /* ═══ FETCH CHANNELS ═══ */
   const selectedChannelRef = useRef<Channel | null>(null);
@@ -814,6 +824,7 @@ export default function ChatPage() {
                   selectedChannel={selectedChannel}
                   userId={user?.id}
                   currentDisplayName={currentDisplayName}
+                  onlineUserIds={onlineIds}
                   onToggleReaction={toggleReaction}
                   onOpenThread={openThread}
                   onTogglePin={handleTogglePin}
@@ -852,8 +863,15 @@ export default function ChatPage() {
                               />
                             ))}
                           </div>
-                          <span className="text-[10px] text-muted-foreground/60 font-medium">
-                            {typingUsers.length === 1 ? `${typingUsers[0]} is typing` : `${typingUsers.join(', ')} are typing`}
+                          {/* Discord-style typing line: bold the names,
+                              italicise the verb, end with an ellipsis so the
+                              animation reads as in-progress speech. */}
+                          <span className="text-[10px] text-muted-foreground/65 font-medium italic">
+                            {typingUsers.length === 1 ? (
+                              <><span className="font-bold not-italic text-foreground/80">{typingUsers[0]}</span> is typing…</>
+                            ) : (
+                              <><span className="font-bold not-italic text-foreground/80">{typingUsers.join(', ')}</span> are typing…</>
+                            )}
                           </span>
                         </motion.div>
                       )}
