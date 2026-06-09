@@ -593,18 +593,27 @@ function MessageBubbleInner({
               </div>
             )}
 
-            {/* Thread indicator */}
+            {/* Thread indicator — Discord-style "thread chip" with
+                visible surface, accent stripe, hover-to-deepen state,
+                and an explicit "View thread →" affordance so users
+                know it's clickable on first encounter. */}
             {(msg.reply_count || 0) > 0 && (
               <button
                 onClick={(e) => { e.stopPropagation(); onOpenThread(msg); }}
                 className={cn(
-                  "flex items-center gap-1.5 mt-1.5 py-1 text-[11px] font-semibold text-primary/80 hover:text-primary transition-colors",
+                  "group/thread relative inline-flex items-center gap-2 mt-2 pl-2.5 pr-3 py-1.5 rounded-lg text-[11.5px] font-bold transition-colors",
+                  "bg-primary/8 hover:bg-primary/14 text-primary border border-primary/20 hover:border-primary/35",
                   isOwn ? "ml-auto" : ""
                 )}
                 style={{ touchAction: 'manipulation' }}
+                aria-label={`View thread — ${msg.reply_count} ${msg.reply_count === 1 ? 'reply' : 'replies'}`}
               >
-                <MessageSquare className="w-3.5 h-3.5" />
-                {msg.reply_count} {msg.reply_count === 1 ? 'reply' : 'replies'}
+                <MessageSquare className="w-3.5 h-3.5 flex-shrink-0" />
+                <span>
+                  <span className="tabular-nums">{msg.reply_count}</span>{' '}
+                  {msg.reply_count === 1 ? 'reply' : 'replies'}
+                </span>
+                <span className="text-primary/60 group-hover/thread:text-primary group-hover/thread:translate-x-0.5 transition-all font-extrabold">→</span>
               </button>
             )}
           </div>
