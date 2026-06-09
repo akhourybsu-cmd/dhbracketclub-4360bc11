@@ -65,6 +65,7 @@ import { markDailyChamberPlayed } from '@/lib/runedelve/dailyChamber';
 import { rollRelicDrop } from '@/lib/runedelve/relicDrops';
 import type { RelicDef } from '@/lib/runedelve/relics';
 import { useUnlockRelic } from '@/hooks/useRelicCollection';
+import { getPathVariant, resolvePathEffect } from '@/lib/runedelve/pathVariants';
 import { applyInitialIntents } from '@/lib/runedelve/telegraph';
 import {
   buildInitialCorruption,
@@ -334,15 +335,26 @@ export default function RuneDelvePlayPage() {
     return level ? mechanicsForLevel(level.level_number) : [];
   }, [level]);
 
+  // R2: path variant from the milestone picker (?pathVariant=…).
+  // Resolved once per mount; effects threaded through init, chain
+  // resolve, finalize, and the layout zone derivation below.
+  const pathVariant = useMemo(
+    () => getPathVariant(searchParams.get('pathVariant')),
+    [searchParams],
+  );
+  const pathEffect = useMemo(() => resolvePathEffect(pathVariant), [pathVariant]);
+
   // Chamber layout zones — treasure/hazard cells derived from the
   // chamber assigned to this level. Treasure cells in a chain pay
   // bonus score + shards; hazard cells cost HP. Deterministic per
-  // (level number, seed) so replays show the same layout.
+  // (level number, seed) so replays show the same layout. Path
+  // variant can override which layout is rendered (e.g. Treasure
+  // Path forces the Cursed Vault chamber).
   const layoutZones = useMemo(() => {
     if (!level) return EMPTY_ZONES;
-    const layoutId = getLayoutIdForLevel(level.level_number);
+    const layoutId = pathEffect.layoutOverride || getLayoutIdForLevel(level.level_number);
     return computeLayoutZones(layoutId, level.generation_seed);
-  }, [level]);
+  }, [level, pathEffect.layoutOverride]);
   const sealedTilesActive = activeMechanics.includes('sealed_tiles');
   const telegraphActive = activeMechanics.includes('telegraphed_attacks');
   const corruptionActive = activeMechanics.includes('corrupted_tiles');
@@ -470,7 +482,9 @@ export default function RuneDelvePlayPage() {
       }
     }
     // Daily Greed: enemies enter with +25% HP.
-    const enemyHpMult = isDailyMode ? dailyEnemyHpMultiplier(dailyMods) : 1;
+    // R2: path-variant Elite enemy HP mult composes multiplicatively
+    // with the daily-mode mult so a daily on the Elite Path stacks.
+    const enemyHpMult = (isDailyMode ? dailyEnemyHpMultiplier(dailyMods) : 1) * pathEffect.eliteEnemyHpMult;
     if (enemyHpMult !== 1) {
       enemies = enemies.map(e => ({
         ...e,
@@ -542,11 +556,11 @@ export default function RuneDelvePlayPage() {
     // if no modifier is set yet (this guard exists because the run
     // can re-init mid-session in some flows; we never want to wipe
     // a choice the user already made).
-    // R4: Daily Chamber locks a specific modifier — read it from
-    // the search param. If present and valid, we skip the picker and
-    // pre-set the modifier so the run starts with daily rules in
-    // place. The home card sets this when launching the daily.
-    const lockedModId = searchParams.get('dailyMod');
+    // R4 + R2: locked modifier id can come from either the Daily
+    // Chamber (?dailyMod) or a Path Variant (e.g. Treasure Path's
+    // lockedModifierId). Daily wins if both happen to be set, since
+    // the daily is the more constrained surface.
+    const lockedModId = searchParams.get('dailyMod') || pathEffect.lockedModifierId || null;
     const lockedMod = lockedModId ? getModifierById(lockedModId) : null;
     if (!activeModifier) {
       if (lockedMod) {
@@ -1689,6 +1703,8 @@ export default function RuneDelvePlayPage() {
         cleared: true,
         levelNumber: level.level_number,
         ownedRelicIds: ownedSet,
+        // R2: Elite Path adds +8% drop chance on top of the base rate.
+        bonusChance: pathEffect.bonusDropChance,
       });
       if (drop) {
         setDroppedRelic(drop.relic);
@@ -1786,6 +1802,13 @@ export default function RuneDelvePlayPage() {
     } catch { shardsAwarded = 0; }
     // Apply Daily Greed multiplier + Rogue T5 bonus shards on top.
     if (dailyShardMult !== 1) shardsAwarded = Math.round(shardsAwarded * dailyShardMult);
+    // R2: path-variant shard bonus (Treasure +25%, Elite +50%).
+    // Applied after the daily multiplier but before the additive
+    // bonuses (mastery/treasure cells) so the multiplicative effects
+    // compose cleanly without scaling the additive bonuses.
+    if (pathEffect.shardBonusMult !== 1) {
+      shardsAwarded = Math.round(shardsAwarded * pathEffect.shardBonusMult);
+    }
     shardsAwarded += masteryBonusShards;
     shardsAwarded += treasureBonusShards;
     setEndState({ cleared, reason, score: breakdown.total, isNewBest, shards: shardsAwarded });

@@ -28,6 +28,10 @@ export interface RollOptions {
    *  finalize-time which is fine for production (each clear gets a
    *  fresh roll). */
   seed?: number;
+  /** Additive bonus to the base drop chance (R2 Elite Path adds 0.08).
+   *  Stacks BEFORE the MAX_DROP_RATE ceiling so a luck-boosted Elite
+   *  chapter-boss clear still can't exceed the hard cap. */
+  bonusChance?: number;
 }
 
 export interface RelicDropResult {
@@ -66,7 +70,10 @@ export function dropChanceFor(levelNumber: number, cleared: boolean): number {
 export function rollRelicDrop(opts: RollOptions): RelicDropResult | null {
   if (!opts.cleared) return null;
 
-  const rate = dropChanceFor(opts.levelNumber, opts.cleared);
+  // Base rate from depth, then add any bonus (Path Variant etc.),
+  // clamp to the global MAX so totals can't run away.
+  const baseRate = dropChanceFor(opts.levelNumber, opts.cleared);
+  const rate = Math.min(MAX_DROP_RATE, baseRate + Math.max(0, opts.bonusChance ?? 0));
   if (rate <= 0) return null;
 
   const rng = mulberry32(((opts.seed ?? Date.now()) >>> 0) || 1);

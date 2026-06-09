@@ -1,7 +1,11 @@
 import { Link, useNavigate } from 'react-router-dom';
+import { AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Lock, Check, ChevronRight, Crown, Sparkles } from 'lucide-react';
 import { useState, useMemo } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { useMyProgress, useLevelWindow } from '@/hooks/useRuneDelveCampaign';
+import { PathVariantPicker } from '@/components/runedelve/PathVariantPicker';
+import { readLastPathChoice, writeLastPathChoice } from '@/lib/runedelve/pathVariants';
 import {
   chapterFor,
   chapterMeta,
@@ -17,7 +21,13 @@ import { cn } from '@/lib/utils';
 
 export default function RuneDelveLevelMapPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { data: progress } = useMyProgress();
+  // R2 — milestone path picker. When the player taps an unlocked
+  // milestone level (every 10th), this opens instead of navigating
+  // straight to the play page. Picker writes the choice to local
+  // storage + navigates with `?pathVariant=<id>`.
+  const [pickerLevel, setPickerLevel] = useState<number | null>(null);
   const highestUnlocked = progress?.highest_unlocked_level ?? 1;
   const highestCompleted = progress?.highest_completed_level ?? 0;
   const initialChapter = useMemo(() => chapterFor(highestUnlocked), [highestUnlocked]);
@@ -106,7 +116,7 @@ export default function RuneDelveLevelMapPage() {
             const hasSecondary = !!mods.secondary_objective;
             const hasBossRule = !!mods.boss_rule;
             const layout = getLayoutForLevel(lvl.level_number);
-            return (
+            const tile = (
               <DungeonPathPreview
                 key={lvl.level_number}
                 levelNumber={lvl.level_number}
@@ -123,6 +133,26 @@ export default function RuneDelveLevelMapPage() {
                 cornerGlyph={hasBossRule ? '👑' : hasSecondary ? '🎯' : null}
               />
             );
+            // R2 — milestone interception. For UNLOCKED milestone
+            // levels, wrap the tile in a div whose capture-phase
+            // click handler pre-empts the inner Link and opens the
+            // path picker instead. Non-milestone & locked tiles
+            // render as today (straight Link).
+            if (milestone && isUnlocked) {
+              return (
+                <div
+                  key={lvl.level_number}
+                  onClickCapture={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setPickerLevel(lvl.level_number);
+                  }}
+                >
+                  {tile}
+                </div>
+              );
+            }
+            return tile;
           })}
         </div>
       )}
@@ -140,6 +170,27 @@ export default function RuneDelveLevelMapPage() {
           Jump to Level {progress.highest_unlocked_level} <ChevronRight className="w-4 h-4" />
         </button>
       )}
+
+      {/* R2 — milestone path picker overlay. Mounted at page level so
+          the modal can close when tapping the backdrop without
+          interfering with map scroll. */}
+      <AnimatePresence>
+        {pickerLevel !== null && (
+          <PathVariantPicker
+            levelNumber={pickerLevel}
+            lastPicked={user?.id ? readLastPathChoice(user.id, pickerLevel) : null}
+            onClose={() => setPickerLevel(null)}
+            onPick={(variant) => {
+              if (user?.id) writeLastPathChoice(user.id, pickerLevel, variant.id);
+              const url = variant.id === 'standard'
+                ? `/rune-delve/play/${pickerLevel}`
+                : `/rune-delve/play/${pickerLevel}?pathVariant=${variant.id}`;
+              setPickerLevel(null);
+              navigate(url);
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
