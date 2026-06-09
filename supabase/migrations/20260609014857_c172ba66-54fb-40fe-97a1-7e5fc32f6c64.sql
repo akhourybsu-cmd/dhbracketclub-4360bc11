@@ -1,0 +1,1 @@
+UPDATE public.draft_results SET user_id = 'af6cbf3c-b686-49df-9431-1d25427e5534' WHERE draft_id = '25833bfd-c867-4c44-941f-070e41f88c7b' AND user_id = 'af6cbf3c-b686-49df-9431-1d25427e553a';

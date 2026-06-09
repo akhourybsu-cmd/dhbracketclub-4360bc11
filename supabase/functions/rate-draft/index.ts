@@ -261,10 +261,65 @@ Use the rate_draft_results tool to return your structured analysis.`;
       return new Response(JSON.stringify({ error: "AI returned unexpected format" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const { results } = JSON.parse(toolCall.function.arguments);
-    if (!Array.isArray(results) || results.length === 0) {
+    const { results: rawResults } = JSON.parse(toolCall.function.arguments);
+    if (!Array.isArray(rawResults) || rawResults.length === 0) {
       return new Response(JSON.stringify({ error: "AI returned empty results" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
+
+    // ─── Sanitize AI-returned user_ids ──────────────────────────────
+    // The AI occasionally mangles a UUID by 1–2 characters, which then
+    // breaks every downstream lookup (podium shows "Unknown", season
+    // standings miss the user, etc.). Snap each result.user_id to a real
+    // participant id, preferring exact match → minimum edit distance →
+    // positional backfill. Dedupe so a single participant can't appear twice.
+    const participantIds: string[] = participants.map((p: any) => p.user_id);
+    const validIdSet = new Set(participantIds);
+    const editDistance = (a: string, b: string): number => {
+      const la = a.length, lb = b.length;
+      if (Math.abs(la - lb) > 6) return 99;
+      const dp: number[][] = Array.from({ length: la + 1 }, () => new Array(lb + 1).fill(0));
+      for (let i = 0; i <= la; i++) dp[i][0] = i;
+      for (let j = 0; j <= lb; j++) dp[0][j] = j;
+      for (let i = 1; i <= la; i++) for (let j = 1; j <= lb; j++) {
+        const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+        dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + cost);
+      }
+      return dp[la][lb];
+    };
+    const used = new Set<string>();
+    const snapped: any[] = [];
+    for (const r of rawResults) {
+      let uid = typeof r?.user_id === "string" ? r.user_id : "";
+      if (!validIdSet.has(uid) || used.has(uid)) {
+        let bestId = ""; let bestDist = Infinity;
+        for (const pid of participantIds) {
+          if (used.has(pid)) continue;
+          const d = uid ? editDistance(uid, pid) : 99;
+          if (d < bestDist) { bestDist = d; bestId = pid; }
+        }
+        if (bestId && bestDist <= 6) {
+          console.warn(`rate-draft: snapped AI user_id ${uid} → ${bestId} (distance ${bestDist})`);
+          uid = bestId;
+        } else if (!validIdSet.has(uid)) {
+          uid = "";
+        }
+      }
+      if (uid) { used.add(uid); snapped.push({ ...r, user_id: uid }); }
+    }
+    // Backfill any participant the AI omitted/garbled beyond recovery so the
+    // podium always has one row per real participant.
+    for (const pid of participantIds) {
+      if (used.has(pid)) continue;
+      console.warn(`rate-draft: participant ${pid} missing from AI output, backfilling empty row`);
+      snapped.push({
+        user_id: pid,
+        total_score: 0,
+        summary: "No AI rating returned for this participant — regenerate the report to refresh.",
+        pick_ratings: [],
+      });
+      used.add(pid);
+    }
+    const results = snapped;
 
     // Re-rank using multi-factor tiebreaker — don't trust AI-assigned ranks
     const numParticipants = participants.length;
