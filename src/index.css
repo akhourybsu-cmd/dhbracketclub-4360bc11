@@ -1459,6 +1459,34 @@
   transform: rotate(180deg);
 }
 
+/* V3 — Carved rune glyph treatment.
+   Each rune glyph gets a multi-layer text-shadow that simulates a
+   chiseled inscription on stone:
+     • A soft black drop-shadow underneath for "depth"
+     • A 1px white top-highlight inside the glyph
+     • A 1px black bottom-shadow inside the glyph
+     • A wide elemental halo whose color is passed in via the
+       --rune-glow CSS variable so each type (red/blue/green/gold)
+       lights itself with its own color.
+   The result reads as a magical glyph carved into the rune tile
+   rather than a flat UI character.
+
+   Selected runes already get a special bright treatment via the
+   `selected` state in RuneCell — this base class is for resting
+   glyphs so they have inherent presence even when the player isn't
+   actively dragging a chain. */
+.rd-mode .rd-rune-glyph {
+  text-shadow:
+    0 1px 0 hsl(0 0% 0% / 0.55),
+    0 -1px 0 hsl(0 0% 100% / 0.18),
+    0 0 6px var(--rune-glow, transparent),
+    0 0 14px var(--rune-glow, transparent);
+}
+@media (prefers-reduced-motion: reduce) {
+  /* No animation on the glyph; the text-shadow is static so this
+     section is mostly here for documentation parity with other FX. */
+}
+
 /* V2 — Fantasy panel — applied to the HUD bar + any premium panel
    surface that wants the same gilded-stone treatment as the board. */
 .rd-mode .rd-fantasy-panel {

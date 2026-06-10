@@ -94,11 +94,20 @@ export function RuneCell({ type, selected, invalid, sealed, corrupted, corruptio
         </>
       ) : (
         <>
+          {/* V3 — carved-glyph treatment. The `rd-rune-glyph` class
+              layers a multi-shadow text effect that reads as an
+              inscription. Selected runes already get a special
+              bright-on-color treatment via the wrapper background;
+              the rune-glow CSS variable here drives the elemental
+              halo when the tile is at rest. */}
           <span
-            className="text-2xl font-extrabold leading-none"
+            className={cn('text-2xl font-extrabold leading-none', !selected && 'rd-rune-glyph')}
             style={{
               color: selected ? '#fff' : meta.color,
-              textShadow: selected ? '0 1px 4px rgba(0,0,0,0.5)' : 'none',
+              textShadow: selected ? '0 1px 4px rgba(0,0,0,0.5)' : undefined,
+              // Element-specific halo color. Empty/undefined for
+              // selected (the wrapper background does the work).
+              ['--rune-glow' as any]: selected ? undefined : meta.glow,
             }}
           >
             {meta.glyph}
