@@ -134,6 +134,8 @@ import { useSoundEffect } from '@/hooks/useSoundEffect';
 import { useRuneDelveSfx } from '@/hooks/useRuneDelveSfx';
 import { FloatingNumberLayer, useFloaters } from '@/components/runedelve/fx/FloatingNumber';
 import { ScreenEdgeFlash } from '@/components/runedelve/fx/ScreenEdgeFlash';
+import { PhaseTransitionFlash } from '@/components/runedelve/fx/PhaseTransitionFlash';
+import { HeavyStrikeBanner } from '@/components/runedelve/fx/HeavyStrikeBanner';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   buildSnapshot,
@@ -292,6 +294,20 @@ export default function RuneDelvePlayPage() {
   const floaters = useFloaters();
   const [hurtFlashKey, setHurtFlashKey] = useState(0);
   const [healFlashKey, setHealFlashKey] = useState(0);
+  // V1 visual overhaul:
+  //   heavyFlashKey  — gold screen-edge flash on chain ≥ 6
+  //   heavyChainLen  — chain length to render in the HeavyStrikeBanner
+  //   phaseFlashKey  — R5 boss phase cinematic, paired with the
+  //                    transition's metadata so the chyron shows the
+  //                    boss name + flavor line
+  const [heavyFlashKey, setHeavyFlashKey] = useState(0);
+  const [heavyChainLen, setHeavyChainLen] = useState(6);
+  const [phaseFlashKey, setPhaseFlashKey] = useState(0);
+  const [phaseFlashMeta, setPhaseFlashMeta] = useState<{ phase: 2 | 3; bossName: string; flavor: string }>({
+    phase: 2,
+    bossName: '',
+    flavor: '',
+  });
   const playRootRef = useRef<HTMLDivElement>(null);
   const rectFromEl = (el: Element | null): FxRect | undefined => {
     if (!el) return undefined;
@@ -768,6 +784,14 @@ export default function RuneDelvePlayPage() {
     if (type === 'red') {
       rdSfx('rune.fire.red');
       if (chain.length >= 4) triggerCamShake(chain.length >= 6 ? 8 : 6);
+      // V1 — Heavy-strike signature visual. Chain ≥ 6 already gets
+      // the engine's "heavy strike" damage tier; this adds an
+      // unmissable banner + gold screen-edge flash so the player
+      // feels the moment land.
+      if (chain.length >= 6) {
+        setHeavyChainLen(chain.length);
+        setHeavyFlashKey(k => k + 1);
+      }
     } else if (type === 'green') {
       rdSfx('rune.fire.green');
       window.setTimeout(pulseHpGlow, 520);
@@ -1607,6 +1631,15 @@ export default function RuneDelvePlayPage() {
           text: `👑 ${t.enemyName} · ${t.def.name} — ${t.def.flavor}`,
         });
       }
+      // V1 — fire the cinematic for the LAST transition in the batch.
+      // If a chain crossed two thresholds in one swing (1→2→3), only
+      // phase 3 gets the on-screen flash so the player doesn't see
+      // two overlapping cinematics. Phase 2 still logs.
+      if (transitions.length > 0) {
+        const last = transitions[transitions.length - 1];
+        setPhaseFlashMeta({ phase: last.to as 2 | 3, bossName: last.enemyName, flavor: last.def.flavor });
+        setPhaseFlashKey(k => k + 1);
+      }
     }
     setCombat(postWave);
     pushLogs(turnLogs);
@@ -1725,6 +1758,15 @@ export default function RuneDelvePlayPage() {
           kind: 'info',
           text: `👑 ${t.enemyName} · ${t.def.name} — ${t.def.flavor}`,
         });
+      }
+      // V1 — fire the cinematic for the LAST transition in the batch.
+      // If a chain crossed two thresholds in one swing (1→2→3), only
+      // phase 3 gets the on-screen flash so the player doesn't see
+      // two overlapping cinematics. Phase 2 still logs.
+      if (transitions.length > 0) {
+        const last = transitions[transitions.length - 1];
+        setPhaseFlashMeta({ phase: last.to as 2 | 3, bossName: last.enemyName, flavor: last.def.flavor });
+        setPhaseFlashKey(k => k + 1);
       }
     }
     setCombat(postWave);
@@ -2112,7 +2154,16 @@ export default function RuneDelvePlayPage() {
       {/* Cinematic combat FX overlay — chains, abilities, tier flourishes. */}
       <FxLayer queue={fxQ.queue} onComplete={fxQ.complete} />
       <FloatingNumberLayer floaters={floaters.floaters} onComplete={floaters.complete} />
-      <ScreenEdgeFlash hurtKey={hurtFlashKey} healKey={healFlashKey} />
+      <ScreenEdgeFlash hurtKey={hurtFlashKey} healKey={healFlashKey} heavyKey={heavyFlashKey} />
+      {/* V1 — heavy-strike chyron over the board for chains ≥ 6. */}
+      <HeavyStrikeBanner triggerKey={heavyFlashKey} chainLength={heavyChainLen} />
+      {/* V1 — full-screen cinematic for R5 boss phase transitions. */}
+      <PhaseTransitionFlash
+        triggerKey={phaseFlashKey}
+        phaseIndex={phaseFlashMeta.phase}
+        bossName={phaseFlashMeta.bossName}
+        flavor={phaseFlashMeta.flavor}
+      />
       {/* Compact combined HUD: turn counter + objective on a single row */}
       <div
         className="rd-carved rounded-xl px-3 py-2 flex items-center gap-2"
