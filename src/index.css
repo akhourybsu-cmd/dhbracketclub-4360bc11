@@ -1418,14 +1418,60 @@
 
 /* Arcane board frame */
 .rd-mode .rd-board-frame {
+  position: relative;
   background:
-    radial-gradient(ellipse 70% 55% at 50% 50%, hsl(var(--rd-arcane) / 0.06), transparent 70%),
-    linear-gradient(160deg, hsl(var(--rd-stone-edge) / 0.8), hsl(var(--rd-stone) / 0.6));
-  border: 1px solid hsl(var(--gold) / 0.22);
+    radial-gradient(ellipse 70% 55% at 50% 50%, hsl(var(--rd-arcane) / 0.08), transparent 70%),
+    linear-gradient(160deg, hsl(var(--rd-stone-edge) / 0.92), hsl(var(--rd-stone) / 0.75));
+  /* V2 — promote the gold border + add a thin inner highlight ring so
+     the frame reads as gilded stone instead of "card with a border". */
+  border: 1px solid hsl(var(--gold) / 0.5);
   box-shadow:
-    inset 0 0 30px hsl(0 0% 0% / 0.5),
-    inset 0 1px 0 hsl(var(--gold) / 0.12),
-    0 8px 28px rgba(0, 0, 0, 0.4);
+    inset 0 0 0 1px hsl(var(--gold) / 0.12),  /* inner gold highlight */
+    inset 0 0 36px hsl(0 0% 0% / 0.55),       /* deeper carved-stone depth */
+    inset 0 1px 0 hsl(var(--gold) / 0.22),    /* top edge highlight */
+    inset 0 -1px 0 hsl(0 0% 0% / 0.6),        /* bottom edge shadow */
+    0 10px 32px rgba(0, 0, 0, 0.5);           /* outer drop shadow */
+}
+/* V2 — corner ornaments (top-left + bottom-right diagonal).
+   Inline-SVG filigree mark in gold; pseudo-elements so no JSX changes
+   are needed. The corner reads as a "ward stone" — small geometric
+   spiral that ties together the carved-stone + gold theme. */
+.rd-mode .rd-board-frame::before,
+.rd-mode .rd-board-frame::after {
+  content: '';
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  pointer-events: none;
+  background: url("data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%3E%3Cpath%20d%3D%27M4%2014%20L4%208%20Q4%204%208%204%20L14%204%27%20stroke%3D%27%23d4af37%27%20stroke-width%3D%271.4%27%20fill%3D%27none%27%20stroke-linecap%3D%27round%27/%3E%3Ccircle%20cx%3D%274%27%20cy%3D%274%27%20r%3D%272%27%20fill%3D%27%23d4af37%27/%3E%3Ccircle%20cx%3D%274%27%20cy%3D%274%27%20r%3D%270.8%27%20fill%3D%27%23fff8e0%27/%3E%3C/svg%3E") center/contain no-repeat;
+  opacity: 0.78;
+  filter: drop-shadow(0 0 4px hsl(var(--gold) / 0.5));
+}
+.rd-mode .rd-board-frame::before {
+  top: 5px;
+  left: 5px;
+}
+.rd-mode .rd-board-frame::after {
+  bottom: 5px;
+  right: 5px;
+  /* Bottom-right corner reads naturally when rotated 180deg —
+     the L-bracket "wraps" the opposite corner. */
+  transform: rotate(180deg);
+}
+
+/* V2 — Fantasy panel — applied to the HUD bar + any premium panel
+   surface that wants the same gilded-stone treatment as the board. */
+.rd-mode .rd-fantasy-panel {
+  position: relative;
+  background:
+    linear-gradient(180deg, hsl(var(--rd-stone-edge) / 0.85), hsl(var(--rd-stone) / 0.65));
+  border: 1px solid hsl(var(--gold) / 0.35);
+  border-radius: 14px;
+  box-shadow:
+    inset 0 0 0 1px hsl(var(--gold) / 0.10),
+    inset 0 1px 0 hsl(var(--gold) / 0.18),
+    inset 0 -1px 0 hsl(0 0% 0% / 0.45),
+    0 4px 14px rgba(0, 0, 0, 0.35);
 }
 
 /* Enemy portrait frame — fantasy card vibe */
@@ -1445,6 +1491,28 @@
     inset 0 1px 0 hsl(var(--gold) / 0.15),
     inset 0 -1px 0 hsl(0 0% 0% / 0.5),
     0 0 14px hsl(var(--gold) / 0.25);
+}
+
+/* V2 — Boss aura. The inline boxShadow on EnemyDisplay already paints
+   the gold ring + glow. This adds a slow pulsing "presence" so bosses
+   feel alive instead of static. Mini-bosses get a tamer version.
+   Reduced-motion users get no pulse — the inline glow alone is enough. */
+.rd-mode .rd-enemy-boss {
+  animation: rd-boss-aura 3.2s ease-in-out infinite;
+}
+.rd-mode .rd-enemy-mini {
+  animation: rd-boss-aura 4s ease-in-out infinite;
+  animation-delay: -1.6s;
+}
+@keyframes rd-boss-aura {
+  0%, 100% { filter: drop-shadow(0 0 4px hsl(var(--gold) / 0.30)); }
+  50%      { filter: drop-shadow(0 0 14px hsl(var(--gold) / 0.62)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rd-mode .rd-enemy-boss,
+  .rd-mode .rd-enemy-mini {
+    animation: none;
+  }
 }
 
 /* Arcane CTA — primary "Continue" / "Next" feel */

@@ -15,7 +15,10 @@ export function HeroStatusBar({ state, cls, onAbility }: Props) {
   const ready = state.mana >= MAX_MANA;
   const hpPct = Math.round((state.hp / state.maxHp) * 100);
   return (
-    <div className="w-full space-y-2">
+    // V2 — fantasy panel wrapper: gilded-stone treatment matches the
+    // rune board frame so the HUD reads as an enchanted artifact
+    // strip rather than a generic status bar.
+    <div className="w-full space-y-2 rd-fantasy-panel px-3 py-2.5">
       <div className="flex items-center gap-2" data-fx-target="hp">
         <Heart className={cn('w-4 h-4', hpPct < 35 && 'rd-breath')} style={{ color: 'hsl(var(--destructive))' }} />
         <div className="flex-1 h-3 rounded-full bg-muted/50 overflow-hidden relative" data-fx-hp-glow-target>
