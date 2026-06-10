@@ -1525,14 +1525,25 @@
    the gold ring + glow. This adds a slow pulsing "presence" so bosses
    feel alive instead of static. Mini-bosses get a tamer version.
    Reduced-motion users get no pulse — the inline glow alone is enough. */
+/* Chained animations so the V2 aura layers over the legacy
+   rd-breath / rd-breath-slow scale-pulse instead of clobbering it.
+   Order matters: list rd-breath* FIRST so it survives the cascade
+   when the element ALSO has the legacy breath class. */
+.rd-mode .rd-enemy-boss.rd-breath,
+.rd-mode .rd-enemy-boss.rd-breath-slow,
 .rd-mode .rd-enemy-boss {
-  animation: rd-boss-aura 3.2s ease-in-out infinite;
+  animation:
+    rd-breath 3.6s ease-in-out infinite,
+    rd-boss-aura 3.2s ease-in-out infinite;
   position: relative;
   isolation: isolate;
 }
+.rd-mode .rd-enemy-mini.rd-breath,
+.rd-mode .rd-enemy-mini.rd-breath-slow,
 .rd-mode .rd-enemy-mini {
-  animation: rd-boss-aura 4s ease-in-out infinite;
-  animation-delay: -1.6s;
+  animation:
+    rd-breath 4.2s ease-in-out infinite,
+    rd-boss-aura 4s ease-in-out infinite -1.6s;
   position: relative;
   isolation: isolate;
 }
