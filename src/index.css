@@ -1278,6 +1278,22 @@
   letter-spacing: 0.015em;
   font-weight: 700;
 }
+/* Fantasy flavor text — atmospheric prose lines (boss flavor, layout
+   briefings, modifier descriptions). Fraunces is a contemporary serif
+   with optical sizing; italic at small sizes reads like illuminated
+   manuscript captions without sacrificing legibility on mobile.
+   Loaded in index.html alongside Cinzel — opsz variable so the
+   browser picks the right grade for the rendered size automatically. */
+.font-rd-flavor {
+  font-family: 'Fraunces', 'Cinzel', 'Plus Jakarta Sans', serif;
+  font-style: italic;
+  font-weight: 500;
+  letter-spacing: 0.005em;
+  /* opsz hint — Fraunces tunes contrast based on size; smaller values
+     ask the engine for finer hairlines (closer to "Book" optical
+     master). 11 matches the 11.5px the flavor lines render at. */
+  font-variation-settings: 'opsz' 11;
+}
 .rd-title {
   font-family: 'Cinzel', 'Plus Jakarta Sans', serif;
   font-weight: 700;

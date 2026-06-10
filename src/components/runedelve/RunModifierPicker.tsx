@@ -109,7 +109,7 @@ export function RunModifierPicker({ offer, onPick, onSkip }: Props) {
                     {TIER_LABEL[mod.tier]}
                   </span>
                 </div>
-                <p className="text-[11.5px] text-foreground/75 leading-snug">{mod.description}</p>
+                <p className="font-rd-flavor text-[12px] text-foreground/80 leading-snug">{mod.description}</p>
               </div>
             </motion.button>
           ))}

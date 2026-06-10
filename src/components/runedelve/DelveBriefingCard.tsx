@@ -101,7 +101,7 @@ export function DelveBriefingCard({ layout, levelNumber, title, showStrategy = t
           <h2 className="rd-title text-[16px] font-extrabold tracking-wide leading-tight mb-1.5">
             {title ?? layout.name}
           </h2>
-          <p className="text-[10.5px] text-foreground/85 leading-relaxed">{layout.briefing}</p>
+          <p className="font-rd-flavor text-[11.5px] text-foreground/85 leading-relaxed">{layout.briefing}</p>
 
           {/* Chamber stat scroll */}
           <div className="mt-2.5 grid grid-cols-2 gap-1.5">

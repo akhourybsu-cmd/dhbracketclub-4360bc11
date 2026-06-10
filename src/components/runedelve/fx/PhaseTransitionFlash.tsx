@@ -97,7 +97,7 @@ export function PhaseTransitionFlash({ triggerKey, phaseIndex = 2, bossName = ''
               </h2>
             )}
             {active.flavor && (
-              <p className="text-[11px] text-foreground/75 italic mt-1 max-w-[280px] leading-snug">
+              <p className="font-rd-flavor text-[11.5px] text-foreground/80 mt-1 max-w-[280px] leading-snug">
                 {active.flavor}
               </p>
             )}

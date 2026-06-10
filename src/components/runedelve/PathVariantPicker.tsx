@@ -121,7 +121,7 @@ export function PathVariantPicker({ levelNumber, lastPicked, onPick, onClose }: 
                         </span>
                       )}
                     </div>
-                    <p className="text-[11.5px] text-foreground/70 leading-snug">{v.tagline}</p>
+                    <p className="font-rd-flavor text-[12px] text-foreground/80 leading-snug">{v.tagline}</p>
                     <ul className="mt-1.5 space-y-0.5">
                       {v.effectLines.map((line, j) => (
                         <li
