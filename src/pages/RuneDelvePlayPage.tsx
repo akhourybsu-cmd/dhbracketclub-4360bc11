@@ -56,6 +56,8 @@ import {
   HAZARD_DAMAGE, HAZARD_MAX_DAMAGE_PER_CHAIN,
 } from '@/lib/runedelve/layoutZones';
 import { getLayoutIdForLevel } from '@/lib/runedelve/chamberAssignment';
+import { getLayout } from '@/lib/runedelve/runeLayouts';
+import { ChamberBackdrop } from '@/components/runedelve/ChamberBackdrop';
 import {
   type RunModifier, pickModifierOffer, resolveEffect, getModifierById, STEADY_PATH,
 } from '@/lib/runedelve/runModifiers';
@@ -369,17 +371,24 @@ export default function RuneDelvePlayPage() {
   );
   const pathEffect = useMemo(() => resolvePathEffect(pathVariant), [pathVariant]);
 
+  // The active chamber layout for this run. Drives both the R1 zone
+  // computation (treasure/hazard cells) and the V5 atmospheric
+  // backdrop. Path variant can override which layout is rendered
+  // (e.g. Treasure Path forces the Cursed Vault chamber).
+  const activeLayout = useMemo(() => {
+    if (!level) return null;
+    const layoutId = pathEffect.layoutOverride || getLayoutIdForLevel(level.level_number);
+    return getLayout(layoutId) ?? null;
+  }, [level, pathEffect.layoutOverride]);
+
   // Chamber layout zones — treasure/hazard cells derived from the
   // chamber assigned to this level. Treasure cells in a chain pay
   // bonus score + shards; hazard cells cost HP. Deterministic per
-  // (level number, seed) so replays show the same layout. Path
-  // variant can override which layout is rendered (e.g. Treasure
-  // Path forces the Cursed Vault chamber).
+  // (level number, seed) so replays show the same layout.
   const layoutZones = useMemo(() => {
-    if (!level) return EMPTY_ZONES;
-    const layoutId = pathEffect.layoutOverride || getLayoutIdForLevel(level.level_number);
-    return computeLayoutZones(layoutId, level.generation_seed);
-  }, [level, pathEffect.layoutOverride]);
+    if (!level || !activeLayout) return EMPTY_ZONES;
+    return computeLayoutZones(activeLayout.id, level.generation_seed);
+  }, [level, activeLayout]);
   const sealedTilesActive = activeMechanics.includes('sealed_tiles');
   const telegraphActive = activeMechanics.includes('telegraphed_attacks');
   const corruptionActive = activeMechanics.includes('corrupted_tiles');
@@ -2151,6 +2160,11 @@ export default function RuneDelvePlayPage() {
 
   return (
     <div ref={playRootRef} className="space-y-2 pb-2 relative">
+      {/* V5 — chamber atmospheric backdrop. Reads the active layout's
+          atmosphere keyword + accent color and paints a per-chamber
+          wash behind everything else on the play page. Fixed-position
+          at z-index -1 so all UI sits on top, untouched. */}
+      <ChamberBackdrop layout={activeLayout} />
       {/* Cinematic combat FX overlay — chains, abilities, tier flourishes. */}
       <FxLayer queue={fxQ.queue} onComplete={fxQ.complete} />
       <FloatingNumberLayer floaters={floaters.floaters} onComplete={floaters.complete} />
