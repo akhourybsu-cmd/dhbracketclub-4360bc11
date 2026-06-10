@@ -1527,18 +1527,76 @@
    Reduced-motion users get no pulse — the inline glow alone is enough. */
 .rd-mode .rd-enemy-boss {
   animation: rd-boss-aura 3.2s ease-in-out infinite;
+  position: relative;
+  isolation: isolate;
 }
 .rd-mode .rd-enemy-mini {
   animation: rd-boss-aura 4s ease-in-out infinite;
   animation-delay: -1.6s;
+  position: relative;
+  isolation: isolate;
 }
 @keyframes rd-boss-aura {
   0%, 100% { filter: drop-shadow(0 0 4px hsl(var(--gold) / 0.30)); }
   50%      { filter: drop-shadow(0 0 14px hsl(var(--gold) / 0.62)); }
 }
+
+/* V4 — Boss portrait atmospheric layer.
+   A conic-gradient halo rotates slowly behind the boss frame, sitting
+   between the parent's drop shadow and the emoji itself. The boss
+   frame's `isolation: isolate` makes its ::before sit beneath the
+   emoji + indicator badges without bleeding into the parent layout.
+
+   `inset: -10px` extrudes the halo outside the 48×48 portrait so the
+   gold "presence" reads as a wider aura than the ring border alone.
+   `filter: blur(3px)` softens the conic gradient into a glow. */
+.rd-mode .rd-enemy-boss::before,
+.rd-mode .rd-enemy-mini::before {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  z-index: -1;
+  pointer-events: none;
+  filter: blur(3px);
+  /* Conic with 4 bright zones evenly distributed so the spin reads
+     as a sweeping star-glow rather than a static color smear. */
+  background: conic-gradient(
+    from 0deg,
+    transparent 0%,
+    hsl(var(--gold) / 0.55) 12%,
+    transparent 25%,
+    hsl(var(--gold) / 0.30) 50%,
+    transparent 65%,
+    hsl(var(--gold) / 0.45) 80%,
+    transparent 93%,
+    hsl(var(--gold) / 0.30) 100%
+  );
+}
+.rd-mode .rd-enemy-boss::before {
+  inset: -10px;
+  animation: rd-boss-halo-spin 7s linear infinite;
+}
+.rd-mode .rd-enemy-mini::before {
+  inset: -6px;
+  /* Mini-boss halo is tighter, slower, dimmer — still present but
+     visually subordinate to a true boss. */
+  animation: rd-boss-halo-spin 11s linear infinite;
+  opacity: 0.55;
+}
+@keyframes rd-boss-halo-spin {
+  to { transform: rotate(360deg); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .rd-mode .rd-enemy-boss,
   .rd-mode .rd-enemy-mini {
+    animation: none;
+  }
+  /* Halo stays visible (it's important presence info) but stops
+     spinning — preserves the "wow this is a boss" cue without the
+     vestibular hit. */
+  .rd-mode .rd-enemy-boss::before,
+  .rd-mode .rd-enemy-mini::before {
     animation: none;
   }
 }

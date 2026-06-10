@@ -48,6 +48,27 @@ function EnemyTile({ e, flashId }: { e: Enemy; flashId?: string | null }) {
       style={{ opacity: dead ? 0.35 : 1 }}
     >
       <div className="relative">
+        {/* V4 — Pedestal shadow. Soft elliptical drop tucked just
+            under the portrait so the enemy reads as "standing" not
+            "floating". Bosses get a deeper, gold-tinted pedestal;
+            mini-bosses subtler; regulars a quiet gray. Lives INSIDE
+            the relative wrapper but OUTSIDE the portrait box so the
+            boss halo's z-index: -1 doesn't accidentally cover it. */}
+        {!dead && (
+          <div
+            aria-hidden
+            className="absolute -bottom-2 left-1/2 -translate-x-1/2 rounded-full pointer-events-none"
+            style={{
+              width: e.tier === 'boss' ? 56 : e.tier === 'mini' ? 50 : 42,
+              height: e.tier === 'boss' ? 10 : 8,
+              background: e.tier === 'boss'
+                ? 'radial-gradient(ellipse, hsl(var(--gold) / 0.35), transparent 70%)'
+                : e.tier === 'mini'
+                  ? 'radial-gradient(ellipse, hsl(var(--gold) / 0.18), transparent 70%)'
+                  : 'radial-gradient(ellipse, hsl(0 0% 0% / 0.35), transparent 70%)',
+            }}
+          />
+        )}
         <div
           className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl rd-enemy-frame ${dead ? '' : e.tier === 'boss' ? 'rd-breath' : 'rd-breath-slow'} ${e.name?.startsWith('Elite') ? 'is-elite' : ''} ${e.tier === 'mini' ? 'rd-enemy-mini' : ''} ${e.tier === 'boss' ? 'rd-enemy-boss' : ''}`}
           style={{
