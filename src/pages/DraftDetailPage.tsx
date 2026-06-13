@@ -63,6 +63,7 @@ import { PlayoffBadge } from '@/components/draft/PlayoffBadge';
 import { PlayoffMatchupHero } from '@/components/draft/PlayoffMatchupHero';
 import { getPlayoffRoundShort, getPlayoffRoundName } from '@/lib/playoffStyle';
 import { DraftAiContextCard } from '@/components/draft/DraftAiContextCard';
+import { JudgingScopeButton } from '@/components/draft/JudgingScopeButton';
 
 interface Participant {
   id: string;
@@ -806,7 +807,15 @@ export default function DraftDetailPage() {
               finalsWins={finalsSeriesWins}
               canEditTopic={canManage && !editing}
               onEditTopic={() => setEditing(true)}
-              shareSlot={<ShareButton contentType="draft" contentId={draftId!} title={draft.topic} />}
+              shareSlot={
+                <>
+                  <JudgingScopeButton
+                    aiContext={(draft as any).ai_context || null}
+                    aiContextOverride={(draft as any).ai_context_override || null}
+                  />
+                  <ShareButton contentType="draft" contentId={draftId!} title={draft.topic} />
+                </>
+              }
               refreshSlot={
                 canManage && picks.length > 0 ? (
                   <button
@@ -894,6 +903,10 @@ export default function DraftDetailPage() {
               </p>
             </div>
             <div className="flex items-center gap-1 flex-shrink-0">
+              <JudgingScopeButton
+                aiContext={(draft as any).ai_context || null}
+                aiContextOverride={(draft as any).ai_context_override || null}
+              />
               <ShareButton contentType="draft" contentId={draftId!} title={draft.topic} />
               {canManage && picks.length > 0 && (
                 <button
