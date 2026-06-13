@@ -806,7 +806,15 @@ export default function DraftDetailPage() {
               finalsWins={finalsSeriesWins}
               canEditTopic={canManage && !editing}
               onEditTopic={() => setEditing(true)}
-              shareSlot={<ShareButton contentType="draft" contentId={draftId!} title={draft.topic} />}
+              shareSlot={
+                <>
+                  <JudgingScopeButton
+                    aiContext={(draft as any).ai_context || null}
+                    aiContextOverride={(draft as any).ai_context_override || null}
+                  />
+                  <ShareButton contentType="draft" contentId={draftId!} title={draft.topic} />
+                </>
+              }
               refreshSlot={
                 canManage && picks.length > 0 ? (
                   <button
