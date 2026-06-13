@@ -903,6 +903,10 @@ export default function DraftDetailPage() {
               </p>
             </div>
             <div className="flex items-center gap-1 flex-shrink-0">
+              <JudgingScopeButton
+                aiContext={(draft as any).ai_context || null}
+                aiContextOverride={(draft as any).ai_context_override || null}
+              />
               <ShareButton contentType="draft" contentId={draftId!} title={draft.topic} />
               {canManage && picks.length > 0 && (
                 <button
