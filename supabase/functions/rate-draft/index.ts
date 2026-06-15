@@ -209,6 +209,13 @@ Write a 2–3 sentence NEUTRAL summary of each participant's draft. You MAY ment
 === EXPLANATION STYLE ===
 For each pick's explanation, focus only on the pick itself — its category fit, standalone strengths, weaknesses within the category, relevance, popularity, historical importance, quality, influence, or impact. No commentary on the user's other picks.
 
+=== RECENCY & VERIFIED FACTS (CRITICAL) ===
+Today's real-world date is ${new Date().toISOString().split('T')[0]}. Treat every pick as evaluated on that date.
+- Any "— Verified (...)" annotation next to a pick comes from an external metadata source (TMDB, IGDB, iTunes, Wikipedia, etc.) and is GROUND TRUTH. Trust it over your own training-data memory.
+- If a pick is verified (or is a well-known real entity), DO NOT call it "unreleased", "upcoming", "rumored", "hypothetical", "not yet out", "future product", or "doesn't exist yet" — even if your prior knowledge says otherwise. Your training data is older than today.
+- When uncertain whether something has launched/aired/published, assume it HAS by today's date and score it on merit. Never penalize a pick for being "too new" or "not yet released" unless the topic itself is historical and the pick is genuinely from after the topic's timeframe.
+- Examples of failure modes to avoid: dinging a recent game console, film, album, phone, athlete trade, or political event because it post-dates your training cutoff.
+
 Here are all participants and their picks:
 
 ${participantSummaries}
