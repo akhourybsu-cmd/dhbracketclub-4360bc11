@@ -1,100 +1,44 @@
-## Goal
+## What's happening
 
-Make the Chat page feel like a real, polished group-chat surface:
+The AI judge in `supabase/functions/rate-draft/index.ts` uses **Gemini 2.5 Pro** with today's date injected into the system prompt. The model is told "Use today's real-world status — do not treat released content as unreleased."
 
-1. Polished chat header & UI
-2. Reliable create / rename / delete of channels (chat groups) with persistence
-3. Comprehensive per-channel settings panel — **Core** (name, description, icon, category, default, type, post-permission) + **Notifications** (per-user mute / mentions-only)
+But that's the only recency safeguard. The judge gets **only the raw pick text** (e.g. "Nintendo Switch 2") — no release dates, no descriptions, no current status. So when Gemini's training cutoff predates a release (Switch 2 launched June 5, 2025; the model's world knowledge is older), it falls back to "this isn't out yet" and dings the pick. That's what happened on the Video Game Consoles draft.
 
-Scope clarification: "chat groups" = **channels** (not platform clubs). The app stays single-club per user.
+## Fix: give the judge real facts, not memory
 
----
+Three layered improvements, ordered by impact.
 
-## 1. Fix persistence of channel settings (root cause)
+### 1. Feed enrichment metadata into the judge prompt (biggest win)
 
-`Channel.channel_type` and `Channel.post_permission` exist in the TS type and the settings dialog, but the **DB columns don't exist** on `public.channels`. Saves silently drop those fields. Migration to add:
+Every draft pick already gets enriched by `enrich-draft-picks` and stored in `item_enrichments` (matched name, source provider, and a `metadata` JSON blob that typically includes release year, description, and provider — TMDB, IGDB, iTunes, Pexels, etc.).
 
-- `channel_type text not null default 'general'` with a check constraint for `general | announcements | admin_only | event`
-- `post_permission text not null default 'all'` with a check constraint for `all | admins`
-- `archived_at timestamptz` (for future soft-archive, no UI yet)
-- `updated_at timestamptz` + `set_updated_at` trigger
+`rate-draft` currently ignores all of it. Change:
 
-Backfill: all existing rows get the defaults. RLS already covers reads/writes via the existing "Channels: club write" policy.
+- After loading picks, fetch `item_enrichments` for every `pick.id` (`item_type = 'draft_pick'`).
+- For each pick, append a compact factual line to the prompt, e.g.:
+  `Round 3: "Nintendo Switch 2" — Verified: Nintendo Switch 2 (IGDB, released 2025-06-05). Hybrid console, successor to Switch.`
+- Add an explicit instruction: *"Treat the 'Verified' facts as ground truth. If a pick is verified as released, do NOT claim it is unreleased, hypothetical, or rumored — even if it conflicts with your prior knowledge."*
 
----
+### 2. Enable Gemini Google Search grounding for picks the AI is unsure about
 
-## 2. Per-channel notification preferences
+The Lovable AI gateway supports Gemini's `google_search` tool. Add it alongside the existing `rate_draft_results` tool call so Gemini can verify recent/uncertain entries (new movies, recent product launches, current sports rosters, etc.) before scoring.
 
-New table `channel_notification_prefs`:
+This makes the report robust to anything enrichment missed — sports stats, new albums, current events — without us having to maintain per-category metadata.
 
-- `(user_id, channel_id)` unique
-- `mode text` — `all | mentions | muted` (default `all`)
-- standard timestamps + updated_at trigger
-- RLS: user can only read/write their own row
-- GRANT to `authenticated` + `service_role`
+### 3. Tighten the recency instruction
 
-Wiring:
+Replace the single sentence about "use today's real-world status" with a stricter block that lists the failure modes we've seen:
 
-- `send-push-notification` edge function checks this table before sending; `muted` skips, `mentions` only sends if the message tags the user (re-use existing @mention parser).
-- `useChatActions` reaction notifications also respect `muted`.
-- Settings dialog adds a Notifications section with 3 segmented options.
+- Do not say a pick is "unreleased," "upcoming," "rumored," or "hypothetical" unless the Verified facts explicitly say so.
+- When in doubt about whether something exists or has launched, treat it as released and score it on merit.
+- The current date is {today} — anything with a known release on or before that date is released.
 
----
+## Files touched
 
-## 3. Create / rename / delete channels (UI + persistence)
+- `supabase/functions/rate-draft/index.ts` — fetch enrichments, build verified-facts block per pick, add Google Search grounding tool, strengthen recency instructions.
 
-- **Create channel** — new `CreateChannelDialog` opened from a `+` button at the top of the channel list (admins always; non-admins only if a club setting allows — for now: admins only, matches existing decentralized-authority memory). Form fields: name, description (optional), icon, category, type. Inserts with `club_id = current_user_club_id()` and `created_by = auth.uid()`.
-- **Rename** — already in `ChannelSettingsDialog`, will now persist `channel_type`/`post_permission` too (post-migration).
-- **Delete** — already in `ChannelSettingsDialog` (admin-only). Verify the cascade on `messages`, `message_reactions`, `channel_read_states`, `channel_notification_prefs` exists; add `on delete cascade` to any missing FKs.
+No DB schema changes. No client changes. No new secrets.
 
-All three flows refresh `fetchChannels()` and respect realtime broadcasts so other devices update without manual refresh.
+## Validation
 
----
-
-## 4. Chat header & UI polish
-
-Targets the header in `ChatPage.tsx` (the row that today shows hamburger / hash / channel name / Pin / Search / Settings). Keep it mobile-first, single row, no overflow:
-
-- Reorganize into 3 zones: **left** (back/menu + channel identity), **center collapsed** (channel name + type chip; tap = open settings), **right** (overflow `⋯` menu containing Search, Pinned, Settings — declutters from 3 icons to 1 on mobile).
-- Subtitle line under the channel name: small text like "12 members · Mentions only" when a mute mode is active, otherwise hides.
-- Distinct visual for announcement / admin-only channels (subtle accent border + lock chip), reusing tokens already in `channelTypeMeta`.
-- Lock body scroll under the header so the title bar stays put when the keyboard opens (the `chatHeight` calc already handles this — header just needs `flex-shrink-0` audit).
-
-No layout overhaul of message list / composer in this pass.
-
----
-
-## Technical details
-
-**Files touched**
-
-- `supabase/migrations/<ts>_chat_channel_settings.sql` — new columns + new `channel_notification_prefs` table + GRANT + RLS + triggers.
-- `src/components/chat/types.ts` — drop the `?` on `channel_type` / `post_permission`; add `NotificationMode` type.
-- `src/components/chat/ChannelSettingsDialog.tsx` — add Notifications section; load/save `channel_notification_prefs` for current user.
-- `src/components/chat/CreateChannelDialog.tsx` — **new** component mirroring the settings dialog form.
-- `src/components/chat/ChannelList.tsx` — add `+` button in header (admins) wired to the new create dialog.
-- `src/pages/ChatPage.tsx` — header refactor (3-zone + overflow menu), subtitle, mount `CreateChannelDialog`, refresh on create.
-- `supabase/functions/send-push-notification/index.ts` — query `channel_notification_prefs` for each recipient; honor `muted` / `mentions` modes (mentions parser already exists in chat code; replicate the regex).
-- `src/hooks/useChatActions.ts` — reaction notifications skip `muted` recipients.
-
-**Memory update after build**
-
-- Update `mem://features/chat/channel-management` to note that `channel_type` / `post_permission` are now real DB columns and persist.
-- Add new `mem://features/chat/notification-preferences` entry.
-
-**Out of scope (call out, don't build)**
-
-- Multi-club membership / club switcher.
-- In-app club creation.
-- Slow mode, archive, members-list panel, role-based per-channel allow lists.
-
----
-
-## Order of work
-
-1. Migration (columns + prefs table) — must land first, types regen after.
-2. Persistence wiring in `ChannelSettingsDialog` + per-user notification section.
-3. `CreateChannelDialog` + channel-list `+` button.
-4. Header refactor + subtitle.
-5. Edge function update to honor notification prefs.
-6. Memory update.
+Re-run the report on the Video Game Consoles draft after deploy and confirm Switch 2 is judged as a real, released console. Spot-check one other recent draft to make sure scoring still looks sensible.
