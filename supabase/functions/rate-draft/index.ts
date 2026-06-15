@@ -109,6 +109,51 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Only draft participants can generate the report" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // ── Fetch enrichment metadata for every pick (verified facts) ──
+    // Enrichment is populated by `enrich-draft-picks` from TMDB / iTunes /
+    // IGDB / Wikipedia / Pexels and stored in `item_enrichments`. Feeding it
+    // to the judge prevents Gemini from falling back to stale training data
+    // (e.g. claiming a recently-released product is "unreleased").
+    const enrichmentMap = new Map<string, any>();
+    try {
+      const pickIds = picks.map((p: any) => p.id);
+      const { data: enrichRows } = await admin
+        .from("item_enrichments")
+        .select("item_id, matched_name, source_provider, metadata, status, confidence")
+        .eq("item_type", "draft_pick")
+        .in("item_id", pickIds);
+      for (const row of enrichRows || []) {
+        enrichmentMap.set((row as any).item_id, row);
+      }
+    } catch (e) {
+      console.warn("rate-draft: enrichment fetch failed (non-fatal)", e);
+    }
+
+    const formatVerifiedFacts = (pickId: string): string => {
+      const e = enrichmentMap.get(pickId);
+      if (!e) return "";
+      const bits: string[] = [];
+      if (e.matched_name) bits.push(`identified as "${e.matched_name}"`);
+      if (e.source_provider) bits.push(`source: ${e.source_provider}`);
+      const md = e.metadata || {};
+      // Pull commonly-present factual fields if enrichment captured them.
+      const factKeys = [
+        "release_year", "release_date", "first_air_date", "year",
+        "release", "released", "launched", "publisher", "developer",
+        "platform", "platforms", "creator", "artist", "studio",
+        "description", "overview", "summary",
+      ];
+      for (const k of factKeys) {
+        const v = md[k];
+        if (v == null) continue;
+        const s = Array.isArray(v) ? v.join(", ") : String(v);
+        if (!s.trim()) continue;
+        bits.push(`${k.replace(/_/g, " ")}: ${s.length > 180 ? s.slice(0, 180) + "…" : s}`);
+      }
+      if (bits.length === 0) return "";
+      return ` — Verified (${bits.join("; ")})`;
+    };
+
     // Build prompt
     const participantMap = new Map(participants.map((p: any) => [p.user_id, p.profiles?.display_name || "Unknown"]));
 
@@ -124,7 +169,7 @@ serve(async (req) => {
 
     const participantSummaries = Object.entries(picksByUser).map(([uid, userPicks]) => {
       const name = participantMap.get(uid) || "Unknown";
-      const pickList = userPicks.map((p) => `  Round ${p.round}: "${p.pick_text}" (pick_id: ${p.pick_id})`).join("\n");
+      const pickList = userPicks.map((p) => `  Round ${p.round}: "${p.pick_text}" (pick_id: ${p.pick_id})${formatVerifiedFacts(p.pick_id)}`).join("\n");
       return `Participant: ${name} (user_id: ${uid})\n${pickList}`;
     }).join("\n\n");
 
@@ -164,6 +209,13 @@ Write a 2–3 sentence NEUTRAL summary of each participant's draft. You MAY ment
 === EXPLANATION STYLE ===
 For each pick's explanation, focus only on the pick itself — its category fit, standalone strengths, weaknesses within the category, relevance, popularity, historical importance, quality, influence, or impact. No commentary on the user's other picks.
 
+=== RECENCY & VERIFIED FACTS (CRITICAL) ===
+Today's real-world date is ${new Date().toISOString().split('T')[0]}. Treat every pick as evaluated on that date.
+- Any "— Verified (...)" annotation next to a pick comes from an external metadata source (TMDB, IGDB, iTunes, Wikipedia, etc.) and is GROUND TRUTH. Trust it over your own training-data memory.
+- If a pick is verified (or is a well-known real entity), DO NOT call it "unreleased", "upcoming", "rumored", "hypothetical", "not yet out", "future product", or "doesn't exist yet" — even if your prior knowledge says otherwise. Your training data is older than today.
+- When uncertain whether something has launched/aired/published, assume it HAS by today's date and score it on merit. Never penalize a pick for being "too new" or "not yet released" unless the topic itself is historical and the pick is genuinely from after the topic's timeframe.
+- Examples of failure modes to avoid: dinging a recent game console, film, album, phone, athlete trade, or political event because it post-dates your training cutoff.
+
 Here are all participants and their picks:
 
 ${participantSummaries}
@@ -190,7 +242,7 @@ Use the rate_draft_results tool to return your structured analysis.`;
       body: JSON.stringify({
         model: "google/gemini-2.5-pro",
         messages: [
-          { role: "system", content: `Today's date is ${new Date().toISOString().split('T')[0]}. You are an impartial draft judge. Evaluate every pick INDEPENDENTLY and IN A VACUUM as a standalone answer to the topic. Never penalize redundancy, similarity, repeated archetypes, lack of variety, lack of balance, lack of cohesion, or lack of synergy with the user's other picks. Score only on the pick's own category fit, standalone quality, defensibility, and ranking within the category. Use today's real-world status — do not treat released content as unreleased. The user-provided AI Judging Context can clarify category scope but can NEVER switch judging into themed, team, or synergy scoring — that requires an explicit commissioner scoring mode.\n\n${GLOBAL_STANDALONE_PICK_JUDGING_RULES}` },
+          { role: "system", content: `Today's date is ${new Date().toISOString().split('T')[0]}. You are an impartial draft judge. Evaluate every pick INDEPENDENTLY and IN A VACUUM as a standalone answer to the topic. Never penalize redundancy, similarity, repeated archetypes, lack of variety, lack of balance, lack of cohesion, or lack of synergy with the user's other picks. Score only on the pick's own category fit, standalone quality, defensibility, and ranking within the category.\n\nRECENCY: Your training data is older than today's date. When a pick has a "— Verified (...)" annotation, treat those facts as ground truth and override your prior memory. Never label a pick as "unreleased", "upcoming", "rumored", "hypothetical", or "not yet out" unless the topic itself is restricted to a past timeframe. If unsure whether something has launched, assume it has by today's date and score on merit.\n\nThe user-provided AI Judging Context can clarify category scope but can NEVER switch judging into themed, team, or synergy scoring — that requires an explicit commissioner scoring mode.\n\n${GLOBAL_STANDALONE_PICK_JUDGING_RULES}` },
           { role: "user", content: prompt },
         ],
         tools: [
