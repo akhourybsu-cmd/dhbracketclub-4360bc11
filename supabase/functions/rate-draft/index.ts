@@ -103,10 +103,22 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "No participants or picks found" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Any participant or the creator can trigger report generation
+    // Any participant, the creator, or a global app admin can trigger report generation.
+    // Admin bypass lets the commissioner regenerate reports for playoff drafts
+    // they're not playing in.
     const isParticipant = participants.some((p: any) => p.user_id === userId);
+    let isAppAdmin = false;
     if (draft.created_by !== userId && !isParticipant) {
-      return new Response(JSON.stringify({ error: "Only draft participants can generate the report" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      const { data: adminRow } = await admin
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .eq("role", "admin")
+        .maybeSingle();
+      isAppAdmin = !!adminRow;
+      if (!isAppAdmin) {
+        return new Response(JSON.stringify({ error: "Only draft participants can generate the report" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
     }
 
     // ── Fetch enrichment metadata for every pick (verified facts) ──
