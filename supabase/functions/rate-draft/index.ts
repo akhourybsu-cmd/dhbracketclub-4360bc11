@@ -173,24 +173,24 @@ serve(async (req) => {
       return `Participant: ${name} (user_id: ${uid})\n${pickList}`;
     }).join("\n\n");
 
-    // ── Effective judging scope: override > original > broad-default ──
+    // ── Effective judging scope: title is always primary; context only clarifies/expands ──
     const overrideCtx = (draft.ai_context_override || "").trim();
     const originalCtx = (draft.ai_context || "").trim();
     const effectiveCtx = overrideCtx || originalCtx;
     const ctxBlock = effectiveCtx
-      ? `\n\n=== JUDGING SCOPE (AUTHORITATIVE) ===\n${overrideCtx ? "[Commissioner override — takes priority over any original context]\n" : "[Provided by draft creator]\n"}${effectiveCtx}\n\nFollow this scope exactly. Do not narrow the category beyond what this scope or the title states.`
-      : `\n\n=== JUDGING SCOPE ===\nNo explicit scope was provided. Interpret the category broadly. For broad categories (e.g. "Best Villains of All Time") consider all relevant media and cultural sources — film, television, video games, comics, anime, literature, mythology, sports, real history, etc. Do not assume the category is limited to movies unless the title clearly says so.`;
+      ? `\n\n=== JUDGING SCOPE (AUTHORITATIVE) ===\nPRIMARY SCOPE: The draft TITLE ("${draft.topic}") defines the full breadth of what qualifies. Interpret the title at its plain, natural, widest reasonable meaning. Do NOT narrow it to a sub-category, genre, medium, or archetype unless the title itself explicitly says so.\n\nADDITIONAL CONTEXT ${overrideCtx ? "(Commissioner override — takes priority over original context)" : "(Provided by draft creator)"}:\n${effectiveCtx}\n\nThis context may ONLY clarify or expand the title's scope. It must NEVER be used to shrink the title's natural meaning. If the context seems to narrow the topic, default to the broader natural reading of the title.`
+      : `\n\n=== JUDGING SCOPE ===\nPRIMARY SCOPE: The draft TITLE ("${draft.topic}") defines the full breadth of what qualifies. Interpret the title at its plain, natural, widest reasonable meaning. Do NOT assume the topic is restricted to a single medium, genre, archetype, or sub-category unless the title explicitly says so.\n\nExamples of broadening (not narrowing):\n- "Best Villains of All Time" → all media (film, TV, games, comics, anime, literature, mythology, history), not just movies.\n- "Things you could do all day without getting bored" → ANY activity, hobby, pastime, experience, routine, outing, creative pursuit, relaxing activity, social activity, physical activity, entertainment, or personal interest — NOT just games, video games, or board games. Judge each pick as a standalone activity based on how enjoyable, sustainable, realistic, and boredom-resistant it would be to do for an entire day.\n- "Best Comfort Foods" → any food, dish, or drink that fits comfort eating, not one cuisine.\nWhen in doubt, judge picks against the WIDEST plausible reading of the title.`;
 
     const prompt = `You are an impartial draft judge for DH Bracket Club. The draft topic is: "${draft.topic}"${draft.category ? ` (Category: ${draft.category})` : ""}.${ctxBlock}
 
 ${GLOBAL_STANDALONE_PICK_JUDGING_RULES}
 
 === EVALUATION FACTORS (apply to every pick, independently) ===
-1. CATEGORY FIT — Does the pick clearly belong in this category as defined by the topic and scope above?
-2. STANDALONE QUALITY — Recognition, influence, impact, originality, consistency, cultural weight, body of work.
-3. DEFENSIBILITY — Could a knowledgeable fan defend this pick in 1–2 sentences as a strong selection within the category?
-4. RANKING WITHIN THE CATEGORY — Where does this pick fall against the known top-tier candidates for this category?
-5. VALIDITY — Is this a legitimate, real entrant for the category (not a misfit, mis-categorized, or invalid entry)?
+1. CATEGORY FIT — Does the pick clearly belong under the TITLE'S broad, natural reading? Do NOT penalize a pick for falling outside a narrower sub-category that the title itself does not explicitly require.
+2. STANDALONE QUALITY — Recognition, influence, impact, originality, consistency, cultural weight, body of work — or, for activity/lifestyle/experience topics: enjoyability, sustainability, realism, replayability, comfort, and resistance to boredom over the timeframe the title implies.
+3. DEFENSIBILITY — Could a knowledgeable fan defend this pick in 1–2 sentences as a strong answer to the TITLE as written?
+4. RANKING WITHIN THE CATEGORY — Where does this pick fall against the strongest plausible answers to the title, considering ALL valid forms/mediums/activity types — not just one?
+5. VALIDITY — Is this a legitimate, real entrant for the title's broad scope (not a misfit against the title itself)?
 
 === TIER LANGUAGE ===
 Use one of these tiers for each pick, derived from the score:
