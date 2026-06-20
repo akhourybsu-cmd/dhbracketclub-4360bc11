@@ -43,6 +43,8 @@ import { MembersOnline } from '@/components/home/MembersOnline';
 import { DiscoverStrip } from '@/components/home/DiscoverStrip';
 import { EmptyClubState } from '@/components/home/EmptyClubState';
 
+import { HomeDashboard } from '@/components/home/dashboard/HomeDashboard';
+
 import { ClubOnboardingFlow } from '@/components/onboarding/ClubOnboardingFlow';
 import { WhatIsNewCard } from '@/components/onboarding/WhatIsNewCard';
 import { useClubOnboarding, useNewFeatures } from '@/hooks/useOnboarding';
@@ -399,12 +401,57 @@ export default function DashboardPage() {
     );
   }
 
+  // Quick Access live-status feeders for the new desktop layout.
+  const activeDraftStatus = useMemo(() => {
+    const inProgress = drafts.filter(d => d.status === 'in_progress');
+    if (inProgress.length === 0) return null;
+    return inProgress.length === 1 ? '1 active draft' : `${inProgress.length} active drafts`;
+  }, [drafts]);
+  const narrativeActiveCount = useMemo(
+    () => narrativeCampaigns.filter(c => c.status === 'active').length,
+    [narrativeCampaigns],
+  );
+
   // ─── Render ──────────────────────────────────────────────────────
   return (
     <div
       className="pb-6 overflow-x-hidden"
       style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom, 0px))' }}
     >
+      {/* ─── Desktop "command center" home (lg+) ────────────────────── */}
+      <div className="hidden lg:block">
+        <HomeDashboard
+          club={club}
+          displayName={displayName}
+          avatarUrl={avatarUrl}
+          installedSlugs={installedSlugs}
+          pendingActions={actions}
+          narrativeActiveCount={narrativeActiveCount}
+          activeDraftStatus={activeDraftStatus}
+          upcomingEventCount={events.length}
+          season={hasDrafts ? (season ?? null) : null}
+          seasonTarget={seasonTarget}
+          seasonCompleted={regularEntries}
+          standings={standings as any}
+          activity={activity}
+          events={events}
+          loading={loading}
+        />
+
+        {/* First-time club onboarding still wires under desktop too */}
+        <ClubOnboardingFlow
+          open={onboarding.needsFirstTime}
+          club={club}
+          displayName={displayName}
+          installedAssets={enabledAssets}
+          isAdmin={isClubAdmin}
+          onComplete={onboarding.complete}
+          onDismiss={onboarding.dismiss}
+        />
+      </div>
+
+      {/* ─── Mobile / tablet — existing layout below lg ──────────────── */}
+      <div className="lg:hidden">
       <HomeHero
         club={club}
         displayName={displayName}
@@ -549,6 +596,7 @@ export default function DashboardPage() {
         onComplete={onboarding.complete}
         onDismiss={onboarding.dismiss}
       />
+      </div>
     </div>
   );
 }
