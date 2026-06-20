@@ -379,6 +379,19 @@ export default function DashboardPage() {
   const regularEntries = seasonEntries.filter(e => !e.is_playoff).length;
   const firstName = displayName?.split(' ')[0];
 
+  // Quick Access live-status feeders for the new desktop layout.
+  // MUST live above the loading early-return so hook order stays
+  // stable across renders (Rules of Hooks).
+  const activeDraftStatus = useMemo(() => {
+    const inProgress = drafts.filter(d => d.status === 'in_progress');
+    if (inProgress.length === 0) return null;
+    return inProgress.length === 1 ? '1 active draft' : `${inProgress.length} active drafts`;
+  }, [drafts]);
+  const narrativeActiveCount = useMemo(
+    () => narrativeCampaigns.filter(c => c.status === 'active').length,
+    [narrativeCampaigns],
+  );
+
   // ─── Loading skeleton ────────────────────────────────────────────
   if (loading || assetsLoading) {
     return (
@@ -400,17 +413,6 @@ export default function DashboardPage() {
       </div>
     );
   }
-
-  // Quick Access live-status feeders for the new desktop layout.
-  const activeDraftStatus = useMemo(() => {
-    const inProgress = drafts.filter(d => d.status === 'in_progress');
-    if (inProgress.length === 0) return null;
-    return inProgress.length === 1 ? '1 active draft' : `${inProgress.length} active drafts`;
-  }, [drafts]);
-  const narrativeActiveCount = useMemo(
-    () => narrativeCampaigns.filter(c => c.status === 'active').length,
-    [narrativeCampaigns],
-  );
 
   // ─── Render ──────────────────────────────────────────────────────
   return (
