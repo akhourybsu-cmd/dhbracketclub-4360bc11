@@ -95,45 +95,61 @@ export function HomeDashboard({
   const accent = club?.accent_color ?? '152 72% 46%';
   const { user } = useAuth();
 
-  /* ─── Online presence + club member count ─────────────────── */
+  /* ─── Online presence + club member count ───────────────────
+     NOTE: MembersOnline (in the mobile/tablet branch) also opens a
+     `online-presence:{club.id}` channel. Because both branches mount
+     simultaneously (`lg:hidden` / `hidden lg:block` are CSS only),
+     subscribing the same channel topic twice from one supabase client
+     can wedge the realtime socket. We use a distinct topic suffix here
+     to avoid colliding with MembersOnline. */
   const [online, setOnline] = useState<ActiveMember[]>([]);
   const [memberCount, setMemberCount] = useState(0);
 
   useEffect(() => {
     if (!user || !displayName || !club?.id) return;
-    const channel = supabase.channel(`online-presence:${club.id}`, {
-      config: { presence: { key: user.id } },
-    });
-    channel
-      .on('presence', { event: 'sync' }, () => {
-        const state = channel.presenceState();
-        const flat = Object.values(state).flat().map((p: any) => ({
-          id: p.user_id as string,
-          name: (p.display_name as string) ?? 'Member',
-          avatar_url: (p.avatar_url as string | null) ?? null,
-          online: true,
-        }));
-        const seen = new Set<string>();
-        setOnline(flat.filter(u => seen.has(u.id) ? false : (seen.add(u.id), true)));
-      })
-      .subscribe(async (status) => {
-        if (status === 'SUBSCRIBED') {
-          await channel.track({ user_id: user.id, display_name: displayName, avatar_url: avatarUrl });
-        }
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    try {
+      channel = supabase.channel(`online-presence-rail:${club.id}`, {
+        config: { presence: { key: user.id } },
       });
-    return () => { supabase.removeChannel(channel); };
+      channel
+        .on('presence', { event: 'sync' }, () => {
+          try {
+            const state = channel!.presenceState();
+            const flat = Object.values(state).flat().map((p: any) => ({
+              id: p.user_id as string,
+              name: (p.display_name as string) ?? 'Member',
+              avatar_url: (p.avatar_url as string | null) ?? null,
+              online: true,
+            }));
+            const seen = new Set<string>();
+            setOnline(flat.filter(u => seen.has(u.id) ? false : (seen.add(u.id), true)));
+          } catch { /* swallow */ }
+        })
+        .subscribe(async (status) => {
+          if (status === 'SUBSCRIBED') {
+            try { await channel!.track({ user_id: user.id, display_name: displayName, avatar_url: avatarUrl }); }
+            catch { /* swallow */ }
+          }
+        });
+    } catch { /* swallow */ }
+    return () => { if (channel) try { supabase.removeChannel(channel); } catch {} };
   }, [user, displayName, avatarUrl, club?.id]);
 
   useEffect(() => {
     if (!club?.id) return;
     let cancelled = false;
-    (supabase as any)
-      .from('club_members')
-      .select('user_id', { count: 'exact', head: true })
-      .eq('club_id', club.id)
-      .then(({ count }: { count: number | null }) => {
-        if (!cancelled) setMemberCount(count ?? 0);
-      });
+    try {
+      const q = (supabase as any)
+        .from('club_members')
+        .select('user_id', { count: 'exact', head: true })
+        .eq('club_id', club.id);
+      // Guard against shape drift / table absence.
+      Promise.resolve(q).then(
+        (res: any) => { if (!cancelled) setMemberCount(res?.count ?? 0); },
+        () => { /* swallow */ },
+      );
+    } catch { /* swallow */ }
     return () => { cancelled = true; };
   }, [club?.id]);
 
@@ -218,7 +234,8 @@ export function HomeDashboard({
   const seasonName = season
     ? (season.name ?? (season.season_number ? `Season ${season.season_number}` : 'Active Season'))
     : '';
-  const participants = standings.slice(0, 8).map(s => ({
+  const safeStandings = Array.isArray(standings) ? standings : [];
+  const participants = safeStandings.slice(0, 8).map(s => ({
     user_id: s.user_id,
     display_name: s.display_name,
     avatar_url: s.avatar_url,

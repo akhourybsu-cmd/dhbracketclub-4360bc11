@@ -44,6 +44,7 @@ import { DiscoverStrip } from '@/components/home/DiscoverStrip';
 import { EmptyClubState } from '@/components/home/EmptyClubState';
 
 import { HomeDashboard } from '@/components/home/dashboard/HomeDashboard';
+import { DashboardErrorBoundary } from '@/components/home/dashboard/DashboardErrorBoundary';
 
 import { ClubOnboardingFlow } from '@/components/onboarding/ClubOnboardingFlow';
 import { WhatIsNewCard } from '@/components/onboarding/WhatIsNewCard';
@@ -422,23 +423,25 @@ export default function DashboardPage() {
     >
       {/* ─── Desktop "command center" home (lg+) ────────────────────── */}
       <div className="hidden lg:block">
-        <HomeDashboard
-          club={club}
-          displayName={displayName}
-          avatarUrl={avatarUrl}
-          installedSlugs={installedSlugs}
-          pendingActions={actions}
-          narrativeActiveCount={narrativeActiveCount}
-          activeDraftStatus={activeDraftStatus}
-          upcomingEventCount={events.length}
-          season={hasDrafts ? (season ?? null) : null}
-          seasonTarget={seasonTarget}
-          seasonCompleted={regularEntries}
-          standings={standings as any}
-          activity={activity}
-          events={events}
-          loading={loading}
-        />
+        <DashboardErrorBoundary>
+          <HomeDashboard
+            club={club}
+            displayName={displayName}
+            avatarUrl={avatarUrl}
+            installedSlugs={installedSlugs}
+            pendingActions={actions}
+            narrativeActiveCount={narrativeActiveCount}
+            activeDraftStatus={activeDraftStatus}
+            upcomingEventCount={events.length}
+            season={hasDrafts ? (season ?? null) : null}
+            seasonTarget={seasonTarget}
+            seasonCompleted={regularEntries}
+            standings={standings as any}
+            activity={activity}
+            events={events}
+            loading={loading}
+          />
+        </DashboardErrorBoundary>
 
         {/* First-time club onboarding still wires under desktop too */}
         <ClubOnboardingFlow
