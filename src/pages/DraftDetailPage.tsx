@@ -764,7 +764,10 @@ export default function DraftDetailPage() {
   const timings = computePickTimings(picks);
 
   return (
-    <div className="max-w-md mx-auto">
+    // Live-draft view fills the desktop shell (up to 1100px from
+    // DraftArenaLayout). The completion-report block further below
+    // re-caps itself at 760px so long-form content stays readable.
+    <div className="max-w-md mx-auto lg:max-w-none lg:mx-0">
       <Confetti active={showConfetti} />
       <Link to="/drafts" className="back-link">
         <ArrowLeft /> Back to Drafts
