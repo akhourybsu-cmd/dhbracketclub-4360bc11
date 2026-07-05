@@ -49,6 +49,7 @@ import { toast } from 'sonner';
 import { PlayoffBadge } from '@/components/draft/PlayoffBadge';
 import { getPlayoffGameLabel } from '@/lib/playoffStyle';
 import { StartNextSeasonSheet } from '@/components/draft/StartNextSeasonSheet';
+import { TransferCommissionerCard } from '@/components/draft/TransferCommissionerCard';
 
 import { forwardRef, lazy, Suspense } from 'react';
 
@@ -1972,6 +1973,7 @@ export default function DraftsListPage() {
                   </div>
                 </div>
                 <CommissionerPanel season={season} entries={entries} onUpdate={handleSeasonUpdate} />
+                <TransferCommissionerCard season={season} isAppAdmin={isAppAdmin} onTransferred={refetchSeason} />
                 {season.status !== 'complete' && (
                   <div className="glass-card p-4 space-y-2">
                     <h3 className="text-[12px] font-bold flex items-center gap-1.5">

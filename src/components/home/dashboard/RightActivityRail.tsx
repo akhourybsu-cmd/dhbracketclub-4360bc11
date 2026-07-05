@@ -181,7 +181,7 @@ function ActiveNowCard({ members, accent, loading }: { members: ActiveMember[]; 
                     className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ring-2"
                     style={{
                       background: m.online ? `hsl(${accent})` : 'hsl(218 15% 35%)',
-                      ringColor: 'hsl(218 40% 5%)',
+                      ['--tw-ring-color' as any]: 'hsl(218 40% 5%)',
                       boxShadow: m.online ? `0 0 6px hsl(${accent} / 0.7)` : 'none',
                     }}
                   />
