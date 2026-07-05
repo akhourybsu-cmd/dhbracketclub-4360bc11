@@ -123,7 +123,7 @@ export function FeaturedSeasonCard({
                 style={{
                   background: p.avatar_url ? 'transparent' : `linear-gradient(135deg, hsl(${accent} / 0.25), hsl(${accent} / 0.08))`,
                   color: `hsl(${accent})`,
-                  ringColor: 'hsl(218 40% 5%)',
+                  ['--tw-ring-color' as any]: 'hsl(218 40% 5%)',
                 }}
                 title={p.display_name ?? 'Participant'}
               >
@@ -140,7 +140,7 @@ export function FeaturedSeasonCard({
                 style={{
                   background: 'hsl(218 30% 10%)',
                   color: `hsl(${accent})`,
-                  ringColor: 'hsl(218 40% 5%)',
+                  ['--tw-ring-color' as any]: 'hsl(218 40% 5%)',
                   border: `1px solid hsl(${accent} / 0.35)`,
                 }}
               >
