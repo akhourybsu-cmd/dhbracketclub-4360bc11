@@ -49,6 +49,7 @@ import { toast } from 'sonner';
 import { PlayoffBadge } from '@/components/draft/PlayoffBadge';
 import { getPlayoffGameLabel } from '@/lib/playoffStyle';
 import { StartNextSeasonSheet } from '@/components/draft/StartNextSeasonSheet';
+import { TransferCommissionerCard } from '@/components/draft/TransferCommissionerCard';
 
 import { forwardRef, lazy, Suspense } from 'react';
 
