@@ -79,29 +79,36 @@ export default function EnrichedItemCard({
       animate={{ opacity: 1, y: 0 }}
       className={cn(
         "flex items-center gap-3 px-3 py-2.5 group card-tilt rounded-xl",
-        "transition-colors duration-150",
+        "transition-colors duration-150 hover:bg-muted/20",
+        // Faint gold wash so the leader reads as the top pick at a glance.
+        rank === 1 && showRank && "bg-gradient-to-r from-gold/[0.06] via-transparent to-transparent",
         onClick && "cursor-pointer active:bg-primary/5",
         className
       )}
       onClick={onClick}
     >
-      {/* Rank badge */}
+      {/* Rank badge — podium medals for the top 3, muted pill below. */}
       {showRank && (
-        <div className={cn(
-          "w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-extrabold flex-shrink-0",
-          rank === 1 && "bg-gold/15 text-gold",
-          rank === 2 && "bg-silver/15 text-silver",
-          rank === 3 && "bg-bronze/15 text-bronze",
-          rank > 3 && "bg-muted/50 text-muted-foreground"
-        )}>
-          {rank}
-        </div>
+        rank <= 3 ? (
+          <div className={cn(
+            "w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-extrabold flex-shrink-0 border",
+            rank === 1 && "bg-gold/20 text-gold border-gold/45 shadow-[0_0_12px_hsl(var(--gold)/0.28)]",
+            rank === 2 && "bg-silver/20 text-silver border-silver/45",
+            rank === 3 && "bg-bronze/20 text-bronze border-bronze/45",
+          )}>
+            {rank}
+          </div>
+        ) : (
+          <div className="w-7 h-7 rounded-full bg-muted/50 text-muted-foreground flex items-center justify-center text-[10px] font-extrabold flex-shrink-0">
+            {rank}
+          </div>
+        )
       )}
 
       {/* Image thumbnail */}
       <div
         className={cn(
-          "relative flex-shrink-0 rounded-lg overflow-hidden",
+          "relative flex-shrink-0 rounded-xl overflow-hidden ring-1 ring-border/50 shadow-[0_1px_3px_rgba(0,0,0,0.25)]",
           compact ? "w-10 h-10" : "w-12 h-12",
           hasImageCandidates && "cursor-pointer"
         )}
@@ -111,7 +118,7 @@ export default function EnrichedItemCard({
           <img
             src={imageUrl!}
             alt={label}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
             decoding="async"
             loading="lazy"
             onError={(e) => {
@@ -126,7 +133,7 @@ export default function EnrichedItemCard({
           gradient,
           hasImage && "hidden"
         )}>
-          <span className="text-[14px] font-bold text-foreground/40">
+          <span className="text-[15px] font-bold text-foreground/40">
             {label.charAt(0).toUpperCase()}
           </span>
         </div>
@@ -138,8 +145,8 @@ export default function EnrichedItemCard({
         )}
         {/* Low confidence indicator */}
         {isLowConfidence && (
-          <div className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-warning flex items-center justify-center">
-            <span className="text-[6px] font-bold text-background">?</span>
+          <div className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-warning ring-2 ring-card flex items-center justify-center">
+            <span className="text-[7px] font-extrabold text-background leading-none">?</span>
           </div>
         )}
       </div>
