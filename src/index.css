@@ -2926,14 +2926,24 @@
 .draft-round-divider {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.4rem 1rem;
+  gap: 0.6rem;
+  padding: 0.5rem 1rem;
   font-size: 9px;
-  letter-spacing: 0.22em;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
   font-weight: 800;
-  color: hsl(var(--muted-foreground) / 0.55);
-  background: linear-gradient(90deg, transparent, hsl(var(--muted) / 0.3), transparent);
+}
+/* Centered round label as a discrete pill so it reads as a deliberate
+   separator (echoing the podium medal chips) instead of faint inline
+   text lost against the row list. */
+.draft-round-divider > span {
+  color: hsl(var(--muted-foreground) / 0.9);
+  background: hsl(var(--surface-elevated));
+  border: 1px solid hsl(var(--border) / 0.7);
+  border-radius: 999px;
+  padding: 0.15rem 0.65rem;
+  box-shadow: var(--shadow-premium);
+  white-space: nowrap;
 }
 .draft-round-divider::before,
 .draft-round-divider::after {
