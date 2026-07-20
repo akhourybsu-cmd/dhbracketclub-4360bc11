@@ -141,9 +141,32 @@ serve(async (req) => {
       console.warn("rate-draft: enrichment fetch failed (non-fatal)", e);
     }
 
-    const formatVerifiedFacts = (pickId: string): string => {
+    // Guard: only assert an identity when the matched name plausibly refers to
+    // the SAME thing the user typed. Over-specific matches (e.g. "corn" stored
+    // as "Corned Beef Hash" by older enrichment rows) must NOT be fed to the
+    // judge as ground truth, or the pick gets scored as the wrong item.
+    const NAME_STOPWORDS = new Set(["the", "a", "an", "of", "and", "on", "in", "to", "for", "with", "at", "by", "de", "la"]);
+    const nameTokens = (s: string): string[] =>
+      String(s || "").toLowerCase().replace(/[^a-z0-9\s]/g, " ").split(/\s+/).filter((t) => t && !NAME_STOPWORDS.has(t));
+    const namesAreConsistent = (a: string, b: string): boolean => {
+      const na = String(a || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+      const nb = String(b || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+      if (!na || !nb) return true;
+      if (na === nb) return true;
+      const ta = nameTokens(a), tb = nameTokens(b);
+      if (!ta.length || !tb.length) return true;
+      const [short, long] = ta.length <= tb.length ? [ta, tb] : [tb, ta];
+      const longSet = new Set(long);
+      return short.every((t) => longSet.has(t));
+    };
+
+    const formatVerifiedFacts = (pickId: string, pickText: string): string => {
       const e = enrichmentMap.get(pickId);
       if (!e) return "";
+      // A divergent matched_name means the enrichment resolved to the wrong,
+      // more-specific entity — skip its facts entirely so the judge scores the
+      // pick as written, not as the mismatched item.
+      if (e.matched_name && !namesAreConsistent(e.matched_name, pickText)) return "";
       const bits: string[] = [];
       if (e.matched_name) bits.push(`identified as "${e.matched_name}"`);
       if (e.source_provider) bits.push(`source: ${e.source_provider}`);
@@ -181,7 +204,7 @@ serve(async (req) => {
 
     const participantSummaries = Object.entries(picksByUser).map(([uid, userPicks]) => {
       const name = participantMap.get(uid) || "Unknown";
-      const pickList = userPicks.map((p) => `  Round ${p.round}: "${p.pick_text}" (pick_id: ${p.pick_id})${formatVerifiedFacts(p.pick_id)}`).join("\n");
+      const pickList = userPicks.map((p) => `  Round ${p.round}: "${p.pick_text}" (pick_id: ${p.pick_id})${formatVerifiedFacts(p.pick_id, p.pick_text)}`).join("\n");
       return `Participant: ${name} (user_id: ${uid})\n${pickList}`;
     }).join("\n\n");
 
