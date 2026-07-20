@@ -124,11 +124,20 @@ export default function CreateDraftPage() {
               className="form-input"
             />
           </div>
-          <div>
-            <label className="form-label flex items-center gap-1.5">
-              <Sparkles className="w-3 h-3" style={{ color: 'hsl(45 100% 65%)' }} />
-              AI Judging Context <span className="normal-case font-normal tracking-normal">(optional)</span>
-            </label>
+          {/* AI Judging Context — elevated into a gold "smart-assist" panel so
+              it reads as the field that steers how the AI report judges picks,
+              distinct from the plain topic/description inputs. */}
+          <div
+            className="rounded-xl p-3.5 relative overflow-hidden"
+            style={{ background: 'linear-gradient(135deg, hsl(var(--gold) / 0.07), transparent 72%)', border: '1px solid hsl(var(--gold) / 0.2)' }}
+          >
+            <div className="flex items-center gap-1.5 mb-2">
+              <span className="inline-flex items-center justify-center w-5 h-5 rounded-md" style={{ background: 'hsl(var(--gold) / 0.16)' }}>
+                <Sparkles className="w-3 h-3" style={{ color: 'hsl(var(--gold))' }} />
+              </span>
+              <span className="text-[11px] font-extrabold uppercase tracking-[0.12em]" style={{ color: 'hsl(var(--gold))' }}>AI Judging Context</span>
+              <span className="text-[10px] font-medium text-muted-foreground/60 normal-case tracking-normal">optional</span>
+            </div>
             <Textarea
               value={aiContext}
               onChange={e => setAiContext(e.target.value)}
@@ -138,11 +147,14 @@ export default function CreateDraftPage() {
               className="form-input min-h-[96px] resize-none text-[13px] leading-snug"
             />
             <p className="text-[10px] text-muted-foreground/70 mt-1.5 leading-snug">
-              Tell the AI what this category includes or excludes. Helps the draft report judge picks the way you intended. {aiContext.length}/1000
+              Tell the AI what this category includes or excludes so the report judges picks the way you intended. {aiContext.length}/1000
             </p>
           </div>
           <div>
-            <label className="form-label">Rounds</label>
+            <label className="form-label flex items-baseline justify-between">
+              <span>Rounds</span>
+              <span className="text-[10px] font-semibold normal-case tracking-normal text-muted-foreground/70">{numRounds} picks each</span>
+            </label>
             <div className="flex gap-2">
               {[3, 5, 7, 10].map(n => (
                 <button
