@@ -13,6 +13,87 @@ const SUPPORTED_CATEGORIES = [
 ] as const;
 type Category = typeof SUPPORTED_CATEGORIES[number];
 
+// Providers that return a single specific catalog entry (exact-ish title +
+// its own artwork). When one of these substitutes a far more specific title
+// than the user's plain pick (e.g. "corn" → "Corned Beef Hash"), both the
+// identity AND the image are wrong, so we clear them together.
+const CATALOG_PROVIDERS = new Set([
+  "itunes", "tmdb", "themealdb", "thesportsdb", "deezer", "musicbrainz", "openlibrary", "igdb",
+]);
+
+// Stopwords ignored when comparing whether two names describe the same thing.
+const NAME_STOPWORDS = new Set([
+  "the", "a", "an", "of", "and", "on", "in", "to", "for", "with", "at", "by", "de", "la",
+]);
+
+function nameTokens(s: string): string[] {
+  return String(s || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter((t) => t && !NAME_STOPWORDS.has(t));
+}
+
+/**
+ * True when `a` and `b` plausibly refer to the SAME thing. Used to reject
+ * over-specific provider substitutions. A fuzzy catalog search for a plain
+ * pick often returns a longer, more specific title ("corn" → "Corned Beef
+ * Hash"); this treats names as consistent only when the shorter name's
+ * significant tokens are all contained in the longer one (so "corn on the
+ * cob" ~ "corn", but "corned beef hash" ✗ "corn"). Empty inputs are treated
+ * as consistent (nothing to contradict).
+ */
+function namesAreConsistent(a: string, b: string): boolean {
+  const na = String(a || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  const nb = String(b || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  if (!na || !nb) return true;
+  if (na === nb) return true;
+  const ta = nameTokens(a);
+  const tb = nameTokens(b);
+  if (!ta.length || !tb.length) return true;
+  const [short, long] = ta.length <= tb.length ? [ta, tb] : [tb, ta];
+  const longSet = new Set(long);
+  return short.every((t) => longSet.has(t));
+}
+
+/**
+ * Keep the enrichment's identity anchored to the pick's most obvious meaning.
+ * If a provider matched a name that diverges from that obvious reading, revert
+ * `matched_name` to the interpretation and downgrade confidence so the pick is
+ * never "verified" as something more specific than what the user actually
+ * wrote. `clearCatalogImage` also drops a wrong catalog image so the fallback
+ * chain can fetch a generic one for the obvious meaning instead.
+ */
+function reconcileObviousMatch(
+  result: EnrichmentResult,
+  pickText: string,
+  clearCatalogImage: boolean,
+): EnrichmentResult {
+  if (!result.matched_name) return result;
+  const interpretation = String(
+    (result.metadata as Record<string, unknown>)?.interpretation || result.normalized_name || pickText,
+  ).trim();
+  if (
+    namesAreConsistent(result.matched_name, interpretation) ||
+    namesAreConsistent(result.matched_name, pickText)
+  ) {
+    return result;
+  }
+  console.log(
+    `enrich: reverting over-specific match "${result.matched_name}" → "${interpretation}" for pick "${pickText}"`,
+  );
+  result.matched_name = interpretation || pickText;
+  result.metadata = { ...result.metadata, provider_match_rejected: true };
+  if (clearCatalogImage && CATALOG_PROVIDERS.has(result.source_provider)) {
+    result.image_url = null;
+    result.thumbnail_url = null;
+    result.source_provider = "ai";
+  }
+  result.confidence = Math.min(result.confidence, 0.45);
+  if (result.status === "matched") result.status = "low_confidence";
+  return result;
+}
+
 interface ImageCandidate {
   url: string;
   thumbnail: string;
@@ -110,11 +191,20 @@ async function aiEnrichItems(
   const prompt = `You are enriching items for a "${topic}" draft (category: ${category}).
 ${hint}
 
+CRITICAL — INTERPRET EACH ITEM AT ITS MOST OBVIOUS, MOST LITERAL MEANING.
+Read each item the way a typical person would at a glance, in the plain context of the topic, and pick the single most common everyday meaning.
+- Do NOT expand or "upgrade" a simple or generic item into a more specific named product, dish, recipe, brand, title, or franchise unless the user literally wrote that specific name.
+- A short, correctly-spelled everyday word means exactly that word — nothing more specific.
+- Example: for a food draft, "corn" means corn (the vegetable / corn on the cob). It does NOT mean "Corned Beef Hash", "Cornbread", or "Corn Chowder". Only match a specific dish if the user actually typed it.
+- When more than one reading is possible, choose the more common / more generic one, never the more obscure / more specific one.
+
 For each item, return:
-- normalized_name: clean canonical name
-- matched_name: the official/canonical title if you recognize it, or null
+- interpretation: the most obvious, plain-language thing the user means (usually the item itself, lightly cleaned up)
+- rationale: ONE short sentence explaining why that is the most obvious reading
+- normalized_name: clean canonical spelling of the interpretation
+- matched_name: the official/canonical title ONLY IF it is essentially the same thing the user wrote (same entity, just proper casing/spelling). If matching would make the item MORE SPECIFIC than what the user wrote, return null instead.
 - metadata: object with relevant fields
-- confidence: 0.0-1.0 how confident you are in the match
+- confidence: 0.0-1.0 how confident you are in the interpretation
 
 Items to enrich:
 ${itemNames.map((n, i) => `${i + 1}. "${n}"`).join("\n")}`;
@@ -145,12 +235,14 @@ ${itemNames.map((n, i) => `${i + 1}. "${n}"`).join("\n")}`;
                   type: "object",
                   properties: {
                     original_name: { type: "string" },
+                    interpretation: { type: "string", description: "The most obvious, literal meaning of the item in this topic's context" },
+                    rationale: { type: "string", description: "One short sentence on why that is the most obvious reading" },
                     normalized_name: { type: "string" },
-                    matched_name: { type: "string" },
+                    matched_name: { type: "string", description: "Official/canonical title ONLY if it is the same entity the user wrote (never more specific), otherwise null" },
                     confidence: { type: "number" },
                     metadata: { type: "object" },
                   },
-                  required: ["original_name", "normalized_name", "confidence"],
+                  required: ["original_name", "interpretation", "normalized_name", "confidence"],
                 },
               },
             },
@@ -172,14 +264,25 @@ ${itemNames.map((n, i) => `${i + 1}. "${n}"`).join("\n")}`;
 
   for (const item of parsed.items || []) {
     const confidence = item.confidence || 0;
+    const interpretation = String(item.interpretation || item.normalized_name || item.original_name || "").trim();
+    // matched_name may not be MORE specific than the obvious interpretation —
+    // if the model returned an over-specific title, drop it back to null.
+    let matchedName: string | null = item.matched_name || null;
+    if (matchedName && !namesAreConsistent(matchedName, interpretation) && !namesAreConsistent(matchedName, item.original_name || "")) {
+      matchedName = null;
+    }
     results[item.original_name] = {
-      normalized_name: item.normalized_name || item.original_name,
-      matched_name: item.matched_name || null,
+      normalized_name: item.normalized_name || interpretation || item.original_name,
+      matched_name: matchedName,
       image_url: null,
       thumbnail_url: null,
       source_provider: "ai",
       confidence,
-      metadata: item.metadata || {},
+      metadata: {
+        ...(item.metadata || {}),
+        interpretation: interpretation || undefined,
+        rationale: item.rationale || undefined,
+      },
       status: confidence >= 0.7 ? "matched" : confidence >= 0.4 ? "low_confidence" : "placeholder",
     };
   }
@@ -807,6 +910,11 @@ async function enrichItem(
       break;
   }
 
+  // Guard: a fuzzy catalog match may have substituted a far more specific
+  // title (and its artwork) for the pick's obvious meaning. Reject it BEFORE
+  // the fallback chain so a generic image can be fetched for the real meaning.
+  result = reconcileObviousMatch(result, name, /* clearCatalogImage */ true);
+
   // Wikipedia fallback: if no image was found from the primary source, try Wikipedia
   if (!result.image_url) {
     result = await enrichFromWikipedia(name, result, category);
@@ -816,6 +924,11 @@ async function enrichItem(
   if (!result.image_url) {
     result = await enrichFromPexels(name, result, category);
   }
+
+  // Final identity guard: the fallbacks can also set a divergent matched_name
+  // (e.g. a Wikipedia page title). Keep the identity anchored to the obvious
+  // meaning without discarding a generic fallback image.
+  result = reconcileObviousMatch(result, name, /* clearCatalogImage */ false);
 
   return result;
 }
