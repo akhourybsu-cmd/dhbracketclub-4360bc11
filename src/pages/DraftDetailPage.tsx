@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bookmark, ArrowLeft, Users, Play, Send, Trophy, RefreshCw, Sparkles, MoreVertical, Pencil, Trash2, X, Star, ChevronDown, ChevronUp, Award, AlertTriangle, Check, Flame, Flag, Loader2 } from 'lucide-react';
+import { Bookmark, ArrowLeft, Users, Play, Send, Trophy, RefreshCw, Sparkles, MoreVertical, Pencil, Trash2, X, Star, ChevronDown, ChevronUp, Award, AlertTriangle, Check, Flame, Flag, Loader2, Crown } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -1680,44 +1680,77 @@ export default function DraftDetailPage() {
           ) : hasResults ? (
             <div className="mb-5">
               {/* Trophy Podium */}
-              <div className="glass-card p-4 mb-4">
-                <div className="flex items-center justify-center gap-1 mb-3">
+              <div className="glass-card p-4 pt-5 mb-4 relative overflow-hidden">
+                {/* Warm gold wash behind the winner's plinth */}
+                <div
+                  aria-hidden
+                  className="absolute inset-x-0 top-0 h-28 pointer-events-none"
+                  style={{ background: 'radial-gradient(58% 100% at 50% 0%, hsl(var(--gold) / 0.14), transparent 72%)' }}
+                />
+                <div className="relative flex items-center justify-center gap-1.5 mb-4">
                    <Trophy className="w-4 h-4" style={{ color: 'hsl(var(--gold))' }} />
-                   <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/60">Draft Rankings</p>
+                   <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70">Draft Rankings</p>
                 </div>
-                <div className="flex items-end justify-center gap-3">
+                <div className="relative flex items-end justify-center gap-2.5">
                   {(() => {
                     const top3 = draftResults.slice(0, Math.min(3, draftResults.length));
-                    const colors = ['hsl(var(--gold))', 'hsl(var(--silver))', 'hsl(var(--bronze))'];
-                    const heights = ['h-24', 'h-20', 'h-16'];
-                    const medals = ['🥇', '🥈', '🥉'];
+                    // Medal color per 0-based rank index, with a bronze fallback.
+                    const medalVars = ['var(--gold)', 'var(--silver)', 'var(--bronze)'];
+                    const heights = ['h-28', 'h-24', 'h-[76px]'];
                     // Visual order: 2nd, 1st, 3rd (podium style)
                     const visualOrder = top3.length >= 3 ? [top3[1], top3[0], top3[2]] : top3;
                     return visualOrder.map((r) => {
                       if (!r) return null;
                       const rIdx = r.rank - 1; // 0-based rank index for colors
+                      const c = medalVars[rIdx] || medalVars[2];
+                      const isWinner = rIdx === 0;
                       const p = participants.find(pp => pp.user_id === r.user_id);
+                      const name = p?.profiles?.display_name || 'Unknown';
+                      const initials = name.split(' ').map(s => s[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || '?';
                       return (
                         <motion.div
                           key={r.user_id}
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: rIdx * 0.15 }}
-                          className="flex flex-col items-center flex-1 max-w-[100px]"
+                          className="flex flex-col items-center flex-1 max-w-[112px]"
                         >
-                          <div className="text-[10px] font-bold mb-1 truncate w-full text-center">
-                            {p?.profiles?.display_name || 'Unknown'}
+                          {/* Crown reserves its height on every column so the plinths stay bottom-aligned */}
+                          {isWinner ? (
+                            <Crown className="w-4 h-4 mb-1" style={{ color: `hsl(${c})`, filter: `drop-shadow(0 0 6px hsl(${c} / 0.7))` }} />
+                          ) : (
+                            <div className="h-4 mb-1" aria-hidden />
+                          )}
+                          <div
+                            className="rounded-full flex items-center justify-center font-extrabold mb-1.5 border-2"
+                            style={{
+                              width: isWinner ? 46 : 40,
+                              height: isWinner ? 46 : 40,
+                              fontSize: isWinner ? 14 : 12,
+                              background: `linear-gradient(135deg, hsl(${c} / 0.30), hsl(${c} / 0.08))`,
+                              color: `hsl(${c})`,
+                              borderColor: `hsl(${c} / 0.5)`,
+                              boxShadow: isWinner ? `0 0 16px hsl(${c} / 0.4)` : 'none',
+                            }}
+                          >
+                            {initials}
+                          </div>
+                          <div className="text-[11px] font-bold truncate w-full text-center mb-1.5 px-0.5">
+                            {name}
                           </div>
                           <div
-                            className={cn("w-full rounded-t-xl flex flex-col items-center justify-end pb-2", heights[rIdx] || 'h-16')}
-                            style={{ background: `${colors[rIdx] || colors[2]}20`, borderBottom: `3px solid ${colors[rIdx] || colors[2]}` }}
+                            className={cn("w-full rounded-t-xl flex flex-col items-center justify-start pt-2 pb-2", heights[rIdx] || heights[2])}
+                            style={{
+                              background: `linear-gradient(180deg, hsl(${c} / 0.24), hsl(${c} / 0.05))`,
+                              borderTop: `2px solid hsl(${c})`,
+                              boxShadow: 'inset 0 1px 0 hsl(0 0% 100% / 0.05)',
+                            }}
                           >
-                            <Award className="w-5 h-5 mb-0.5" style={{ color: colors[rIdx] || colors[2] }} />
-                            <span className="text-lg font-extrabold" style={{ color: colors[rIdx] || colors[2] }}>
-                              {medals[rIdx] || `#${r.rank}`}
+                            <span className="font-black leading-none" style={{ fontSize: isWinner ? 30 : 24, color: `hsl(${c})` }}>
+                              {r.rank}
                             </span>
-                            <span className="text-[10px] font-bold text-muted-foreground">{Number(r.total_score).toFixed(1)}</span>
-                            <span className="text-[9px] text-muted-foreground/60">+{r.points_awarded} pts</span>
+                            <span className="text-[13px] font-extrabold mt-auto">{Number(r.total_score).toFixed(1)}</span>
+                            <span className="text-[9px] font-bold text-muted-foreground/70">+{r.points_awarded} pts</span>
                           </div>
                         </motion.div>
                       );
