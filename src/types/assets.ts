@@ -48,6 +48,7 @@ export interface InstalledAsset {
 /** Map from nav path → asset slug for filtering */
 export const NAV_ASSET_SLUGS: Record<string, string> = {
   '/drafts':          'draft-arena',
+  '/readshift':       'readshift',
   '/rune-delve':      'rune-delve',
   '/nexus':           'nexus-defense',
   '/pickem':          'nfl-pickem',

@@ -44,6 +44,9 @@ const PollDetailPage = lazy(() => import("./pages/PollDetailPage"));
 const DraftsListPage = lazy(() => import("./pages/DraftsListPage"));
 const CreateDraftPage = lazy(() => import("./pages/CreateDraftPage"));
 const DraftDetailPage = lazy(() => import("./pages/DraftDetailPage"));
+const ReadshiftListPage = lazy(() => import("./pages/ReadshiftListPage"));
+const CreateReadshiftPage = lazy(() => import("./pages/CreateReadshiftPage"));
+const ReadshiftGamePage = lazy(() => import("./pages/ReadshiftGamePage"));
 const SeasonsArchivePage = lazy(() => import("./pages/SeasonsArchivePage"));
 const SeasonArchiveDetailPage = lazy(() => import("./pages/SeasonArchiveDetailPage"));
 const ChatPage = lazy(() => import("./pages/ChatPage"));
@@ -231,6 +234,9 @@ function AnimatedRoutes() {
         <Route path="/drafts/seasons/:seasonId" element={<ProtectedPage assetSlug="draft-arena"><DraftArenaLayout><SeasonArchiveDetailPage /></DraftArenaLayout></ProtectedPage>} />
         <Route path="/drafts/create" element={<ProtectedPage assetSlug="draft-arena"><DraftArenaLayout><CreateDraftPage /></DraftArenaLayout></ProtectedPage>} />
         <Route path="/drafts/:draftId" element={<ProtectedPage assetSlug="draft-arena"><DraftArenaLayout><DraftDetailPage /></DraftArenaLayout></ProtectedPage>} />
+        <Route path="/readshift" element={<ProtectedPage assetSlug="readshift"><ReadshiftListPage /></ProtectedPage>} />
+        <Route path="/readshift/create" element={<ProtectedPage assetSlug="readshift"><CreateReadshiftPage /></ProtectedPage>} />
+        <Route path="/readshift/:gameId" element={<ProtectedPage assetSlug="readshift"><ReadshiftGamePage /></ProtectedPage>} />
 
         {/* NFL Pick'em module — standalone shell (own boot, HUD, no DH chrome) */}
         <Route path="/pickem" element={<ProtectedPage assetSlug="nfl-pickem"><PickemLayout><PickemHomePage /></PickemLayout></ProtectedPage>} />

@@ -1,0 +1,202 @@
+import { useState } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import {
+  VenetianMask, ArrowLeft, Users, Crown, Link2, Play, LogOut, X, Settings2, Clock, Loader2,
+} from 'lucide-react';
+import { formatDistanceToNowStrict } from 'date-fns';
+import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
+import { useClub } from '@/contexts/ClubContext';
+import { useReadshiftGame } from '@/hooks/useReadshift';
+import { StatusPill } from '@/components/ui/status-pill';
+import { cn } from '@/lib/utils';
+import * as api from '@/lib/readshift/api';
+import { MIN_PLAYERS, HARD_MAX_PLAYERS } from '@/lib/readshift/constants';
+
+function initials(name?: string | null) {
+  return (name || '?').split(' ').map((s) => s[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
+}
+
+export default function ReadshiftGamePage() {
+  const { gameId } = useParams<{ gameId: string }>();
+  const { user } = useAuth();
+  const { club, isClubAdmin, isAppAdmin } = useClub();
+  const { game, participants, loading, error, refresh } = useReadshiftGame(gameId);
+  const [busy, setBusy] = useState(false);
+
+  const activeParts = participants.filter((p) => p.active);
+  const isHost = !!game && game.created_by === user?.id;
+  const canManage = isHost || isClubAdmin || isAppAdmin;
+  const isParticipant = activeParts.some((p) => p.user_id === user?.id);
+  const canStart = isHost && game?.phase === 'lobby' && activeParts.length >= MIN_PLAYERS;
+
+  const run = async (fn: () => Promise<unknown>, okMsg?: string) => {
+    setBusy(true);
+    try { await fn(); if (okMsg) toast.success(okMsg); await refresh(); }
+    catch (e: any) { toast.error(e?.message || 'Something went wrong'); }
+    finally { setBusy(false); }
+  };
+
+  const copyInvite = async () => {
+    try { await navigator.clipboard.writeText(window.location.href); toast.success('Invite link copied'); }
+    catch { toast.error('Could not copy link'); }
+  };
+
+  if (loading) {
+    return (
+      <div className="max-w-lg mx-auto pb-6">
+        <div className="glass-card p-6"><div className="h-5 w-1/2 rounded skeleton-shimmer mb-3" /><div className="h-3 w-2/3 rounded skeleton-shimmer" /></div>
+        {error && (
+          <button onClick={() => void refresh()} className="mt-4 mx-auto block text-[12px] font-bold text-primary">Retry</button>
+        )}
+      </div>
+    );
+  }
+  if (!game) {
+    return (
+      <div className="max-w-lg mx-auto pb-6 text-center py-12">
+        <p className="text-sm text-muted-foreground mb-3">Game not found or you don't have access.</p>
+        <Link to="/readshift" className="text-[13px] font-bold text-primary">Back to READSHIFT</Link>
+      </div>
+    );
+  }
+
+  const isLobby = game.phase === 'lobby';
+  const deadline = game.phase_deadline ? new Date(game.phase_deadline) : null;
+
+  return (
+    <div className="max-w-lg mx-auto pb-6">
+      <div className="flex items-center gap-2 mb-4">
+        <Link to="/readshift" className="w-9 h-9 rounded-xl flex items-center justify-center bg-muted/50 hover:bg-muted transition-colors" aria-label="Back">
+          <ArrowLeft className="w-4 h-4" />
+        </Link>
+        <div className="page-header mb-0 flex-1">
+          <div className="page-header-icon" style={{ background: 'linear-gradient(135deg, hsl(var(--primary) / 0.2), hsl(var(--primary) / 0.05))' }}>
+            <VenetianMask className="w-5 h-5" style={{ color: 'hsl(var(--primary))' }} />
+          </div>
+          <div className="min-w-0">
+            <h1 className="page-header-title truncate">{game.name}</h1>
+            <p className="page-header-subtitle">READSHIFT · {game.total_rounds} rounds</p>
+          </div>
+        </div>
+      </div>
+
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+        {/* Player list */}
+        <div className="glass-card overflow-hidden">
+          <div className="px-4 py-3 border-b border-border/20 flex items-center gap-2">
+            <Users className="w-4 h-4" style={{ color: 'hsl(var(--primary))' }} />
+            <h2 className="font-bold text-[13px]">Players</h2>
+            <span className="ml-auto text-[11px] font-bold tabular-nums text-muted-foreground/70">
+              {activeParts.length}{isLobby ? ` / ${HARD_MAX_PLAYERS}` : ''}
+            </span>
+          </div>
+          <div className="divide-y divide-border/10">
+            {activeParts.map((p) => {
+              const host = p.user_id === game.created_by;
+              const me = p.user_id === user?.id;
+              return (
+                <div key={p.id} className="flex items-center gap-3 px-4 py-2.5">
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-extrabold flex-shrink-0"
+                    style={{ background: 'hsl(var(--primary) / 0.16)', color: 'hsl(var(--primary))' }}>
+                    {initials(p.profiles?.display_name)}
+                  </div>
+                  <span className="text-[13px] font-semibold truncate flex-1">
+                    {p.profiles?.display_name || 'Player'}{me && <span className="text-muted-foreground/60 font-normal"> (you)</span>}
+                  </span>
+                  {host && <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ background: 'hsl(var(--gold) / 0.14)', color: 'hsl(var(--gold))' }}><Crown className="w-2.5 h-2.5" /> Host</span>}
+                  {isLobby && canManage && !host && (
+                    <button onClick={() => run(() => api.removeParticipant(game.id, p.user_id), 'Removed')} disabled={busy}
+                      className="p-1.5 rounded-md text-muted-foreground/50 hover:text-destructive transition-colors" aria-label="Remove player">
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {isLobby ? (
+          <>
+            {/* Min-player requirement + invite */}
+            <div className="glass-card p-4 space-y-3">
+              <p className="text-[12px] text-muted-foreground/85 leading-snug">
+                {activeParts.length < MIN_PLAYERS
+                  ? `Need at least ${MIN_PLAYERS} players to start — ${MIN_PLAYERS - activeParts.length} more to go.`
+                  : 'Ready when you are. New players can still join until the game starts.'}
+              </p>
+              <button onClick={copyInvite} className="w-full h-10 rounded-lg bg-muted/50 hover:bg-muted transition-colors text-[13px] font-bold flex items-center justify-center gap-2 btn-press">
+                <Link2 className="w-4 h-4" /> Copy invite link
+              </button>
+            </div>
+
+            {/* Primary actions */}
+            <div className="space-y-2">
+              {!isParticipant && user && (
+                <button onClick={() => run(() => api.joinGame(game.id, club!.id, user.id), 'Joined!')} disabled={busy || activeParts.length >= HARD_MAX_PLAYERS}
+                  className="w-full h-12 rounded-xl font-bold btn-press flex items-center justify-center gap-2 bg-primary text-primary-foreground disabled:opacity-60">
+                  {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Users className="w-4 h-4" />}
+                  {activeParts.length >= HARD_MAX_PLAYERS ? 'Game full' : 'Join Game'}
+                </button>
+              )}
+              {isHost && (
+                <button onClick={() => run(() => api.triggerPhase(game.id, 'start'), 'Game started!')} disabled={busy || !canStart}
+                  className="w-full h-12 rounded-xl font-bold btn-press flex items-center justify-center gap-2 bg-primary text-primary-foreground disabled:opacity-50 disabled:cursor-not-allowed">
+                  {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+                  {canStart ? 'Start Game' : `Waiting for ${Math.max(0, MIN_PLAYERS - activeParts.length)} more`}
+                </button>
+              )}
+              {isParticipant && !isHost && (
+                <button onClick={() => run(async () => { await api.leaveGame(game.id, user!.id); }, 'Left the game')} disabled={busy}
+                  className="w-full h-10 rounded-lg text-[13px] font-bold text-muted-foreground hover:text-destructive transition-colors flex items-center justify-center gap-2">
+                  <LogOut className="w-4 h-4" /> Leave Game
+                </button>
+              )}
+              {canManage && (
+                <button onClick={() => run(() => api.triggerPhase(game.id, 'cancel'), 'Game cancelled')} disabled={busy}
+                  className="w-full h-10 rounded-lg text-[12px] font-semibold text-muted-foreground/70 hover:text-destructive transition-colors">
+                  Cancel game
+                </button>
+              )}
+            </div>
+          </>
+        ) : (
+          /* Non-lobby: real phase status (the in-round Shift/Read/Reveal UI ships in the next increment). */
+          <div className="glass-card p-5 text-center">
+            <StatusPill variant={game.phase === 'read' ? 'live' : game.phase === 'completed' ? 'neutral' : 'warning'} size="sm">
+              {game.phase === 'shift' ? 'Answering' : game.phase === 'read' ? 'Reading' : game.phase === 'reveal' ? 'Reveal' : game.phase === 'completed' ? 'Complete' : game.phase === 'paused' ? 'Paused' : 'Cancelled'}
+            </StatusPill>
+            {['shift', 'read', 'reveal'].includes(game.phase) && (
+              <p className="text-[15px] font-extrabold mt-3">Round {game.current_round} of {game.total_rounds}</p>
+            )}
+            {deadline && ['shift', 'read', 'reveal'].includes(game.phase) && (
+              <p className="text-[12px] text-muted-foreground/70 mt-1 flex items-center justify-center gap-1">
+                <Clock className="w-3 h-3" /> {deadline.getTime() > Date.now() ? `${formatDistanceToNowStrict(deadline)} left` : 'Advancing…'}
+              </p>
+            )}
+            <p className="text-[11px] text-muted-foreground/60 mt-4 leading-snug">
+              The in-round experience (answering, reading, and the reveal) is being finished — it lands in the next update.
+            </p>
+          </div>
+        )}
+
+        {/* Settings summary */}
+        <div className="glass-card p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Settings2 className="w-3.5 h-3.5 text-muted-foreground/60" />
+            <h3 className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-muted-foreground/60">Settings</h3>
+          </div>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[12px]">
+            <span className="text-muted-foreground/70">Rounds</span><span className="font-semibold text-right">{game.total_rounds}</span>
+            <span className="text-muted-foreground/70">Shift window</span><span className="font-semibold text-right">{game.shift_hours}h</span>
+            <span className="text-muted-foreground/70">Read window</span><span className="font-semibold text-right">{game.read_hours}h</span>
+            <span className="text-muted-foreground/70">Prompt mode</span><span className="font-semibold text-right capitalize">{game.prompt_mode}</span>
+            <span className="text-muted-foreground/70">Early advance</span><span className="font-semibold text-right">{game.early_advance ? 'On' : 'Off'}</span>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
