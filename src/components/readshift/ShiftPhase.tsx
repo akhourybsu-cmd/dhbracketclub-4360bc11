@@ -1,0 +1,101 @@
+// READSHIFT — Shift phase: read the prompt + your private Signal, write an
+// answer. Answers are hidden from everyone until the phase locks; editable
+// until then. Never shows who submitted (only a count).
+import { useEffect, useState } from 'react';
+import { Clock, Check, Send, Target, Users, Loader2 } from 'lucide-react';
+import { formatDistanceToNowStrict } from 'date-fns';
+import { toast } from 'sonner';
+import { Textarea } from '@/components/ui/textarea';
+import { SignalExplainer } from './SignalBadge';
+import * as api from '@/lib/readshift/api';
+import { ANSWER_MAX_CHARS } from '@/lib/readshift/constants';
+import type { RsGame, RsRound, RsSignalAssignment, RsAnswer, RsParticipant } from '@/lib/readshift/dbTypes';
+
+interface Props {
+  game: RsGame;
+  round: RsRound;
+  assignment: RsSignalAssignment | null;
+  myAnswer: RsAnswer | null;
+  participants: RsParticipant[];
+  progress: { submitted: number; total: number };
+  userId: string;
+  clubId: string;
+  onSaved: () => void;
+}
+
+export function ShiftPhase({ game, round, assignment, myAnswer, participants, progress, userId, clubId, onSaved }: Props) {
+  const [body, setBody] = useState(myAnswer?.body ?? '');
+  const [saving, setSaving] = useState(false);
+  useEffect(() => { setBody(myAnswer?.body ?? ''); }, [myAnswer?.id]);
+
+  const locked = myAnswer?.locked || round.phase !== 'shift';
+  const deadline = round.shift_deadline ? new Date(round.shift_deadline) : null;
+  const targetName = assignment?.frame_target_user_id
+    ? participants.find((p) => p.user_id === assignment.frame_target_user_id)?.profiles?.display_name ?? 'your target'
+    : null;
+
+  const save = async () => {
+    if (!body.trim()) return;
+    setSaving(true);
+    try {
+      await api.saveAnswer(round.id, clubId, userId, body);
+      toast.success('Answer saved');
+      onSaved();
+    } catch (e: any) {
+      toast.error(e?.message || 'Could not save');
+    } finally { setSaving(false); }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="glass-card p-5">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-muted-foreground/60">Round {round.round_number} · Prompt</span>
+          {deadline && (
+            <span className="text-[11px] font-semibold text-muted-foreground/70 flex items-center gap-1">
+              <Clock className="w-3 h-3" /> {deadline.getTime() > Date.now() ? `${formatDistanceToNowStrict(deadline)} left` : 'Locking…'}
+            </span>
+          )}
+        </div>
+        <p className="text-[17px] font-extrabold leading-snug">{round.prompt_snapshot || 'Prompt loading…'}</p>
+      </div>
+
+      {assignment && <SignalExplainer signal={assignment.signal} />}
+
+      {assignment?.signal === 'FRAME' && targetName && (
+        <div className="glass-card p-3.5 flex items-center gap-2.5" style={{ background: 'hsl(280 65% 62% / 0.08)', border: '1px solid hsl(280 65% 62% / 0.22)' }}>
+          <Target className="w-4 h-4 flex-shrink-0" style={{ color: 'hsl(280 65% 62%)' }} />
+          <p className="text-[12.5px]"><span className="text-muted-foreground/70">Sound like</span> <strong>{targetName}</strong></p>
+        </div>
+      )}
+
+      <div className="glass-card p-4">
+        <label className="form-label">Your answer</label>
+        <Textarea
+          value={body}
+          onChange={(e) => setBody(e.target.value.slice(0, ANSWER_MAX_CHARS))}
+          placeholder="Keep it plausible…"
+          rows={3}
+          disabled={locked}
+          className="form-input resize-none"
+        />
+        <div className="flex items-center justify-between mt-1.5">
+          <span className="text-[10px] text-muted-foreground/60 tabular-nums">{body.length}/{ANSWER_MAX_CHARS}</span>
+          {myAnswer && !locked && <span className="text-[10px] font-bold text-success flex items-center gap-1"><Check className="w-3 h-3" /> Saved · editable</span>}
+          {locked && <span className="text-[10px] font-bold text-muted-foreground/70">Locked</span>}
+        </div>
+        {!locked && (
+          <button onClick={save} disabled={saving || !body.trim()}
+            className="w-full h-11 rounded-xl font-bold btn-press mt-2 flex items-center justify-center gap-2 bg-primary text-primary-foreground disabled:opacity-60">
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+            {myAnswer ? 'Update Answer' : 'Submit Answer'}
+          </button>
+        )}
+      </div>
+
+      <p className="text-[11px] text-muted-foreground/60 flex items-center justify-center gap-1.5">
+        <Users className="w-3 h-3" /> {progress.submitted} of {progress.total} players have responded
+      </p>
+    </div>
+  );
+}

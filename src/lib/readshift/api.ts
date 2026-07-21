@@ -159,6 +159,22 @@ export async function saveAnswer(roundId: string, clubId: string, userId: string
   }
 }
 
+export async function getShiftProgress(roundId: string): Promise<{ submitted: number; total: number }> {
+  const { data } = await sb.rpc('readshift_shift_progress', { _round_id: roundId });
+  const row = Array.isArray(data) ? data[0] : data;
+  return { submitted: row?.submitted ?? 0, total: row?.total ?? 0 };
+}
+export async function getReadProgress(roundId: string): Promise<{ submitted: number; total: number }> {
+  const { data } = await sb.rpc('readshift_read_progress', { _round_id: roundId });
+  const row = Array.isArray(data) ? data[0] : data;
+  return { submitted: row?.submitted ?? 0, total: row?.total ?? 0 };
+}
+/** The guess pool — user_ids who authored an answer this round (read/reveal only). */
+export async function getRoundAuthors(roundId: string): Promise<string[]> {
+  const { data } = await sb.rpc('readshift_round_authors', { _round_id: roundId });
+  return ((data ?? []) as { user_id: string }[]).map((r) => r.user_id);
+}
+
 // ── Read phase ──
 export async function getReadCards(roundId: string): Promise<RsReadCard[]> {
   const { data, error } = await sb.rpc('readshift_read_cards', { _round_id: roundId });

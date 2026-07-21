@@ -9,6 +9,9 @@ import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClub } from '@/contexts/ClubContext';
 import { useReadshiftGame } from '@/hooks/useReadshift';
+import { useReadshiftRound } from '@/hooks/useReadshiftRound';
+import { ShiftPhase } from '@/components/readshift/ShiftPhase';
+import { ReadPhase } from '@/components/readshift/ReadPhase';
 import { StatusPill } from '@/components/ui/status-pill';
 import { cn } from '@/lib/utils';
 import * as api from '@/lib/readshift/api';
@@ -23,7 +26,9 @@ export default function ReadshiftGamePage() {
   const { user } = useAuth();
   const { club, isClubAdmin, isAppAdmin } = useClub();
   const { game, participants, loading, error, refresh } = useReadshiftGame(gameId);
+  const rs = useReadshiftRound(game);
   const [busy, setBusy] = useState(false);
+  const refreshAll = () => { void rs.refresh(); void refresh(); };
 
   const activeParts = participants.filter((p) => p.active);
   const isHost = !!game && game.created_by === user?.id;
@@ -162,23 +167,32 @@ export default function ReadshiftGamePage() {
               )}
             </div>
           </>
+        ) : game.phase === 'shift' && user && club ? (
+          rs.round ? (
+            <ShiftPhase game={game} round={rs.round} assignment={rs.assignment} myAnswer={rs.myAnswer}
+              participants={activeParts} progress={rs.progress} userId={user.id} clubId={club.id} onSaved={refreshAll} />
+          ) : <div className="glass-card p-6"><div className="h-4 w-2/3 rounded skeleton-shimmer" /></div>
+        ) : game.phase === 'read' && user && club ? (
+          rs.round ? (
+            <ReadPhase game={game} round={rs.round} readCards={rs.readCards} authorPool={rs.authorPool}
+              myGuesses={rs.myGuesses} myAnswer={rs.myAnswer} participants={activeParts} progress={rs.progress}
+              userId={user.id} clubId={club.id} onSaved={refreshAll} />
+          ) : <div className="glass-card p-6"><div className="h-4 w-2/3 rounded skeleton-shimmer" /></div>
         ) : (
-          /* Non-lobby: real phase status (the in-round Shift/Read/Reveal UI ships in the next increment). */
+          /* Reveal / completed / paused / cancelled — reveal + results UI lands in the next increment. */
           <div className="glass-card p-5 text-center">
-            <StatusPill variant={game.phase === 'read' ? 'live' : game.phase === 'completed' ? 'neutral' : 'warning'} size="sm">
-              {game.phase === 'shift' ? 'Answering' : game.phase === 'read' ? 'Reading' : game.phase === 'reveal' ? 'Reveal' : game.phase === 'completed' ? 'Complete' : game.phase === 'paused' ? 'Paused' : 'Cancelled'}
+            <StatusPill variant={game.phase === 'completed' ? 'neutral' : game.phase === 'cancelled' ? 'danger' : 'success'} size="sm">
+              {game.phase === 'reveal' ? 'Reveal' : game.phase === 'completed' ? 'Complete' : game.phase === 'paused' ? 'Paused' : 'Cancelled'}
             </StatusPill>
-            {['shift', 'read', 'reveal'].includes(game.phase) && (
-              <p className="text-[15px] font-extrabold mt-3">Round {game.current_round} of {game.total_rounds}</p>
-            )}
-            {deadline && ['shift', 'read', 'reveal'].includes(game.phase) && (
+            {game.phase === 'reveal' && <p className="text-[15px] font-extrabold mt-3">Round {game.current_round} · Results in</p>}
+            {deadline && game.phase === 'reveal' && (
               <p className="text-[12px] text-muted-foreground/70 mt-1 flex items-center justify-center gap-1">
-                <Clock className="w-3 h-3" /> {deadline.getTime() > Date.now() ? `${formatDistanceToNowStrict(deadline)} left` : 'Advancing…'}
+                <Clock className="w-3 h-3" /> {deadline.getTime() > Date.now() ? `${formatDistanceToNowStrict(deadline)} to review` : 'Advancing…'}
               </p>
             )}
-            <p className="text-[11px] text-muted-foreground/60 mt-4 leading-snug">
-              The in-round experience (answering, reading, and the reveal) is being finished — it lands in the next update.
-            </p>
+            {(game.phase === 'reveal' || game.phase === 'completed') && (
+              <p className="text-[11px] text-muted-foreground/60 mt-4 leading-snug">The Reveal & results experience lands in the next update.</p>
+            )}
           </div>
         )}
 
