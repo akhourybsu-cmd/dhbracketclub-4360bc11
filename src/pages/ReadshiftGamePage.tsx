@@ -14,6 +14,7 @@ import { ShiftPhase } from '@/components/readshift/ShiftPhase';
 import { ReadPhase } from '@/components/readshift/ReadPhase';
 import { RevealPhase } from '@/components/readshift/RevealPhase';
 import { FinalResults } from '@/components/readshift/FinalResults';
+import { CommissionerControls } from '@/components/readshift/CommissionerControls';
 import { StatusPill } from '@/components/ui/status-pill';
 import { cn } from '@/lib/utils';
 import * as api from '@/lib/readshift/api';
@@ -207,6 +208,11 @@ export default function ReadshiftGamePage() {
               {game.phase === 'paused' ? 'The host paused this game. It resumes when they pick it back up.' : 'This game was cancelled.'}
             </p>
           </div>
+        )}
+
+        {/* Commissioner controls (in-flight games only) */}
+        {canManage && ['shift', 'read', 'reveal', 'paused'].includes(game.phase) && (
+          <CommissionerControls game={game} onChanged={refreshAll} />
         )}
 
         {/* Settings summary */}

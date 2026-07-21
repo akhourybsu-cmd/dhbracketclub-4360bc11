@@ -21,6 +21,7 @@ import AdminHub from '@/components/profile/AdminHub';
 import { validateImageFile, sanitizeUploadError } from '@/lib/uploadValidation';
 import SoundSettingsCard from '@/components/profile/SoundSettingsCard';
 import { ProfileCelebrationsSection } from '@/components/celebrations/ProfileCelebrationsSection';
+import { ProfileReadshiftSection } from '@/components/readshift/ProfileReadshiftSection';
 import LinkedAccounts from '@/components/profile/LinkedAccounts';
 
 export default function ProfilePage() {
@@ -483,6 +484,9 @@ export default function ProfilePage() {
       <div className="mb-4">
         <ProfileCelebrationsSection />
       </div>
+
+      {/* READSHIFT stats — only renders if the plugin is installed + played */}
+      <ProfileReadshiftSection />
 
       <NotificationPreferencesSection />
 

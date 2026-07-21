@@ -2,7 +2,10 @@
 // READSHIFT — server-authoritative phase advancement & scoring
 //
 // The single source of truth for moving a game between phases. Callable:
-//   • by the host/admin  → { game_id, trigger: 'start'|'pause'|'resume'|'cancel'|'advance' } (user JWT)
+//   • by the host/admin  → { game_id, trigger: 'start'|'pause'|'resume'|'cancel' } (user JWT)
+//                           plus commissioner overrides 'force' (advance the
+//                           current phase now, skipping the due check) and
+//                           'extend' ({ hours } — push the phase deadline out)
 //   • by the scheduler    → { mode: 'scan' } (x-cron-secret) — advances every
 //                           game whose phase_deadline has passed
 //   • as a fallback       → { game_id, trigger: 'advance' } during a normal
@@ -78,9 +81,9 @@ serve(async (req) => {
 
     // ── Single-game action ──
     const gameId = body.game_id as string | undefined;
-    const trigger = (body.trigger as 'start' | 'advance' | 'pause' | 'resume' | 'cancel') || 'advance';
+    const trigger = (body.trigger as Trigger) || 'advance';
     if (!gameId) return json({ error: 'game_id required' }, 400);
-    const result = await advanceGame(admin, SUPABASE_URL, CRON_SECRET, gameId, trigger, userId);
+    const result = await advanceGame(admin, SUPABASE_URL, CRON_SECRET, gameId, trigger, userId, Number(body.hours) || undefined);
     return json(result, result.error ? 400 : 200);
   } catch (e) {
     console.error('readshift-advance error:', e);
@@ -89,19 +92,25 @@ serve(async (req) => {
 });
 
 // ── Core, idempotent, compare-and-swap on version ──────────────────
+type Trigger = 'start' | 'advance' | 'force' | 'extend' | 'pause' | 'resume' | 'cancel';
+
 async function advanceGame(
   admin: ReturnType<typeof createClient>,
   supabaseUrl: string,
   cronSecret: string,
   gameId: string,
-  trigger: 'start' | 'advance' | 'pause' | 'resume' | 'cancel',
+  trigger: Trigger,
   userId: string | null,
+  hours?: number,
 ): Promise<{ changed: boolean; phase?: string; error?: string }> {
   const { data: game } = await admin.from('readshift_games').select('*').eq('id', gameId).maybeSingle();
   if (!game) return { changed: false, error: 'Game not found' };
   const g = game as Record<string, any>;
 
   // ── Permission check for host-initiated triggers ──
+  // Everything except the fallback 'advance' is a deliberate commissioner
+  // action and requires host/admin. ('advance' is also fired by cron/clients
+  // with no user, gated only by the DUE re-check below.)
   if (userId && trigger !== 'advance') {
     const isHost = g.created_by === userId;
     let isAdmin = false;
@@ -111,11 +120,25 @@ async function advanceGame(
     if (!isHost && !isAdmin && !appAdmin) return { changed: false, error: 'Only the host or an admin can do that' };
   }
 
+  // ── Extend: bump the current phase deadline, no phase change ──
+  if (trigger === 'extend') {
+    if (!['shift', 'read', 'reveal'].includes(g.phase)) return { changed: false, error: 'Nothing to extend' };
+    const add = Math.min(Math.max(hours ?? 12, 1), 168); // 1h..7d
+    const base = g.phase_deadline && new Date(g.phase_deadline).getTime() > Date.now() ? new Date(g.phase_deadline) : new Date();
+    const next = new Date(base.getTime() + add * 3600_000).toISOString();
+    await admin.from('readshift_games').update({ phase_deadline: next }).eq('id', gameId);
+    return { changed: true, phase: g.phase };
+  }
+
+  // 'force' shares the natural 'advance' target but skips the DUE gate.
+  const engineTrigger = (trigger === 'force' ? 'advance' : trigger) as
+    'start' | 'advance' | 'pause' | 'resume' | 'cancel';
   const ctx = { round: g.current_round || 0, totalRounds: g.total_rounds, resumeInto: g.paused_from_phase as any };
-  const target = resolveTransition(g.phase, trigger, ctx);
+  const target = resolveTransition(g.phase, engineTrigger, ctx);
   if (!target) return { changed: false, error: `Illegal transition: ${trigger} from ${g.phase}` };
 
-  // ── For an 'advance', re-verify the transition is actually DUE ──
+  // ── For a fallback 'advance', re-verify the transition is actually DUE.
+  //    A commissioner 'force' skips this (deliberate early advance). ──
   if (trigger === 'advance') {
     const due = await transitionIsDue(admin, g);
     if (!due) return { changed: false, phase: g.phase };

@@ -18,7 +18,7 @@ import type {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const sb = supabase as any;
 
-export type PhaseTrigger = 'start' | 'advance' | 'pause' | 'resume' | 'cancel';
+export type PhaseTrigger = 'start' | 'advance' | 'force' | 'pause' | 'resume' | 'cancel';
 
 export interface CreateGameInput {
   clubId: string;
@@ -126,6 +126,11 @@ export async function triggerPhase(gameId: string, trigger: PhaseTrigger): Promi
 /** Fallback "advance if due" call — safe to fire whenever the game screen loads. */
 export async function pokeAdvance(gameId: string): Promise<void> {
   try { await supabase.functions.invoke('readshift-advance', { body: { game_id: gameId, trigger: 'advance' } }); } catch { /* non-fatal */ }
+}
+/** Commissioner: extend the current phase deadline by `hours` (host/admin only). */
+export async function extendPhase(gameId: string, hours: number): Promise<void> {
+  const { error } = await supabase.functions.invoke('readshift-advance', { body: { game_id: gameId, trigger: 'extend', hours } });
+  if (error) throw error;
 }
 
 // ── Rounds & the player's private state ──
