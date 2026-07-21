@@ -17,7 +17,7 @@ export function HowToPlayDialog({ trigger, variant = 'button' }: Props) {
     variant === 'icon' ? (
       <button
         aria-label="How to play"
-        className="w-9 h-9 rounded-xl flex items-center justify-center btn-press border border-border/50 bg-card/50"
+        className="w-11 h-11 rounded-xl flex items-center justify-center btn-press border border-border/60 bg-card/50"
       >
         <BookOpen className="w-4 h-4" style={{ color: 'hsl(var(--primary))' }} />
       </button>
