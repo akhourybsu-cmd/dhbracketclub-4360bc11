@@ -49,7 +49,7 @@ export function ProfileReadshiftSection() {
       ['Tell', stats.tell_success, stats.tell_rounds],
       ['Blur', stats.blur_success, stats.blur_rounds],
       ['Frame', stats.frame_success, stats.frame_rounds],
-    ].filter(([, , r]) => r > 0) as [string, number, number][];
+    ].filter((row) => (row[2] as number) > 0) as [string, number, number][];
     if (!opts.length) return null;
     opts.sort((a, b) => (b[1] / b[2]) - (a[1] / a[2]));
     return `${opts[0][0]} (${pct(opts[0][1], opts[0][2])})`;
