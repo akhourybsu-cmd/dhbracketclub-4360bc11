@@ -171,7 +171,7 @@ export default function CreateDraftPage() {
                           color: 'hsl(160 30% 6%)',
                           boxShadow: '0 4px 14px hsl(45 95% 40% / 0.45), inset 0 1px 0 hsl(45 100% 90% / 0.55)',
                         }
-                      : { background: 'hsl(160 30% 9% / 0.7)', border: '1px solid hsl(45 80% 50% / 0.18)' }
+                      : { background: 'hsl(var(--muted) / 0.6)', border: '1px solid hsl(var(--gold) / 0.18)' }
                   }
                 >
                   {n}
@@ -186,15 +186,17 @@ export default function CreateDraftPage() {
           disabled={loading || !topic.trim()}
           className="w-full h-12 rounded-xl font-black uppercase tracking-[0.14em] text-[13px] btn-press transition-all disabled:cursor-not-allowed"
           style={{
-            color: loading || !topic.trim() ? 'hsl(45 60% 78%)' : 'hsl(160 40% 6%)',
+            color: loading || !topic.trim() ? 'hsl(var(--muted-foreground))' : 'hsl(160 40% 6%)',
             background: loading || !topic.trim()
-              ? 'linear-gradient(135deg, hsl(45 35% 22%), hsl(40 30% 16%))'
+              ? 'hsl(var(--muted) / 0.6)'
               : 'linear-gradient(135deg, hsl(45 100% 65%), hsl(40 95% 50%))',
-            border: '1px solid hsl(45 95% 55% / 0.55)',
+            border: loading || !topic.trim()
+              ? '1px solid hsl(var(--border))'
+              : '1px solid hsl(45 95% 55% / 0.55)',
             boxShadow: loading || !topic.trim()
-              ? 'inset 0 1px 0 hsl(45 60% 60% / 0.18)'
+              ? 'none'
               : '0 6px 20px hsl(45 95% 40% / 0.5), inset 0 1px 0 hsl(45 100% 90% / 0.65)',
-            opacity: loading || !topic.trim() ? 0.85 : 1,
+            opacity: loading || !topic.trim() ? 0.9 : 1,
           }}
         >
           {loading ? 'Creating…' : 'Create Draft'}
