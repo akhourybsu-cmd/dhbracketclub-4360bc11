@@ -97,7 +97,7 @@ function renderInlineTokens(text: string, currentDisplayName?: string, keyPrefix
     switch (t.type) {
       case 'code':
         return (
-          <code key={k} className="px-1 py-0.5 rounded text-[12.5px] font-mono bg-black/25 dark:bg-black/40 text-foreground/95">
+          <code key={k} className="px-1 py-0.5 rounded text-[12.5px] font-mono bg-black/[0.08] dark:bg-black/40 text-foreground/95">
             {t.value}
           </code>
         );
@@ -158,7 +158,7 @@ function renderContent(text: string, currentUserId?: string, currentDisplayName?
       return (
         <pre
           key={`cb-${i}`}
-          className="my-1.5 rounded-md bg-black/35 dark:bg-black/55 border border-border/20 px-3 py-2 overflow-x-auto"
+          className="my-1.5 rounded-md bg-black/[0.06] dark:bg-black/55 border border-border/20 px-3 py-2 overflow-x-auto"
         >
           {seg.lang && (
             <div className="text-[9px] font-bold uppercase tracking-[0.15em] text-muted-foreground/65 mb-1">{seg.lang}</div>

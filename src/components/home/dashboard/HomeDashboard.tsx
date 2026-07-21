@@ -254,7 +254,13 @@ export function HomeDashboard({
 
   /* ─── Render ────────────────────────────────────────────────── */
   return (
-    <div className="pb-8">
+    // The desktop command center is a bespoke dark "midnight" surface
+    // (navy cards, light text). Its card text inherits `color`, so under the
+    // app's light theme it went dark-on-navy and became unreadable. Pin this
+    // subtree to the dark token scope + re-set the inherited foreground so the
+    // command center renders as its intended dark design in BOTH app themes.
+    // (Nesting `.dark` inside the app's dark mode is a no-op — no regression.)
+    <div className="dark text-foreground pb-8">
       <HomeHeader
         club={club}
         displayName={displayName}
