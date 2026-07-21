@@ -5,6 +5,7 @@ import { useClub } from '@/contexts/ClubContext';
 import { useReadshiftGames } from '@/hooks/useReadshift';
 import { StatusPill } from '@/components/ui/status-pill';
 import type { RsGame } from '@/lib/readshift/dbTypes';
+import { HowToPlayDialog } from '@/components/readshift/HowToPlayDialog';
 import type { Phase } from '@/lib/readshift/types';
 
 const PHASE_META: Record<Phase, { label: string; variant: 'neutral' | 'success' | 'warning' | 'live' | 'danger' }> = {
@@ -62,11 +63,14 @@ export default function ReadshiftListPage() {
           </div>
         </div>
 
-        <Link to="/readshift/create" className="block mb-4">
-          <button className="w-full h-11 rounded-xl font-bold btn-press flex items-center justify-center gap-2 bg-primary text-primary-foreground">
-            <Plus className="w-4 h-4" /> New Game
-          </button>
-        </Link>
+        <div className="flex gap-2 mb-4">
+          <Link to="/readshift/create" className="flex-1">
+            <button className="w-full h-11 rounded-xl font-bold btn-press flex items-center justify-center gap-2 bg-primary text-primary-foreground">
+              <Plus className="w-4 h-4" /> New Game
+            </button>
+          </Link>
+          <HowToPlayDialog variant="icon" />
+        </div>
 
         {loading ? (
           <div className="space-y-3">
