@@ -137,6 +137,12 @@ export async function removeParticipant(gameId: string, userId: string): Promise
   await sb.from('readshift_participants').update({ active: false }).eq('game_id', gameId).eq('user_id', userId);
 }
 
+/** Permanently delete a game while it is still in the lobby phase. RLS enforces creator/admin. */
+export async function deleteGame(gameId: string): Promise<void> {
+  const { error } = await sb.from('readshift_games').delete().eq('id', gameId).eq('phase', 'lobby');
+  if (error) throw error;
+}
+
 // ── Phase transitions (delegated to the server-authoritative edge fn) ──
 export async function triggerPhase(gameId: string, trigger: PhaseTrigger): Promise<{ phase?: string; error?: string }> {
   const { data, error } = await supabase.functions.invoke('readshift-advance', { body: { game_id: gameId, trigger } });
