@@ -23,6 +23,7 @@ export type NotifyType =
   | 'brackets'
   | 'nexus'
   | 'runedelve'
+  | 'readshift'
   | 'system';
 
 export interface NotifyParams {

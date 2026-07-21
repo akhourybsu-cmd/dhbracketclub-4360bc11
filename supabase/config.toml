@@ -26,3 +26,8 @@ verify_jwt = false
 
 [functions.brackets-entry-reminder]
 verify_jwt = false
+
+# readshift-advance validates a user JWT (host actions) OR the x-cron-secret
+# (scheduler scan) internally, so JWT verification is disabled at the edge.
+[functions.readshift-advance]
+verify_jwt = false

@@ -196,7 +196,7 @@ Deno.serve(async (req) => {
     const ALLOWED_TYPES = new Set([
       "poll", "event", "draft", "lockbox", "thread_reply", "reaction",
       "portfolio_wars", "pickem", "rankings", "posts", "lore",
-      "celebrations", "narrative", "brackets", "nexus", "runedelve", "system",
+      "celebrations", "narrative", "brackets", "nexus", "runedelve", "readshift", "system",
     ]);
 
     if (body.type && ALLOWED_TYPES.has(body.type)) {
@@ -252,6 +252,7 @@ Deno.serve(async (req) => {
         type === "brackets" ? "brackets" :
         type === "nexus" ? "nexus" :
         type === "runedelve" ? "runedelve" :
+        type === "readshift" ? "readshift" :
         type === "system" ? "system" :
         "drafts";
 
