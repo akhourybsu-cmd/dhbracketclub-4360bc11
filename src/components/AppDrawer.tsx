@@ -56,6 +56,7 @@ export function AppDrawer({ open, onOpenChange, unreadChatCount = 0 }: AppDrawer
         { path: '/brackets', label: 'Brackets', icon: BracketsIcon },
         { path: '/portfolio-wars', label: 'Portfolio Wars', icon: TrendingUp },
         { path: '/lockbox', label: 'Lockbox', icon: Lock },
+        { path: '/readshift', label: 'READSHIFT', icon: BookMarked },
       ],
     },
     {
