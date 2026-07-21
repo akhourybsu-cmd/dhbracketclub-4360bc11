@@ -18,6 +18,21 @@ import type {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const sb = supabase as any;
 
+type ProfileSnippet = { id: string; display_name?: string; avatar_url?: string | null };
+
+async function fetchProfileMap(userIds: string[]): Promise<Map<string, ProfileSnippet>> {
+  const uniqueIds = Array.from(new Set(userIds.filter(Boolean)));
+  if (uniqueIds.length === 0) return new Map();
+
+  const { data, error } = await sb
+    .from('profiles')
+    .select('id, display_name, avatar_url')
+    .in('id', uniqueIds);
+
+  if (error) throw error;
+  return new Map(((data ?? []) as ProfileSnippet[]).map((profile) => [profile.id, profile]));
+}
+
 export type PhaseTrigger = 'start' | 'advance' | 'force' | 'pause' | 'resume' | 'cancel';
 
 export interface CreateGameInput {
@@ -89,11 +104,16 @@ export async function getGame(gameId: string): Promise<RsGame | null> {
 export async function getParticipants(gameId: string): Promise<RsParticipant[]> {
   const { data, error } = await sb
     .from('readshift_participants')
-    .select('*, profiles:user_id(display_name, avatar_url)')
+    .select('*')
     .eq('game_id', gameId)
     .order('joined_at');
   if (error) throw error;
-  return (data ?? []) as RsParticipant[];
+  const participants = (data ?? []) as RsParticipant[];
+  const profiles = await fetchProfileMap(participants.map((participant) => participant.user_id));
+  return participants.map((participant) => ({
+    ...participant,
+    profiles: profiles.get(participant.user_id) ?? null,
+  }));
 }
 
 export async function joinGame(gameId: string, clubId: string, userId: string): Promise<void> {
@@ -237,8 +257,18 @@ export async function toggleReaction(answerId: string, userId: string, reactionT
   }
 }
 export async function getComments(roundId: string): Promise<RsComment[]> {
-  const { data } = await sb.from('readshift_comments').select('*, profiles:user_id(display_name, avatar_url)').eq('round_id', roundId).order('created_at');
-  return (data ?? []) as RsComment[];
+  const { data, error } = await sb
+    .from('readshift_comments')
+    .select('*')
+    .eq('round_id', roundId)
+    .order('created_at');
+  if (error) throw error;
+  const comments = (data ?? []) as RsComment[];
+  const profiles = await fetchProfileMap(comments.map((comment) => comment.user_id));
+  return comments.map((comment) => ({
+    ...comment,
+    profiles: profiles.get(comment.user_id) ?? null,
+  }));
 }
 export async function addComment(roundId: string, clubId: string, userId: string, content: string, answerId?: string): Promise<void> {
   const clean = content.trim().slice(0, 500);
