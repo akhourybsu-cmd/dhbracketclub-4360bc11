@@ -6,9 +6,9 @@ import { cn } from '@/lib/utils';
 import type { Signal } from '@/lib/readshift/types';
 
 const META: Record<Signal, { label: string; icon: LucideIcon; hsl: string; explain: string }> = {
-  TELL: { label: 'TELL', icon: Fingerprint, hsl: '152 72% 46%', explain: 'Answer honestly and recognizably. You score when others correctly identify you as the author.' },
-  BLUR: { label: 'BLUR', icon: Waves, hsl: '200 80% 55%', explain: 'Write something believable that could belong to several people. You score when readers misattribute you or spread their guesses.' },
-  FRAME: { label: 'FRAME', icon: VenetianMask, hsl: '280 65% 62%', explain: 'Answer so it sounds like your secret target. You score when others attribute your answer to them.' },
+  TELL: { label: 'TELL', icon: Fingerprint, hsl: '152 68% 52%', explain: 'Answer honestly and recognizably. You score when others correctly identify you as the author.' },
+  BLUR: { label: 'BLUR', icon: Waves, hsl: '200 82% 58%', explain: 'Write something believable that could belong to several people. You score when readers misattribute you or spread their guesses.' },
+  FRAME: { label: 'FRAME', icon: VenetianMask, hsl: '315 82% 66%', explain: 'Answer so it sounds like your secret target. You score when others attribute your answer to them.' },
 };
 
 export function SignalBadge({ signal, size = 'md' }: { signal: Signal; size?: 'sm' | 'md' }) {

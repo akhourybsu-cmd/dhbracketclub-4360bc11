@@ -63,8 +63,8 @@ export function ShiftPhase({ game, round, assignment, myAnswer, participants, pr
       {assignment && <SignalExplainer signal={assignment.signal} />}
 
       {assignment?.signal === 'FRAME' && targetName && (
-        <div className="glass-card p-3.5 flex items-center gap-2.5" style={{ background: 'hsl(280 65% 62% / 0.08)', border: '1px solid hsl(280 65% 62% / 0.22)' }}>
-          <Target className="w-4 h-4 flex-shrink-0" style={{ color: 'hsl(280 65% 62%)' }} />
+        <div className="glass-card p-3.5 flex items-center gap-2.5" style={{ background: 'hsl(315 80% 64% / 0.1)', border: '1px solid hsl(315 80% 64% / 0.28)' }}>
+          <Target className="w-4 h-4 flex-shrink-0" style={{ color: 'hsl(315 80% 66%)' }} />
           <p className="text-[12.5px]"><span className="text-muted-foreground/70">Sound like</span> <strong>{targetName}</strong></p>
         </div>
       )}
@@ -86,7 +86,7 @@ export function ShiftPhase({ game, round, assignment, myAnswer, participants, pr
         </div>
         {!locked && (
           <button onClick={save} disabled={saving || !body.trim()}
-            className="w-full h-11 rounded-xl font-bold btn-press mt-2 flex items-center justify-center gap-2 bg-primary text-primary-foreground disabled:opacity-60">
+            className="rs-cta w-full h-11 rounded-xl btn-press mt-2">
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
             {myAnswer ? 'Update Answer' : 'Submit Answer'}
           </button>

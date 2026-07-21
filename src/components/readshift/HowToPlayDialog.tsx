@@ -30,7 +30,7 @@ export function HowToPlayDialog({ trigger, variant = 'button' }: Props) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger ?? defaultTrigger}</DialogTrigger>
-      <DialogContent className="max-w-lg max-h-[85dvh] overflow-y-auto p-0">
+      <DialogContent className="rs-mode max-w-lg max-h-[85dvh] overflow-y-auto p-0">
         <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border/60 px-5 py-4">
           <DialogHeader>
             <div className="flex items-center gap-3">

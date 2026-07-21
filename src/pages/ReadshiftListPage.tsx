@@ -1,44 +1,53 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { VenetianMask, Plus, ChevronRight, Users } from 'lucide-react';
+import { VenetianMask, Plus, ChevronRight, Users, Fingerprint, Waves } from 'lucide-react';
 import { useClub } from '@/contexts/ClubContext';
 import { useReadshiftGames } from '@/hooks/useReadshift';
-import { StatusPill } from '@/components/ui/status-pill';
-import type { RsGame } from '@/lib/readshift/dbTypes';
 import { HowToPlayDialog } from '@/components/readshift/HowToPlayDialog';
+import type { RsGame } from '@/lib/readshift/dbTypes';
 import type { Phase } from '@/lib/readshift/types';
 
-const PHASE_META: Record<Phase, { label: string; variant: 'neutral' | 'success' | 'warning' | 'live' | 'danger' }> = {
-  lobby: { label: 'Waiting for Players', variant: 'neutral' },
-  shift: { label: 'Answering', variant: 'warning' },
-  read: { label: 'Reading', variant: 'live' },
-  reveal: { label: 'Reveal', variant: 'success' },
-  completed: { label: 'Complete', variant: 'neutral' },
-  paused: { label: 'Paused', variant: 'neutral' },
-  cancelled: { label: 'Cancelled', variant: 'danger' },
+const PHASE_META: Record<Phase, { label: string; hsl: string; live?: boolean }> = {
+  lobby: { label: 'Gathering', hsl: '278 60% 70%' },
+  shift: { label: 'Answering', hsl: '45 96% 62%', live: true },
+  read: { label: 'Reading', hsl: '200 80% 60%', live: true },
+  reveal: { label: 'Reveal', hsl: '305 82% 66%', live: true },
+  completed: { label: 'Complete', hsl: '278 20% 70%' },
+  paused: { label: 'Paused', hsl: '278 20% 70%' },
+  cancelled: { label: 'Cancelled', hsl: '350 70% 62%' },
 };
 
 function GameRow({ g }: { g: RsGame }) {
   const meta = PHASE_META[g.phase] ?? PHASE_META.lobby;
   const roundLine = ['shift', 'read', 'reveal'].includes(g.phase)
     ? `Round ${g.current_round} of ${g.total_rounds}`
-    : g.phase === 'completed' ? `${g.total_rounds} rounds` : `${g.total_rounds}-round game`;
+    : g.phase === 'completed' ? `${g.total_rounds} rounds played` : `${g.total_rounds}-round game`;
   return (
     <Link to={`/readshift/${g.id}`} className="block">
-      <div className="glass-card p-4 hover-lift btn-press flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-          style={{ background: 'linear-gradient(135deg, hsl(var(--primary) / 0.2), hsl(var(--primary) / 0.05))' }}>
-          <VenetianMask className="w-5 h-5" style={{ color: 'hsl(var(--primary))' }} />
+      <motion.div whileTap={{ scale: 0.985 }}
+        className="glass-card p-4 flex items-center gap-3 relative overflow-hidden"
+        style={{ borderColor: `hsl(${meta.hsl} / 0.3)` }}>
+        {/* phase-tinted edge glow */}
+        <div aria-hidden className="absolute inset-y-0 left-0 w-1" style={{ background: `hsl(${meta.hsl})`, boxShadow: `0 0 16px hsl(${meta.hsl} / 0.7)` }} />
+        {/* faint mask watermark */}
+        <VenetianMask aria-hidden className="absolute -right-3 -bottom-3 w-20 h-20 opacity-[0.06] rotate-12" style={{ color: `hsl(${meta.hsl})` }} />
+        <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 relative z-10"
+          style={{ background: `radial-gradient(circle at 30% 30%, hsl(${meta.hsl} / 0.3), transparent 70%), linear-gradient(135deg, hsl(268 40% 14%), hsl(270 50% 8%))`, border: `1px solid hsl(${meta.hsl} / 0.4)` }}>
+          <VenetianMask className="w-5 h-5" style={{ color: `hsl(${meta.hsl})` }} />
         </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <h3 className="font-bold text-[14px] truncate">{g.name}</h3>
-            <StatusPill variant={meta.variant} size="xs" dot={meta.variant === 'live'} pulse={meta.variant === 'live'}>{meta.label}</StatusPill>
+        <div className="min-w-0 flex-1 relative z-10">
+          <h3 className="font-extrabold text-[14px] truncate">{g.name}</h3>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-[0.1em]" style={{ color: `hsl(${meta.hsl})` }}>
+              {meta.live && <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: `hsl(${meta.hsl})` }} />}
+              {meta.label}
+            </span>
+            <span className="text-[11px] text-muted-foreground/60">·</span>
+            <span className="text-[11px] text-muted-foreground/70">{roundLine}</span>
           </div>
-          <p className="text-[11px] text-muted-foreground/70 mt-0.5">{roundLine}</p>
         </div>
-        <ChevronRight className="w-4 h-4 text-muted-foreground/50 flex-shrink-0" />
-      </div>
+        <ChevronRight className="w-4 h-4 text-muted-foreground/45 flex-shrink-0 relative z-10" />
+      </motion.div>
     </Link>
   );
 }
@@ -51,57 +60,62 @@ export default function ReadshiftListPage() {
   const past = games.filter((g) => ['completed', 'cancelled'].includes(g.phase));
 
   return (
-    <div className="pb-6">
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-        <div className="page-header">
-          <div className="page-header-icon" style={{ background: 'linear-gradient(135deg, hsl(var(--primary) / 0.2), hsl(var(--primary) / 0.05))' }}>
-            <VenetianMask className="w-5 h-5" style={{ color: 'hsl(var(--primary))' }} />
-          </div>
-          <div>
-            <h1 className="page-header-title">READSHIFT</h1>
-            <p className="page-header-subtitle">Async social deduction</p>
-          </div>
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+      {/* Hero start panel */}
+      <div className="glass-card p-5 relative overflow-hidden text-center"
+        style={{ background: 'radial-gradient(120% 90% at 50% 0%, hsl(285 85% 40% / 0.18), transparent 62%), linear-gradient(180deg, hsl(268 40% 11% / 0.9), hsl(270 46% 6% / 0.94))' }}>
+        {/* twin signal-mask motif */}
+        <div className="flex items-center justify-center gap-2 mb-3">
+          {[{ i: Fingerprint, c: '152 66% 54%' }, { i: VenetianMask, c: '305 82% 66%' }, { i: Waves, c: '200 80% 60%' }].map(({ i: Icon, c }, k) => (
+            <div key={k} className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: `hsl(${c} / 0.14)`, border: `1px solid hsl(${c} / 0.32)` }}>
+              <Icon className="w-4 h-4" style={{ color: `hsl(${c})` }} />
+            </div>
+          ))}
         </div>
-
-        <div className="flex gap-2 mb-4">
+        <h1 className="text-[19px] font-black tracking-tight mb-1">Can they read you?</h1>
+        <p className="text-[12px] text-muted-foreground/75 leading-snug max-w-[300px] mx-auto mb-4">
+          Answer prompts in a secret voice. Then unmask who wrote what. Play at your own pace.
+        </p>
+        <div className="flex gap-2">
           <Link to="/readshift/create" className="flex-1">
-            <button className="w-full h-11 rounded-xl font-bold btn-press flex items-center justify-center gap-2 bg-primary text-primary-foreground">
+            <button className="rs-cta w-full h-12 rounded-xl btn-press">
               <Plus className="w-4 h-4" /> New Game
             </button>
           </Link>
           <HowToPlayDialog variant="icon" />
         </div>
+      </div>
 
-        {loading ? (
-          <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="glass-card p-4"><div className="h-4 w-1/3 rounded skeleton-shimmer mb-2" /><div className="h-3 w-1/2 rounded skeleton-shimmer" /></div>
-            ))}
+      {loading ? (
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="glass-card p-4"><div className="h-4 w-1/3 rounded skeleton-shimmer mb-2" /><div className="h-3 w-1/2 rounded skeleton-shimmer" /></div>
+          ))}
+        </div>
+      ) : games.length === 0 ? (
+        <div className="glass-card p-8 text-center">
+          <div className="w-12 h-12 rounded-2xl mx-auto mb-3 flex items-center justify-center" style={{ background: 'hsl(280 85% 66% / 0.14)', border: '1px solid hsl(280 85% 66% / 0.3)' }}>
+            <Users className="w-6 h-6" style={{ color: 'hsl(285 92% 78%)' }} />
           </div>
-        ) : games.length === 0 ? (
-          <div className="glass-card p-8 text-center">
-            <div className="w-12 h-12 rounded-2xl mx-auto mb-3 flex items-center justify-center" style={{ background: 'hsl(var(--primary) / 0.12)' }}>
-              <Users className="w-6 h-6" style={{ color: 'hsl(var(--primary))' }} />
+          <p className="text-sm font-bold mb-1">No games yet</p>
+          <p className="text-[12px] text-muted-foreground/70">Start a game and gather 4+ players to begin reading each other.</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {active.length > 0 && (
+            <div className="space-y-2.5">{active.map((g) => <GameRow key={g.id} g={g} />)}</div>
+          )}
+          {past.length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 mb-2.5">
+                <span className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-muted-foreground/55">The Archive</span>
+                <div className="rs-divider flex-1" />
+              </div>
+              <div className="space-y-2.5">{past.map((g) => <GameRow key={g.id} g={g} />)}</div>
             </div>
-            <p className="text-sm font-bold mb-1">No games yet</p>
-            <p className="text-[12px] text-muted-foreground/70">Create a game and invite 4+ friends to start reading each other.</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {active.length > 0 && (
-              <div className="space-y-3">
-                {active.map((g) => <GameRow key={g.id} g={g} />)}
-              </div>
-            )}
-            {past.length > 0 && (
-              <div>
-                <h2 className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-muted-foreground/60 mb-2">History</h2>
-                <div className="space-y-3">{past.map((g) => <GameRow key={g.id} g={g} />)}</div>
-              </div>
-            )}
-          </div>
-        )}
-      </motion.div>
-    </div>
+          )}
+        </div>
+      )}
+    </motion.div>
   );
 }

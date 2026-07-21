@@ -3330,6 +3330,231 @@
 .da-mode .active\:text-primary:active { color: hsl(45 100% 70%); }
 .da-mode .active\:bg-primary\/10:active { background-color: hsl(45 95% 55% / 0.18); }
 
+/* ══════════════════════════════════════════════════════════
+   READSHIFT (.rs-mode) — standalone shell skin
+   Masquerade-noir identity: a violet night lit by a single
+   spotlight, drifting masks. Distinct from Draft Arena (gold),
+   Nexus (cyan), Pick'em (gold+emerald), Portfolio Wars (bull green).
+   Used by /readshift/* via ReadshiftLayout.
+   Signal palette: TELL = honest green · BLUR = obscured cyan ·
+   FRAME = deceiver magenta.
+   ══════════════════════════════════════════════════════════ */
+.rs-mode {
+  /* Force the violet masquerade palette regardless of app light/dark theme.
+     Overriding the tokens re-skins every bg-card/bg-muted/border/text-muted
+     surface automatically, so pre-existing utility classes render with
+     rs-correct contrast without touching each component. */
+  --background: 265 45% 6%;
+  --card: 268 40% 10%;
+  --popover: 268 42% 11%;
+  --muted: 268 30% 15%;
+  --border: 275 40% 24%;
+  --input: 268 34% 15%;
+  --secondary: 268 32% 13%;
+  --foreground: 285 30% 97%;
+  --card-foreground: 285 30% 97%;
+  --popover-foreground: 285 30% 97%;
+  --secondary-foreground: 285 22% 84%;
+  /* Soft lilac grey — readable over the violet-dark surface */
+  --muted-foreground: 278 22% 74%;
+  /* Violet primary + magenta accent */
+  --primary: 275 85% 68%;
+  --primary-foreground: 270 55% 8%;
+  --primary-glow: 288 90% 72%;
+  --accent: 305 82% 64%;
+  --accent-foreground: 0 0% 100%;
+  --ring: 278 85% 68%;
+  --gold: 45 96% 62%;
+  --success: 152 66% 54%;
+  --destructive: 350 78% 62%;
+  color: hsl(285 30% 97%);
+}
+
+.rs-shell {
+  background:
+    /* the spotlight cone from stage-top */
+    radial-gradient(ellipse 90% 55% at 50% -8%, hsl(280 90% 60% / 0.20), transparent 62%),
+    radial-gradient(ellipse 60% 40% at 50% -4%, hsl(300 90% 66% / 0.12), transparent 60%),
+    /* magenta footlight glow */
+    radial-gradient(ellipse 120% 55% at 50% 112%, hsl(305 82% 45% / 0.12), transparent 70%),
+    linear-gradient(180deg, hsl(265 45% 7%), hsl(270 52% 3.5%));
+  color: hsl(var(--foreground));
+}
+
+/* Vignette + faint vertical spotlight beams (theatre haze) */
+.rs-shell::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 100% 80% at 50% 40%, transparent 55%, hsl(270 60% 2% / 0.55) 100%),
+    repeating-linear-gradient(74deg, transparent 0, transparent 120px, hsl(280 90% 65% / 0.022) 120px, hsl(280 90% 65% / 0.022) 121px);
+  mask-image: linear-gradient(180deg, black 0%, black 70%, transparent 100%);
+  -webkit-mask-image: linear-gradient(180deg, black 0%, black 70%, transparent 100%);
+  z-index: 0;
+}
+
+/* Drifting violet mote (decorative confetti-of-the-ball) */
+.rs-mote {
+  position: fixed;
+  width: 5px;
+  height: 5px;
+  border-radius: 9999px;
+  pointer-events: none;
+  background: radial-gradient(circle, hsl(285 95% 78% / 0.9), transparent 70%);
+  filter: blur(0.5px);
+  animation: rsMoteDrift 10s ease-in-out infinite;
+  z-index: 1;
+}
+.rs-mote-2 { animation-duration: 13s; animation-delay: -4s; opacity: 0.7;
+  background: radial-gradient(circle, hsl(305 95% 74% / 0.85), transparent 70%); }
+.rs-mote-3 { animation-duration: 16s; animation-delay: -8s; opacity: 0.55; }
+@keyframes rsMoteDrift {
+  0%,100% { transform: translate(0,0); opacity: 0.5; }
+  50%     { transform: translate(-10px,-16px); opacity: 1; }
+}
+
+/* Persistent brand HUD bar */
+.rs-hud {
+  background: linear-gradient(180deg, hsl(268 45% 9% / 0.86), hsl(268 50% 6% / 0.72));
+  border-bottom: 1px solid hsl(278 55% 40% / 0.28);
+  backdrop-filter: blur(14px) saturate(150%);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+}
+
+/* READSHIFT wordmark — tracked caps, violet→magenta gradient with glow */
+.rs-wordmark {
+  font-weight: 900;
+  letter-spacing: 0.28em;
+  background: linear-gradient(100deg, hsl(280 40% 98%), hsl(285 92% 76%) 55%, hsl(305 90% 72%));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 20px hsl(285 90% 55% / 0.35);
+}
+
+/* Card surface — violet glass replacement for glass-card */
+.rs-mode .glass-card,
+.rs-mode .rs-glass {
+  background: linear-gradient(180deg, hsl(268 38% 11% / 0.9), hsl(270 46% 6% / 0.94));
+  border: 1px solid hsl(278 50% 42% / 0.22);
+  border-radius: 16px;
+  box-shadow:
+    0 1px 0 hsl(285 90% 75% / 0.08) inset,
+    0 14px 40px -20px hsl(280 90% 30% / 0.55);
+  position: relative;
+}
+/* Quieter card-on-card */
+.rs-mode .rs-subcard {
+  background: hsl(268 32% 13% / 0.6);
+  border: 1px solid hsl(278 45% 45% / 0.14);
+  border-radius: 12px;
+}
+
+/* Mask emblem tile */
+.rs-page-icon {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 0.95rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at 32% 28%, hsl(300 90% 66% / 0.35), transparent 70%),
+    linear-gradient(135deg, hsl(268 40% 14%), hsl(270 50% 7%));
+  border: 1px solid hsl(280 85% 66% / 0.4);
+  box-shadow: 0 0 18px hsl(285 90% 55% / 0.3), inset 0 1px 0 hsl(290 90% 82% / 0.16);
+  color: hsl(285 92% 78%);
+  flex-shrink: 0;
+}
+
+/* Back / icon button */
+.rs-back {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: hsl(268 38% 12% / 0.7);
+  border: 1px solid hsl(278 50% 45% / 0.24);
+  color: hsl(285 90% 80%);
+  transition: background 150ms ease, border-color 150ms ease, transform 80ms ease;
+}
+.rs-back:hover { background: hsl(268 40% 16% / 0.9); border-color: hsl(280 70% 60% / 0.4); }
+.rs-back:active { transform: scale(0.95); }
+.rs-back:focus-visible { outline: none; box-shadow: 0 0 0 2px hsl(280 85% 66% / 0.5); }
+
+/* Primary CTA — violet→magenta with glow. Reserved for the hero action. */
+.rs-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: hsl(0 0% 100%);
+  background: linear-gradient(135deg, hsl(278 88% 62%), hsl(305 85% 56%));
+  box-shadow:
+    0 8px 26px -8px hsl(288 85% 50% / 0.7),
+    inset 0 1px 0 hsl(295 95% 85% / 0.4);
+  transition: filter 150ms ease, transform 80ms ease;
+}
+.rs-cta:hover { filter: brightness(1.07); }
+.rs-cta:active { transform: scale(0.98); }
+.rs-cta:disabled { opacity: 0.55; filter: none; }
+
+/* Small pill */
+.rs-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  height: 1.55rem;
+  padding: 0 0.6rem;
+  border-radius: 0.55rem;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: hsl(280 85% 66% / 0.14);
+  border: 1px solid hsl(280 85% 66% / 0.32);
+  color: hsl(285 92% 80%);
+}
+
+/* Divider */
+.rs-mode .rs-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, hsl(280 70% 55% / 0.22), transparent);
+  border: 0;
+}
+
+/* Violet skeleton shimmer inside the shell */
+.rs-mode .skeleton-shimmer {
+  background: linear-gradient(90deg,
+    hsl(268 34% 12%) 0%,
+    hsl(285 55% 26% / 0.6) 50%,
+    hsl(268 34% 12%) 100%);
+  background-size: 200% 100%;
+  animation: rsShimmer 1.6s ease-in-out infinite;
+}
+@keyframes rsShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Legibility floors (mirror of the da-mode approach) */
+.rs-mode [class*="text-foreground/5"],
+.rs-mode [class*="text-foreground/6"] { color: hsl(280 20% 82%) !important; }
+.rs-mode [class*="text-foreground/7"] { color: hsl(282 22% 88%) !important; }
+.rs-mode [class*="text-foreground/8"] { color: hsl(284 24% 93%) !important; }
+.rs-mode [class*="text-foreground/9"] { color: hsl(286 26% 97%) !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  .rs-mote { animation: none; }
+  .rs-shell::before { background: radial-gradient(ellipse 100% 80% at 50% 40%, transparent 55%, hsl(270 60% 2% / 0.55) 100%); }
+}
+
 /* ─── Portfolio Wars (Trading Floor) skin ─── */
 .pw-mode {
   --pw-bg: 220 50% 4%;

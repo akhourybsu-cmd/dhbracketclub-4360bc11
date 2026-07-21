@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, VenetianMask, Sparkles, Clock, Users } from 'lucide-react';
+import { ArrowLeft, Sparkles, Clock, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClub } from '@/contexts/ClubContext';
@@ -70,19 +70,14 @@ export default function CreateReadshiftPage() {
   );
 
   return (
-    <div className="max-w-md mx-auto pb-6">
-      <div className="flex items-center gap-2 mb-4">
-        <Link to="/readshift" className="w-9 h-9 rounded-xl flex items-center justify-center bg-muted/50 hover:bg-muted transition-colors" aria-label="Back">
+    <div>
+      <div className="flex items-center gap-2.5 mb-4">
+        <Link to="/readshift" className="rs-back" aria-label="Back">
           <ArrowLeft className="w-4 h-4" />
         </Link>
-        <div className="page-header mb-0 flex-1">
-          <div className="page-header-icon" style={{ background: 'linear-gradient(135deg, hsl(var(--primary) / 0.2), hsl(var(--primary) / 0.05))' }}>
-            <VenetianMask className="w-5 h-5" style={{ color: 'hsl(var(--primary))' }} />
-          </div>
-          <div>
-            <h1 className="page-header-title">New READSHIFT</h1>
-            <p className="page-header-subtitle">Async social deduction</p>
-          </div>
+        <div className="min-w-0">
+          <h1 className="text-[18px] font-black tracking-tight leading-none">Set the Stage</h1>
+          <p className="text-[11px] text-muted-foreground/70 mt-1">Configure your masquerade</p>
         </div>
       </div>
 
@@ -167,7 +162,7 @@ export default function CreateReadshiftPage() {
         </div>
 
         <button type="submit" disabled={loading || !name.trim()}
-          className="w-full h-12 rounded-xl font-bold btn-press flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed bg-primary text-primary-foreground">
+          className="rs-cta w-full h-12 rounded-xl btn-press">
           <Users className="w-4 h-4" /> {loading ? 'Creating…' : 'Create Game'}
         </button>
       </motion.form>

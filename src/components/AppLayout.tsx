@@ -148,7 +148,8 @@ function AppLayoutInner({ children }: { children: ReactNode }) {
   const isPickem = location.pathname.startsWith('/pickem');
   const isDrafts = location.pathname.startsWith('/drafts');
   const isPortfolioWars = location.pathname.startsWith('/portfolio-wars');
-  const isGameShell = isRuneDelve || isNexus || isPickem || isDrafts || isPortfolioWars;
+  const isReadshift = location.pathname.startsWith('/readshift');
+  const isGameShell = isRuneDelve || isNexus || isPickem || isDrafts || isPortfolioWars || isReadshift;
 
   const isNavActive = (path: string) => {
     if (path === '/brackets') return location.pathname.startsWith('/brackets') || location.pathname.startsWith('/pools');

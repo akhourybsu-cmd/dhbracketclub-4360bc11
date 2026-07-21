@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  VenetianMask, ArrowLeft, Users, Crown, Link2, Play, LogOut, X, Settings2, Clock, Loader2,
+  ArrowLeft, Users, Crown, Link2, Play, LogOut, X, Settings2, Clock, Loader2,
 } from 'lucide-react';
 import { formatDistanceToNowStrict } from 'date-fns';
 import { toast } from 'sonner';
@@ -55,7 +55,7 @@ export default function ReadshiftGamePage() {
 
   if (loading) {
     return (
-      <div className="max-w-lg mx-auto pb-6">
+      <div>
         <div className="glass-card p-6"><div className="h-5 w-1/2 rounded skeleton-shimmer mb-3" /><div className="h-3 w-2/3 rounded skeleton-shimmer" /></div>
         {error && (
           <button onClick={() => void refresh()} className="mt-4 mx-auto block text-[12px] font-bold text-primary">Retry</button>
@@ -65,7 +65,7 @@ export default function ReadshiftGamePage() {
   }
   if (!game) {
     return (
-      <div className="max-w-lg mx-auto pb-6 text-center py-12">
+      <div className="text-center py-12">
         <p className="text-sm text-muted-foreground mb-3">Game not found or you don't have access.</p>
         <Link to="/readshift" className="text-[13px] font-bold text-primary">Back to READSHIFT</Link>
       </div>
@@ -76,19 +76,16 @@ export default function ReadshiftGamePage() {
   const deadline = game.phase_deadline ? new Date(game.phase_deadline) : null;
 
   return (
-    <div className="max-w-lg mx-auto pb-6">
-      <div className="flex items-center gap-2 mb-4">
-        <Link to="/readshift" className="w-9 h-9 rounded-xl flex items-center justify-center bg-muted/50 hover:bg-muted transition-colors" aria-label="Back">
+    <div>
+      <div className="flex items-center gap-2.5 mb-4">
+        <Link to="/readshift" className="rs-back" aria-label="Back">
           <ArrowLeft className="w-4 h-4" />
         </Link>
-        <div className="page-header mb-0 flex-1">
-          <div className="page-header-icon" style={{ background: 'linear-gradient(135deg, hsl(var(--primary) / 0.2), hsl(var(--primary) / 0.05))' }}>
-            <VenetianMask className="w-5 h-5" style={{ color: 'hsl(var(--primary))' }} />
-          </div>
-          <div className="min-w-0">
-            <h1 className="page-header-title truncate">{game.name}</h1>
-            <p className="page-header-subtitle">READSHIFT · {game.total_rounds} rounds</p>
-          </div>
+        <div className="min-w-0 flex-1">
+          <h1 className="text-[18px] font-black tracking-tight leading-none truncate">{game.name}</h1>
+          <p className="text-[11px] text-muted-foreground/70 mt-1">
+            {isLobby ? `Lobby · ${game.total_rounds} rounds` : `Round ${game.current_round} of ${game.total_rounds}`}
+          </p>
         </div>
       </div>
 
@@ -146,14 +143,14 @@ export default function ReadshiftGamePage() {
             <div className="space-y-2">
               {!isParticipant && user && (
                 <button onClick={() => run(() => api.joinGame(game.id, club!.id, user.id), 'Joined!')} disabled={busy || activeParts.length >= HARD_MAX_PLAYERS}
-                  className="w-full h-12 rounded-xl font-bold btn-press flex items-center justify-center gap-2 bg-primary text-primary-foreground disabled:opacity-60">
+                  className="rs-cta w-full h-12 rounded-xl btn-press">
                   {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Users className="w-4 h-4" />}
                   {activeParts.length >= HARD_MAX_PLAYERS ? 'Game full' : 'Join Game'}
                 </button>
               )}
               {isHost && (
                 <button onClick={() => run(() => api.triggerPhase(game.id, 'start'), 'Game started!')} disabled={busy || !canStart}
-                  className="w-full h-12 rounded-xl font-bold btn-press flex items-center justify-center gap-2 bg-primary text-primary-foreground disabled:opacity-50 disabled:cursor-not-allowed">
+                  className="rs-cta w-full h-12 rounded-xl btn-press">
                   {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
                   {canStart ? 'Start Game' : `Waiting for ${Math.max(0, MIN_PLAYERS - activeParts.length)} more`}
                 </button>
