@@ -5,6 +5,7 @@ import { useClub } from '@/contexts/ClubContext';
 import { useReadshiftGames } from '@/hooks/useReadshift';
 import { StatusPill } from '@/components/ui/status-pill';
 import type { RsGame } from '@/lib/readshift/dbTypes';
+import { HowToPlayDialog } from '@/components/readshift/HowToPlayDialog';
 import type { Phase } from '@/lib/readshift/types';
 
 const PHASE_META: Record<Phase, { label: string; variant: 'neutral' | 'success' | 'warning' | 'live' | 'danger' }> = {
