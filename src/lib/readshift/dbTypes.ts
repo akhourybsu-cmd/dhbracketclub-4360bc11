@@ -94,11 +94,26 @@ export interface RsGuess {
   explanation: string | null;
 }
 
+export interface RsRevealAnswer {
+  answerId: string;
+  authorUserId: string;
+  body: string;
+  signal: Signal;
+  frameTargetUserId: string | null;
+  guessDistribution: Record<string, number>;
+  correctGuessCount: number;
+  targetGuessCount: number;
+  signalPoints: number;
+  bonuses: { name: string; points: number }[];
+  strongReadCount: number;
+  guesses: { reader: string; guessed: string | null; strong: boolean }[];
+}
+
 export interface RsRoundResult {
   id: string;
   game_id: string;
   round_id: string;
-  detail: Record<string, unknown>;
+  detail: { answers?: RsRevealAnswer[] } & Record<string, unknown>;
   reading_points: Record<string, number>;
   signal_points: Record<string, number>;
   total_points: Record<string, number>;

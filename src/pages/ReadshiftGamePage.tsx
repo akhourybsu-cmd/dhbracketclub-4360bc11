@@ -12,6 +12,8 @@ import { useReadshiftGame } from '@/hooks/useReadshift';
 import { useReadshiftRound } from '@/hooks/useReadshiftRound';
 import { ShiftPhase } from '@/components/readshift/ShiftPhase';
 import { ReadPhase } from '@/components/readshift/ReadPhase';
+import { RevealPhase } from '@/components/readshift/RevealPhase';
+import { FinalResults } from '@/components/readshift/FinalResults';
 import { StatusPill } from '@/components/ui/status-pill';
 import { cn } from '@/lib/utils';
 import * as api from '@/lib/readshift/api';
@@ -178,21 +180,32 @@ export default function ReadshiftGamePage() {
               myGuesses={rs.myGuesses} myAnswer={rs.myAnswer} participants={activeParts} progress={rs.progress}
               userId={user.id} clubId={club.id} onSaved={refreshAll} />
           ) : <div className="glass-card p-6"><div className="h-4 w-2/3 rounded skeleton-shimmer" /></div>
+        ) : game.phase === 'reveal' && user && club ? (
+          rs.round ? (
+            <>
+              <div className="glass-card px-4 py-2.5 flex items-center justify-center gap-2">
+                <StatusPill variant="success" size="sm">Reveal · Round {game.current_round}</StatusPill>
+                {deadline && (
+                  <span className="text-[11px] text-muted-foreground/70 flex items-center gap-1">
+                    <Clock className="w-3 h-3" /> {deadline.getTime() > Date.now() ? `${formatDistanceToNowStrict(deadline)} until next round` : 'Advancing…'}
+                  </span>
+                )}
+              </div>
+              <RevealPhase game={game} round={rs.round} result={rs.result} awards={rs.awards}
+                comments={rs.comments} participants={activeParts} userId={user.id} clubId={club.id} onChanged={refreshAll} />
+            </>
+          ) : <div className="glass-card p-6"><div className="h-4 w-2/3 rounded skeleton-shimmer" /></div>
+        ) : game.phase === 'completed' ? (
+          <FinalResults game={game} participants={activeParts} />
         ) : (
-          /* Reveal / completed / paused / cancelled — reveal + results UI lands in the next increment. */
+          /* Paused / cancelled */
           <div className="glass-card p-5 text-center">
-            <StatusPill variant={game.phase === 'completed' ? 'neutral' : game.phase === 'cancelled' ? 'danger' : 'success'} size="sm">
-              {game.phase === 'reveal' ? 'Reveal' : game.phase === 'completed' ? 'Complete' : game.phase === 'paused' ? 'Paused' : 'Cancelled'}
+            <StatusPill variant={game.phase === 'cancelled' ? 'danger' : 'neutral'} size="sm">
+              {game.phase === 'paused' ? 'Paused' : 'Cancelled'}
             </StatusPill>
-            {game.phase === 'reveal' && <p className="text-[15px] font-extrabold mt-3">Round {game.current_round} · Results in</p>}
-            {deadline && game.phase === 'reveal' && (
-              <p className="text-[12px] text-muted-foreground/70 mt-1 flex items-center justify-center gap-1">
-                <Clock className="w-3 h-3" /> {deadline.getTime() > Date.now() ? `${formatDistanceToNowStrict(deadline)} to review` : 'Advancing…'}
-              </p>
-            )}
-            {(game.phase === 'reveal' || game.phase === 'completed') && (
-              <p className="text-[11px] text-muted-foreground/60 mt-4 leading-snug">The Reveal & results experience lands in the next update.</p>
-            )}
+            <p className="text-[11px] text-muted-foreground/60 mt-4 leading-snug">
+              {game.phase === 'paused' ? 'The host paused this game. It resumes when they pick it back up.' : 'This game was cancelled.'}
+            </p>
           </div>
         )}
 

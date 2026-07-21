@@ -275,7 +275,7 @@ async function scoreCurrentRound(admin: any, g: Record<string, any>) {
   const { data: existingResult } = await admin.from('readshift_round_results').select('id').eq('round_id', round.id).maybeSingle();
   if (existingResult) return;
 
-  const { data: answerRows } = await admin.from('readshift_answers').select('id, user_id').eq('round_id', round.id).eq('locked', true);
+  const { data: answerRows } = await admin.from('readshift_answers').select('id, user_id, body').eq('round_id', round.id).eq('locked', true);
   const answers = (answerRows || []).map((a: any) => a.user_id);
   const answerIdByUser: Record<string, string> = {};
   for (const a of answerRows || []) answerIdByUser[a.user_id] = a.id;
@@ -306,10 +306,32 @@ async function scoreCurrentRound(admin: any, g: Record<string, any>) {
   const score = scoreRound({ answers, signals, ballots: Object.values(byReader) });
   const awards = computeRoundAwards(score);
 
+  // Build the immutable REVEAL payload: bodies + authors + per-player guesses
+  // + points. This is the ONLY place answer→author is joined, and it lands in
+  // readshift_round_results (participant-readable) — the sanctioned reveal source.
+  const guessesByAnswer: Record<string, { reader: string; guessed: string | null; strong: boolean }[]> = {};
+  for (const gr of guessRows || []) {
+    (guessesByAnswer[gr.answer_id] ??= []).push({ reader: gr.reader_user_id, guessed: gr.guessed_user_id, strong: gr.is_strong_read });
+  }
+  const revealAnswers = (answerRows || []).map((a: any) => {
+    const d = score.perAnswer[a.user_id];
+    return {
+      answerId: a.id, authorUserId: a.user_id, body: a.body,
+      signal: d?.signal ?? 'TELL', frameTargetUserId: d?.frameTargetUserId ?? null,
+      guessDistribution: d?.guessDistribution ?? {},
+      correctGuessCount: d?.correctGuessCount ?? 0,
+      targetGuessCount: d?.targetGuessCount ?? 0,
+      signalPoints: d?.signalPoints ?? 0,
+      bonuses: d?.bonuses ?? [],
+      strongReadCount: d?.strongReadCount ?? 0,
+      guesses: guessesByAnswer[a.id] ?? [],
+    };
+  });
+
   await admin.from('readshift_round_results').insert({
     club_id: g.club_id, game_id: g.id, round_id: round.id,
-    detail: score.perAnswer, reading_points: score.readingPoints,
-    signal_points: score.signalPoints, total_points: score.totalPoints,
+    detail: { answers: revealAnswers, correctReads: score.correctReads, strongReadCorrect: score.strongReadCorrect },
+    reading_points: score.readingPoints, signal_points: score.signalPoints, total_points: score.totalPoints,
   });
   if (awards.length) {
     await admin.from('readshift_round_awards').insert(

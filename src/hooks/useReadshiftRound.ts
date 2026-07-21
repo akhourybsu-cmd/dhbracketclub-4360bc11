@@ -5,7 +5,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { withTimeout, QUERY_TIMEOUT_MS, HYDRATE_TIMEOUT_MS } from '@/lib/asyncGuards';
 import * as api from '@/lib/readshift/api';
-import type { RsGame, RsRound, RsSignalAssignment, RsAnswer, RsReadCard, RsGuess } from '@/lib/readshift/dbTypes';
+import type { RsGame, RsRound, RsSignalAssignment, RsAnswer, RsReadCard, RsGuess, RsRoundResult, RsRoundAward, RsComment } from '@/lib/readshift/dbTypes';
 
 export interface RoundState {
   round: RsRound | null;
@@ -15,9 +15,12 @@ export interface RoundState {
   authorPool: string[];
   myGuesses: RsGuess[];
   progress: { submitted: number; total: number };
+  result: RsRoundResult | null;
+  awards: RsRoundAward[];
+  comments: RsComment[];
 }
 
-const EMPTY: RoundState = { round: null, assignment: null, myAnswer: null, readCards: [], authorPool: [], myGuesses: [], progress: { submitted: 0, total: 0 } };
+const EMPTY: RoundState = { round: null, assignment: null, myAnswer: null, readCards: [], authorPool: [], myGuesses: [], progress: { submitted: 0, total: 0 }, result: null, awards: [], comments: [] };
 
 export function useReadshiftRound(game: RsGame | null) {
   const [state, setState] = useState<RoundState>(EMPTY);
@@ -46,6 +49,11 @@ export function useReadshiftRound(game: RsGame | null) {
           api.getReadCards(round.id), api.getRoundAuthors(round.id), api.getMyGuesses(round.id), api.getReadProgress(round.id), api.getMyAnswer(round.id),
         ]), HYDRATE_TIMEOUT_MS, 'rs read');
         next.readCards = readCards; next.authorPool = authorPool; next.myGuesses = myGuesses; next.progress = progress; next.myAnswer = myAnswer;
+      } else if (game.phase === 'reveal') {
+        const [result, awards, comments] = await withTimeout(Promise.all([
+          api.getRoundResult(round.id), api.getRoundAwards(round.id), api.getComments(round.id),
+        ]), HYDRATE_TIMEOUT_MS, 'rs reveal');
+        next.result = result; next.awards = awards; next.comments = comments;
       }
       setState(next);
     } catch {
