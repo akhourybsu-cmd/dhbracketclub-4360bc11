@@ -14,7 +14,7 @@ import { motion } from 'framer-motion';
 import {
   Bookmark, TrendingUp, Lock, Trophy,
   MessageSquareText, CalendarDays, ScrollText, Newspaper, MessageCircle,
-  BarChart3, FileText, Link2, Pencil,
+  BarChart3, FileText, Link2, BookMarked, Pencil,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { InstalledAsset } from '@/types/assets';
