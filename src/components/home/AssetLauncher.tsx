@@ -19,7 +19,7 @@ import { StatusPill, type StatusPillVariant } from '@/components/ui/status-pill'
 import {
   Bookmark, TrendingUp, Lock, Trophy, MessageSquareText,
   CalendarDays, ScrollText, Newspaper, MessageCircle, BarChart3, FileText, Link2,
-  Plus,
+  BookMarked, Plus,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { InstalledAsset } from '@/types/assets';
