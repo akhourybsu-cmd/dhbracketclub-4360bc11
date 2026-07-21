@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, MessageSquareText, CalendarDays, Swords, Newspaper,
   User, Trophy, BarChart3, MessageCircle, Bookmark, Link2, ScrollText,
-  Lock, FileText, Sparkles, Shield, Settings, LogOut, Brackets as BracketsIcon, TrendingUp, Cake, BookOpen,
+  Lock, FileText, Sparkles, Shield, Settings, LogOut, Brackets as BracketsIcon, TrendingUp, Cake, BookOpen, BookMarked,
 } from 'lucide-react';
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -56,6 +56,7 @@ export function AppDrawer({ open, onOpenChange, unreadChatCount = 0 }: AppDrawer
         { path: '/brackets', label: 'Brackets', icon: BracketsIcon },
         { path: '/portfolio-wars', label: 'Portfolio Wars', icon: TrendingUp },
         { path: '/lockbox', label: 'Lockbox', icon: Lock },
+        { path: '/readshift', label: 'READSHIFT', icon: BookMarked },
       ],
     },
     {

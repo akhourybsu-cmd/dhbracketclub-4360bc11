@@ -19,7 +19,7 @@ import { StatusPill, type StatusPillVariant } from '@/components/ui/status-pill'
 import {
   Bookmark, TrendingUp, Lock, Trophy, MessageSquareText,
   CalendarDays, ScrollText, Newspaper, MessageCircle, BarChart3, FileText, Link2,
-  Plus,
+  BookMarked, Plus,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { InstalledAsset } from '@/types/assets';
@@ -53,6 +53,7 @@ const ASSET_META: Record<string, TileMeta> = {
   'portfolio-wars': { to: '/portfolio-wars',  icon: TrendingUp,       tint: '152 80% 55%' },
   'brackets':       { to: '/brackets',        icon: Trophy,           tint: '210 80% 60%' },
   'lockbox':        { to: '/lockbox',         icon: Lock,             tint: '0 80% 60%' },
+  'readshift':      { to: '/readshift',       icon: BookMarked,       tint: '25 90% 60%' },
   'chat':           { to: '/chat',            icon: MessageSquareText, tint: '195 80% 65%' },
   'events':         { to: '/events',          icon: CalendarDays,     tint: '38 100% 60%' },
   'lore':           { to: '/lore',            icon: ScrollText,       tint: '270 70% 65%' },
