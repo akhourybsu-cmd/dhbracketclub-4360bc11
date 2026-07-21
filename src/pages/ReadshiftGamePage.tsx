@@ -170,6 +170,45 @@ export default function ReadshiftGamePage() {
                   Cancel game
                 </button>
               )}
+              {canManage && (
+                confirmDelete ? (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={async () => {
+                        setBusy(true);
+                        try {
+                          await api.deleteGame(game.id);
+                          toast.success('Game deleted');
+                          navigate('/readshift');
+                        } catch (e: any) {
+                          toast.error(e?.message || 'Could not delete game');
+                          setBusy(false);
+                        }
+                      }}
+                      disabled={busy}
+                      className="flex-1 h-10 rounded-lg text-[12px] font-bold bg-destructive/10 text-destructive hover:bg-destructive/15 transition-colors btn-press disabled:opacity-50 flex items-center justify-center gap-1.5"
+                    >
+                      {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                      Confirm delete
+                    </button>
+                    <button
+                      onClick={() => setConfirmDelete(false)}
+                      disabled={busy}
+                      className="flex-1 h-10 rounded-lg text-[12px] font-bold bg-muted/50 hover:bg-muted transition-colors btn-press"
+                    >
+                      Keep
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setConfirmDelete(true)}
+                    disabled={busy}
+                    className="w-full h-10 rounded-lg text-[12px] font-semibold text-muted-foreground/60 hover:text-destructive transition-colors"
+                  >
+                    Delete game permanently
+                  </button>
+                )
+              )}
             </div>
           </>
         ) : game.phase === 'shift' && user && club ? (
