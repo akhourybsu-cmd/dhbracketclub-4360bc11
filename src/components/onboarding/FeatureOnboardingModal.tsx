@@ -13,7 +13,7 @@ import {
   Bookmark, Sparkles, Shield, Trophy, TrendingUp, Lock,
   MessageSquareText, CalendarDays, ScrollText, Newspaper,
   MessageCircle, BarChart3, FileText, Link2, Star,
-  BellRing, AtSign, DoorOpen, Clock, Users,
+  BellRing, AtSign, DoorOpen, Clock, Users, VenetianMask, Eye,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { FeatureOnboarding } from '@/lib/onboarding/registry';
@@ -22,7 +22,7 @@ const ICON_BY_NAME: Record<string, LucideIcon> = {
   Bookmark, Sparkles, Shield, Trophy, TrendingUp, Lock,
   MessageSquareText, CalendarDays, ScrollText, Newspaper,
   MessageCircle, BarChart3, FileText, Link2, Star,
-  BellRing, AtSign, DoorOpen, Clock, Users, Check,
+  BellRing, AtSign, DoorOpen, Clock, Users, Check, VenetianMask, Eye,
 };
 
 interface Props {

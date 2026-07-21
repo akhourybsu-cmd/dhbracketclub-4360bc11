@@ -363,6 +363,25 @@ const REGISTRY: Record<string, FeatureOnboarding> = {
     primaryCta: { label: 'Open Celebrations', route: '/celebrations' },
   },
 
+  'readshift': {
+    featureKey: 'readshift',
+    displayName: 'READSHIFT',
+    shortDescription: 'Async social deduction — read the room, shift your voice.',
+    featureType: 'game',
+    importance: 'important',
+    version: 1,
+    iconKey: 'VenetianMask',
+    tags: ['Async', 'Multiplayer', 'Deduction'],
+    onboardingTitle: 'Welcome to READSHIFT',
+    onboardingSummary: 'Answer a prompt in a secret style, then read who wrote what. Play at your own pace across a few rounds.',
+    onboardingSteps: [
+      { title: 'Shift your voice', body: 'Each round you get a secret Signal — Tell (be yourself), Blur (be unreadable), or Frame (write like a specific player). Answer the prompt to match it.', iconKey: 'VenetianMask' },
+      { title: 'Read the room', body: 'Everyone\'s answers appear anonymously. Guess who wrote each one — mark your most confident call as a Strong Read for bonus points.', iconKey: 'Eye' },
+      { title: 'Reveal & score', body: 'Authors, Signals, and guesses are revealed together. Points come from good reads and from nailing your Signal. React and roast in the recap.', iconKey: 'Sparkles' },
+    ],
+    primaryCta: { label: 'Open READSHIFT', route: '/readshift' },
+  },
+
   'narrative-rpg': {
     featureKey: 'narrative-rpg',
     displayName: 'Narrative RPG',

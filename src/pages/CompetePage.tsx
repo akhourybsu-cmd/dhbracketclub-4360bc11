@@ -3,8 +3,10 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Trophy, BarChart3, MessageCircle, Bookmark, ChevronRight, Lock, Shield,
-  Swords, TrendingUp,
+  Swords, TrendingUp, VenetianMask,
 } from 'lucide-react';
+import { useClub } from '@/contexts/ClubContext';
+import * as readshiftApi from '@/lib/readshift/api';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { useAuth } from '@/contexts/AuthContext';
@@ -410,6 +412,73 @@ function PortfolioWarsCompeteCard() {
   );
 }
 
+/* ── READSHIFT banner — async social identity game ── */
+function ReadshiftCompeteCard() {
+  const { club } = useClub();
+  const { user } = useAuth();
+  const [subline, setSubline] = useState('Read the room. Shift your voice.');
+  const [cta, setCta] = useState('Play');
+
+  useEffect(() => {
+    if (!club?.id) return;
+    let live = true;
+    (async () => {
+      try {
+        const games = await readshiftApi.listClubGames(club.id);
+        if (!live) return;
+        const active = games.filter((g) => ['lobby', 'shift', 'read', 'reveal'].includes(g.phase));
+        const mineAwaiting = active.length; // any in-flight game is worth surfacing
+        if (active.some((g) => g.phase === 'lobby')) { setSubline(`${active.length} game${active.length === 1 ? '' : 's'} open · join or start one`); setCta('Join'); }
+        else if (mineAwaiting > 0) { setSubline(`${mineAwaiting} game${mineAwaiting === 1 ? '' : 's'} in progress`); setCta('Open'); }
+        else { setSubline('Read the room. Shift your voice.'); setCta('New Game'); }
+      } catch { /* keep defaults */ }
+    })();
+    return () => { live = false; };
+  }, [club?.id, user?.id]);
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.06 }}>
+      <Link to="/readshift" className="block">
+        <div className="relative overflow-hidden rounded-2xl btn-press"
+          style={{
+            background:
+              'radial-gradient(ellipse 120% 80% at 50% 0%, hsl(265 85% 32% / 0.55), transparent 60%),' +
+              'radial-gradient(ellipse 90% 60% at 100% 100%, hsl(290 90% 55% / 0.22), transparent 60%),' +
+              'linear-gradient(180deg, hsl(260 40% 9%), hsl(265 45% 5%))',
+            border: '1px solid hsl(270 80% 60% / 0.35)',
+            boxShadow: '0 12px 40px hsl(265 85% 25% / 0.45), inset 0 1px 0 hsl(280 80% 70% / 0.18)',
+          }}>
+          <div aria-hidden className="absolute -top-12 -right-10 w-44 h-44 rounded-full pointer-events-none"
+            style={{ background: 'radial-gradient(circle, hsl(280 90% 60% / 0.4), transparent 70%)', filter: 'blur(8px)' }} />
+          <div className="relative z-10 p-5 flex items-center gap-4">
+            <div className="relative flex-shrink-0">
+              <div aria-hidden className="absolute inset-0 rounded-2xl"
+                style={{ background: 'radial-gradient(circle, hsl(280 90% 60% / 0.5), transparent 65%)', filter: 'blur(10px)', transform: 'scale(1.15)' }} />
+              <div className="relative w-[72px] h-[72px] rounded-2xl flex items-center justify-center"
+                style={{ background: 'linear-gradient(135deg, hsl(265 45% 14%), hsl(265 50% 8%))', border: '1px solid hsl(275 80% 60% / 0.45)', boxShadow: 'inset 0 0 20px hsl(275 80% 55% / 0.25)' }}>
+                <VenetianMask className="w-9 h-9" style={{ color: 'hsl(280 90% 72%)', filter: 'drop-shadow(0 0 8px hsl(280 90% 55% / 0.7))' }} strokeWidth={2} />
+              </div>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-0.5">
+                <span className="text-[9px] font-extrabold uppercase tracking-[0.22em]" style={{ color: 'hsl(280 85% 74%)' }}>◆ Social Deduction</span>
+              </div>
+              <h2 className="font-extrabold text-[22px] leading-none tracking-tight mb-1.5"
+                style={{ background: 'linear-gradient(180deg, hsl(280 30% 98%), hsl(280 85% 74%))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', textShadow: '0 0 18px hsl(280 90% 45% / 0.4)' }}>
+                READSHIFT
+              </h2>
+              <p className="text-[10.5px] font-bold text-white/65 leading-snug mb-2.5 line-clamp-2">{subline}</p>
+              <CompeteCTAButton accent="275 85% 62%" accentDeep="265 80% 50%" ink="270 50% 8%">
+                {cta}
+              </CompeteCTAButton>
+            </div>
+          </div>
+        </div>
+      </Link>
+    </motion.div>
+  );
+}
+
 /* ── Community activities compact tile grid ── */
 function CommunityTilesSection({ isInstalled }: { isInstalled: (slug: string) => boolean }) {
   const tiles = [
@@ -479,6 +548,7 @@ export default function CompetePage() {
           {isInstalled('nexus-defense') && <NexusDefenseCompeteCard />}
           {isInstalled('nfl-pickem') && <PickemCompeteCard />}
           {isInstalled('portfolio-wars') && <PortfolioWarsCompeteCard />}
+          {isInstalled('readshift') && <ReadshiftCompeteCard />}
           {isInstalled('lockbox') && <LockboxCompeteCard />}
 
           {/* Community activities */}
