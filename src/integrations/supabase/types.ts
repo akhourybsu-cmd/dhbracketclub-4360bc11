@@ -8173,6 +8173,13 @@ export type Database = {
           body: string
         }[]
       }
+      readshift_read_progress: {
+        Args: { _round_id: string }
+        Returns: {
+          submitted: number
+          total: number
+        }[]
+      }
       readshift_round_authors: {
         Args: { _round_id: string }
         Returns: {
