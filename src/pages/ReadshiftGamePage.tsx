@@ -26,11 +26,13 @@ function initials(name?: string | null) {
 
 export default function ReadshiftGamePage() {
   const { gameId } = useParams<{ gameId: string }>();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { club, isClubAdmin, isAppAdmin } = useClub();
   const { game, participants, loading, error, refresh } = useReadshiftGame(gameId);
   const rs = useReadshiftRound(game);
   const [busy, setBusy] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const refreshAll = () => { void rs.refresh(); void refresh(); };
 
   const activeParts = participants.filter((p) => p.active);
