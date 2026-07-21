@@ -95,64 +95,74 @@ function SeasonHeaderCard({ season, entries }: { season: any; entries: any[] }) 
 
   return (
     <motion.div initial={{ opacity: 0, y: 10, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}>
-      <div className="relative rounded-xl overflow-hidden">
-        <div className="absolute inset-0 rounded-xl" style={{ background: 'var(--gradient-hero-gold)' }} />
-        <div className="absolute inset-0 rounded-xl" style={{ background: 'var(--gradient-hero-gold-accent)' }} />
-        <div className="glass-card p-0 relative overflow-hidden border-gold/10" style={{
+      <div className="relative rounded-2xl overflow-hidden">
+        <div className="absolute inset-0" style={{ background: 'var(--gradient-hero-gold)' }} />
+        <div className="absolute inset-0" style={{ background: 'var(--gradient-hero-gold-accent)' }} />
+        <div className="glass-card p-0 relative overflow-hidden rounded-2xl" style={{
           backgroundImage: 'var(--gradient-arena-edge-gold)',
           boxShadow: 'var(--shadow-gold)',
+          border: '1px solid hsl(var(--gold) / 0.18)',
         }}>
+          {/* Top edge rule + faint trophy watermark for a premium hero feel */}
+          <div aria-hidden className="absolute inset-x-0 top-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, hsl(var(--gold) / 0.7), transparent)' }} />
+          <Trophy aria-hidden className="absolute -right-3 -top-3 w-24 h-24 pointer-events-none" style={{ color: 'hsl(var(--gold))', opacity: 0.06 }} strokeWidth={1.5} />
           <div className="relative z-10 p-5 pb-4">
-            <div className="flex items-start justify-between mb-3">
-              <div>
-                <h2 className="font-extrabold text-xl tracking-tight leading-tight">{formatSeasonTitle(season)}</h2>
-                {season.subtitle && (
-                  <p className="text-[12px] font-semibold text-muted-foreground/85 mt-0.5 leading-snug">{season.subtitle}</p>
-                )}
-                <p className="text-[11px] text-muted-foreground/70 mt-0.5">
-                  {format(new Date(season.starts_at), 'MMM d')} — {format(new Date(season.ends_at), 'MMM d, yyyy')}
-                </p>
+            <div className="flex items-start justify-between mb-4 gap-3">
+              <div className="flex items-start gap-3 min-w-0">
+                <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5"
+                  style={{ background: 'linear-gradient(135deg, hsl(var(--gold) / 0.28), hsl(var(--gold) / 0.06))', border: '1px solid hsl(var(--gold) / 0.35)', boxShadow: '0 0 14px hsl(var(--gold) / 0.25)' }}>
+                  <Trophy className="w-5 h-5" style={{ color: 'hsl(var(--gold))' }} />
+                </div>
+                <div className="min-w-0">
+                  <h2 className="font-extrabold text-xl tracking-tight leading-tight">{formatSeasonTitle(season)}</h2>
+                  {season.subtitle && (
+                    <p className="text-[12px] font-semibold text-muted-foreground/85 mt-0.5 leading-snug">{season.subtitle}</p>
+                  )}
+                  <p className="text-[11px] text-muted-foreground/70 mt-0.5">
+                    {format(new Date(season.starts_at), 'MMM d')} — {format(new Date(season.ends_at), 'MMM d, yyyy')}
+                  </p>
+                </div>
               </div>
-              <span className={cn('status-pill flex items-center gap-1.5 text-[10px] px-2.5 py-1', st.cls)}>
+              <span className={cn('status-pill flex items-center gap-1.5 text-[10px] px-2.5 py-1 flex-shrink-0', st.cls)}>
                 {isActive && (
                   <span className={cn('w-1.5 h-1.5 rounded-full animate-pulse', st.dotCls)} />
                 )}
                 {st.label}
               </span>
             </div>
-            <div className="flex items-center gap-0 mt-4 rounded-lg bg-muted/25 p-2.5">
-              <div className="flex-1 text-center">
-                <p className="text-sm font-extrabold tabular-nums">{totalDrafts}</p>
-                <p className="text-[8px] text-muted-foreground/60 font-bold uppercase tracking-wider">Reg Drafts</p>
-              </div>
-              <div className="w-px h-7 bg-border/20" />
-              <div className="flex-1 text-center">
-                <p className="text-sm font-extrabold tabular-nums">Best {season.best_of}</p>
-                <p className="text-[8px] text-muted-foreground/60 font-bold uppercase tracking-wider">Count</p>
-              </div>
-              <div className="w-px h-7 bg-border/20" />
-              <div className="flex-1 text-center">
-                <p className="text-sm font-extrabold tabular-nums">All 5</p>
-                <p className="text-[8px] text-muted-foreground/60 font-bold uppercase tracking-wider">Playoffs</p>
-              </div>
+            <div className="grid grid-cols-3 gap-2 mt-4">
+              {[
+                { icon: <Bookmark className="w-3.5 h-3.5" />, v: String(totalDrafts), l: 'Drafts' },
+                { icon: <Target className="w-3.5 h-3.5" />, v: `Best ${season.best_of}`, l: 'Scoring' },
+                { icon: <Trophy className="w-3.5 h-3.5" />, v: 'All 5', l: 'Playoffs' },
+              ].map((stat) => (
+                <div key={stat.l} className="rounded-xl px-2 py-2.5 text-center"
+                  style={{ background: 'linear-gradient(180deg, hsl(var(--gold) / 0.10), hsl(var(--gold) / 0.02))', border: '1px solid hsl(var(--gold) / 0.16)' }}>
+                  <span className="inline-flex mb-1" style={{ color: 'hsl(var(--gold) / 0.8)' }}>{stat.icon}</span>
+                  <p className="text-[15px] font-extrabold tabular-nums leading-none">{stat.v}</p>
+                  <p className="text-[8px] text-muted-foreground/70 font-bold uppercase tracking-wider mt-1">{stat.l}</p>
+                </div>
+              ))}
             </div>
             {season.status !== 'complete' && (
-              <div className="mt-3.5">
+              <div className="mt-4">
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[9px] font-bold text-muted-foreground/70">{progressText}</span>
-                  <span className="text-[9px] font-bold tabular-nums" style={{ color: 'hsl(var(--gold))' }}>
-                    {season.status === 'playoffs' ? 'Playoffs' : `Draft ${completedDrafts} of ${totalDrafts}`}
+                  <span className="text-[10px] font-bold text-muted-foreground/75">{progressText}</span>
+                  <span className="text-[10px] font-extrabold tabular-nums" style={{ color: 'hsl(var(--gold))' }}>
+                    {season.status === 'playoffs' ? 'Playoffs' : `${progressPct}% · ${completedDrafts}/${totalDrafts}`}
                   </span>
                 </div>
-                <div className="relative h-2 w-full overflow-hidden rounded-full bg-muted/40">
+                <div className="relative h-2.5 w-full overflow-hidden rounded-full" style={{ background: 'hsl(var(--gold) / 0.12)' }}>
                   <div
-                    className="h-full rounded-full transition-all duration-500"
+                    className="h-full rounded-full relative overflow-hidden transition-all duration-500"
                     style={{
                       width: `${season.status === 'playoffs' ? 100 : progressPct}%`,
-                      background: 'linear-gradient(90deg, hsl(var(--gold) / 0.7), hsl(var(--gold)))',
-                      boxShadow: '0 0 8px hsl(var(--gold) / 0.3)',
+                      background: 'linear-gradient(90deg, hsl(var(--gold) / 0.65), hsl(var(--gold)))',
+                      boxShadow: '0 0 10px hsl(var(--gold) / 0.45)',
                     }}
-                  />
+                  >
+                    <div aria-hidden className="absolute inset-0" style={{ background: 'linear-gradient(180deg, hsl(0 0% 100% / 0.25), transparent 60%)' }} />
+                  </div>
                 </div>
               </div>
             )}
@@ -260,12 +270,15 @@ function StandingsCard({ standings, userId }: { standings: SeasonStanding[]; use
 
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}>
-      <div className="glass-card overflow-hidden" style={{ boxShadow: 'var(--shadow-elevated)' }}>
-        <div className="p-3.5 border-b border-border/20">
-          <h3 className="font-bold text-[13px] flex items-center gap-1.5">
+      <div className="glass-card overflow-hidden rounded-2xl" style={{ boxShadow: 'var(--shadow-elevated)' }}>
+        <div className="px-4 py-3 border-b border-border/20 flex items-center gap-2">
+          <span className="inline-flex items-center justify-center w-6 h-6 rounded-lg" style={{ background: 'hsl(var(--gold) / 0.14)' }}>
             <TrendingUp className="w-3.5 h-3.5" style={{ color: 'hsl(var(--gold))' }} />
-            Season Standings
-          </h3>
+          </span>
+          <h3 className="font-extrabold text-[13px]">Season Standings</h3>
+          <span className="ml-auto text-[10px] font-bold text-muted-foreground/60 tabular-nums">
+            {standings.length} {standings.length === 1 ? 'player' : 'players'}
+          </span>
         </div>
         <div className="divide-y divide-border/10">
           {standings.map((s, i) => {
@@ -273,68 +286,76 @@ function StandingsCard({ standings, userId }: { standings: SeasonStanding[]; use
             const isExpanded = expanded === s.id;
             const rank = s.rank || i + 1;
             const isPodium = rank <= 3;
-            const gap = rank === 1 ? null : leaderPts - s.season_points;
-            const seedBg =
-              s.playoff_seed === 1 ? 'hsl(var(--gold))' :
-              s.playoff_seed === 2 ? 'hsl(var(--silver))' :
-              s.playoff_seed === 3 ? 'hsl(var(--bronze))' :
-              'hsl(var(--muted-foreground))';
+            const isLeader = rank === 1;
+            const gap = isLeader ? null : leaderPts - s.season_points;
+            // Medal color tracks visible rank so the tint matches the number shown.
+            const medalVar = rank === 1 ? 'var(--gold)' : rank === 2 ? 'var(--silver)' : rank === 3 ? 'var(--bronze)' : null;
+            const name = (s.profiles as any)?.display_name || 'Unknown';
+            const initials = name.split(' ').map((x: string) => x[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || '?';
 
             return (
-              <div key={s.id}>
+              <div key={s.id} style={isLeader ? { background: 'linear-gradient(90deg, hsl(var(--gold) / 0.10), transparent 70%)' } : undefined}>
                 <button
                   type="button"
-                  className={cn('flex items-center gap-3 px-4 py-3.5 transition-colors cursor-pointer w-full text-left',
-                    rank === 1 && 'relative', isMe && !isPodium && 'border-l-2 border-l-gold/40')}
-                  style={rank === 1 ? { background: 'linear-gradient(90deg, hsl(var(--gold) / 0.08), transparent)' } : undefined}
+                  className={cn('flex items-center gap-3 px-3.5 py-3 transition-colors cursor-pointer w-full text-left hover:bg-muted/20',
+                    isMe && !isPodium && 'border-l-2 border-l-gold/40')}
                   onClick={() => setExpanded(isExpanded ? null : s.id)}
                   aria-expanded={isExpanded}
                 >
-                  <div className="w-7 flex-shrink-0 flex items-center justify-center">
-                    {isPodium ? (
-                      <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-extrabold"
-                        style={{ background: `${seedBg}20`, color: seedBg, border: `1.5px solid ${seedBg}40` }}>
-                        {rank}
-                      </div>
-                    ) : (
-                      <span className="text-[12px] font-bold text-muted-foreground">{rank}</span>
-                    )}
+                  {/* Rank medal */}
+                  {medalVar ? (
+                    <div className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-extrabold flex-shrink-0 border"
+                      style={{ background: `hsl(${medalVar} / 0.2)`, color: `hsl(${medalVar})`, borderColor: `hsl(${medalVar} / 0.45)`, boxShadow: isLeader ? `0 0 10px hsl(${medalVar} / 0.35)` : 'none' }}>
+                      {rank}
+                    </div>
+                  ) : (
+                    <div className="w-7 h-7 rounded-full bg-muted/50 text-muted-foreground flex items-center justify-center text-[11px] font-extrabold flex-shrink-0">
+                      {rank}
+                    </div>
+                  )}
+                  {/* Avatar initials */}
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-extrabold flex-shrink-0"
+                    style={{
+                      background: medalVar ? `linear-gradient(135deg, hsl(${medalVar} / 0.22), hsl(${medalVar} / 0.06))` : 'hsl(var(--muted) / 0.6)',
+                      color: medalVar ? `hsl(${medalVar})` : 'hsl(var(--muted-foreground))',
+                      border: medalVar ? `1px solid hsl(${medalVar} / 0.35)` : '1px solid hsl(var(--border))',
+                    }}>
+                    {initials}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
-                      <p className={cn('text-[13px] font-bold truncate', isMe && 'text-gold', rank === 1 && !isMe && 'text-foreground')}>
-                        {(s.profiles as any)?.display_name || 'Unknown'}
-                      </p>
-                      {isMe && <span className="text-[8px] text-muted-foreground bg-gold/10 px-1 py-0.5 rounded font-bold">YOU</span>}
-                      {rank === 1 && <Crown className="w-3 h-3 flex-shrink-0" style={{ color: 'hsl(var(--gold))' }} />}
+                      <p className={cn('text-[13px] font-bold truncate', isMe && 'text-gold')}>{name}</p>
+                      {isMe && <span className="text-[8px] text-gold bg-gold/12 px-1.5 py-0.5 rounded font-extrabold tracking-wide flex-shrink-0">YOU</span>}
+                      {isLeader && <Crown className="w-3 h-3 flex-shrink-0" style={{ color: 'hsl(var(--gold))' }} />}
                     </div>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-[9px] text-muted-foreground">{s.drafts_played} drafted</span>
-                      <span className="text-[9px] text-muted-foreground">·</span>
-                      <span className="text-[9px] text-muted-foreground">{s.wins}W {s.podiums}P</span>
+                    <div className="flex items-center gap-1 mt-1">
+                      <span className="text-[8.5px] font-bold px-1.5 py-0.5 rounded-md bg-muted/50 text-muted-foreground/80 tabular-nums">{s.drafts_played} played</span>
+                      <span className="text-[8.5px] font-bold px-1.5 py-0.5 rounded-md tabular-nums" style={{ background: 'hsl(var(--gold) / 0.1)', color: 'hsl(var(--gold) / 0.9)' }}>{s.wins}W</span>
+                      <span className="text-[8.5px] font-bold px-1.5 py-0.5 rounded-md bg-muted/50 text-muted-foreground/80 tabular-nums">{s.podiums} podium</span>
                     </div>
                   </div>
-                  <div className="text-right flex-shrink-0">
-                    <p className="text-sm font-extrabold tabular-nums" style={{ color: 'hsl(var(--gold))' }}>{s.season_points}</p>
+                  <div className="text-right flex-shrink-0 pl-1">
+                    <p className="text-base font-black tabular-nums leading-none" style={{ color: 'hsl(var(--gold))' }}>{s.season_points}</p>
                     {gap !== null ? (
-                      <p className="text-[8px] text-muted-foreground/50 tabular-nums font-bold">-{gap} pts</p>
+                      <p className="text-[8px] text-muted-foreground/50 tabular-nums font-bold mt-0.5">-{gap} back</p>
                     ) : (
-                      <p className="text-[8px] font-bold uppercase" style={{ color: 'hsl(var(--gold) / 0.6)' }}>Leader</p>
+                      <p className="text-[8px] font-extrabold uppercase tracking-wide mt-0.5" style={{ color: 'hsl(var(--gold) / 0.65)' }}>Leader</p>
                     )}
                   </div>
+                  <ChevronDown className={cn('w-3.5 h-3.5 text-muted-foreground/50 flex-shrink-0 transition-transform', isExpanded && 'rotate-180')} />
                 </button>
                 {isExpanded && (
-                  <div className="px-4 pb-3 pt-0">
-                    <div className="grid grid-cols-4 gap-px rounded-lg overflow-hidden bg-border/10">
+                  <div className="px-3.5 pb-3 pt-0">
+                    <div className="grid grid-cols-4 gap-1.5">
                       {[
                         { v: s.avg_finish.toFixed(1), l: 'Avg Finish' },
                         { v: s.avg_score.toFixed(1), l: 'Avg Score' },
-                        { v: s.best_score.toFixed(1), l: 'Best', cls: 'text-success' },
-                        { v: s.worst_score.toFixed(1), l: 'Worst', cls: 'text-destructive' },
+                        { v: s.best_score.toFixed(1), l: 'Best', c: 'hsl(var(--success))' },
+                        { v: s.worst_score.toFixed(1), l: 'Worst', c: 'hsl(var(--destructive))' },
                       ].map(stat => (
-                        <div key={stat.l} className="text-center bg-muted/30 p-2.5">
-                          <p className={cn('text-[12px] font-bold tabular-nums', stat.cls)}>{stat.v}</p>
-                          <p className="text-[7px] text-muted-foreground/60 font-bold uppercase tracking-wider">{stat.l}</p>
+                        <div key={stat.l} className="text-center rounded-lg bg-muted/30 border border-border/20 p-2">
+                          <p className="text-[13px] font-extrabold tabular-nums" style={stat.c ? { color: stat.c } : undefined}>{stat.v}</p>
+                          <p className="text-[7px] text-muted-foreground/60 font-bold uppercase tracking-wider mt-0.5">{stat.l}</p>
                         </div>
                       ))}
                     </div>
