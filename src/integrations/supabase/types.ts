@@ -5078,6 +5078,7 @@ export type Database = {
           portfolio_wars: boolean
           posts: boolean
           rankings: boolean
+          readshift: boolean
           runedelve: boolean
           system: boolean
           updated_at: string
@@ -5102,6 +5103,7 @@ export type Database = {
           portfolio_wars?: boolean
           posts?: boolean
           rankings?: boolean
+          readshift?: boolean
           runedelve?: boolean
           system?: boolean
           updated_at?: string
@@ -5126,6 +5128,7 @@ export type Database = {
           portfolio_wars?: boolean
           posts?: boolean
           rankings?: boolean
+          readshift?: boolean
           runedelve?: boolean
           system?: boolean
           updated_at?: string
@@ -6220,6 +6223,653 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      readshift_answers: {
+        Row: {
+          body: string
+          club_id: string
+          created_at: string
+          id: string
+          locked: boolean
+          round_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          club_id: string
+          created_at?: string
+          id?: string
+          locked?: boolean
+          round_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          club_id?: string
+          created_at?: string
+          id?: string
+          locked?: boolean
+          round_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "readshift_answers_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "readshift_answers_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "readshift_rounds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      readshift_comments: {
+        Row: {
+          answer_id: string | null
+          club_id: string
+          content: string
+          created_at: string
+          id: string
+          round_id: string
+          user_id: string
+        }
+        Insert: {
+          answer_id?: string | null
+          club_id: string
+          content: string
+          created_at?: string
+          id?: string
+          round_id: string
+          user_id: string
+        }
+        Update: {
+          answer_id?: string | null
+          club_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          round_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "readshift_comments_answer_id_fkey"
+            columns: ["answer_id"]
+            isOneToOne: false
+            referencedRelation: "readshift_answers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "readshift_comments_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "readshift_comments_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "readshift_rounds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      readshift_games: {
+        Row: {
+          allow_custom_prompts: boolean
+          allow_reveal_explanations: boolean
+          club_id: string
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          current_round: number
+          early_advance: boolean
+          id: string
+          name: string
+          paused_from_phase: string | null
+          phase: string
+          phase_deadline: string | null
+          prompt_categories: string[]
+          prompt_mode: string
+          read_hours: number
+          reminders_enabled: boolean
+          reveal_hours: number
+          seed: number
+          shift_hours: number
+          strong_read_explanations: boolean
+          total_rounds: number
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          allow_custom_prompts?: boolean
+          allow_reveal_explanations?: boolean
+          club_id: string
+          completed_at?: string | null
+          created_at?: string
+          created_by: string
+          current_round?: number
+          early_advance?: boolean
+          id?: string
+          name: string
+          paused_from_phase?: string | null
+          phase?: string
+          phase_deadline?: string | null
+          prompt_categories?: string[]
+          prompt_mode?: string
+          read_hours?: number
+          reminders_enabled?: boolean
+          reveal_hours?: number
+          seed?: number
+          shift_hours?: number
+          strong_read_explanations?: boolean
+          total_rounds?: number
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          allow_custom_prompts?: boolean
+          allow_reveal_explanations?: boolean
+          club_id?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string
+          current_round?: number
+          early_advance?: boolean
+          id?: string
+          name?: string
+          paused_from_phase?: string | null
+          phase?: string
+          phase_deadline?: string | null
+          prompt_categories?: string[]
+          prompt_mode?: string
+          read_hours?: number
+          reminders_enabled?: boolean
+          reveal_hours?: number
+          seed?: number
+          shift_hours?: number
+          strong_read_explanations?: boolean
+          total_rounds?: number
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "readshift_games_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      readshift_guesses: {
+        Row: {
+          answer_id: string
+          club_id: string
+          created_at: string
+          explanation: string | null
+          guessed_user_id: string | null
+          id: string
+          is_strong_read: boolean
+          reader_user_id: string
+          round_id: string
+          updated_at: string
+        }
+        Insert: {
+          answer_id: string
+          club_id: string
+          created_at?: string
+          explanation?: string | null
+          guessed_user_id?: string | null
+          id?: string
+          is_strong_read?: boolean
+          reader_user_id: string
+          round_id: string
+          updated_at?: string
+        }
+        Update: {
+          answer_id?: string
+          club_id?: string
+          created_at?: string
+          explanation?: string | null
+          guessed_user_id?: string | null
+          id?: string
+          is_strong_read?: boolean
+          reader_user_id?: string
+          round_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "readshift_guesses_answer_id_fkey"
+            columns: ["answer_id"]
+            isOneToOne: false
+            referencedRelation: "readshift_answers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "readshift_guesses_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "readshift_guesses_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "readshift_rounds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      readshift_participants: {
+        Row: {
+          active: boolean
+          club_id: string
+          game_id: string
+          id: string
+          joined_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          club_id: string
+          game_id: string
+          id?: string
+          joined_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          club_id?: string
+          game_id?: string
+          id?: string
+          joined_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "readshift_participants_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "readshift_participants_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "readshift_games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      readshift_prompts: {
+        Row: {
+          body: string
+          category: string
+          club_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          is_group: boolean
+          mode: string
+          updated_at: string
+        }
+        Insert: {
+          body: string
+          category: string
+          club_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          is_group?: boolean
+          mode?: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          category?: string
+          club_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          is_group?: boolean
+          mode?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "readshift_prompts_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      readshift_round_awards: {
+        Row: {
+          award_key: string
+          club_id: string
+          created_at: string
+          game_id: string
+          id: string
+          label: string
+          round_id: string
+          user_id: string
+          value: number
+        }
+        Insert: {
+          award_key: string
+          club_id: string
+          created_at?: string
+          game_id: string
+          id?: string
+          label: string
+          round_id: string
+          user_id: string
+          value?: number
+        }
+        Update: {
+          award_key?: string
+          club_id?: string
+          created_at?: string
+          game_id?: string
+          id?: string
+          label?: string
+          round_id?: string
+          user_id?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "readshift_round_awards_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "readshift_round_awards_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "readshift_games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "readshift_round_awards_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "readshift_rounds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      readshift_round_results: {
+        Row: {
+          club_id: string
+          created_at: string
+          detail: Json
+          game_id: string
+          id: string
+          reading_points: Json
+          round_id: string
+          signal_points: Json
+          total_points: Json
+        }
+        Insert: {
+          club_id: string
+          created_at?: string
+          detail?: Json
+          game_id: string
+          id?: string
+          reading_points?: Json
+          round_id: string
+          signal_points?: Json
+          total_points?: Json
+        }
+        Update: {
+          club_id?: string
+          created_at?: string
+          detail?: Json
+          game_id?: string
+          id?: string
+          reading_points?: Json
+          round_id?: string
+          signal_points?: Json
+          total_points?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "readshift_round_results_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "readshift_round_results_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "readshift_games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "readshift_round_results_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: true
+            referencedRelation: "readshift_rounds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      readshift_rounds: {
+        Row: {
+          club_id: string
+          created_at: string
+          game_id: string
+          id: string
+          phase: string
+          prompt_id: string | null
+          prompt_snapshot: string | null
+          read_deadline: string | null
+          reveal_deadline: string | null
+          round_number: number
+          scored_at: string | null
+          shift_deadline: string | null
+          updated_at: string
+          voided: boolean
+        }
+        Insert: {
+          club_id: string
+          created_at?: string
+          game_id: string
+          id?: string
+          phase?: string
+          prompt_id?: string | null
+          prompt_snapshot?: string | null
+          read_deadline?: string | null
+          reveal_deadline?: string | null
+          round_number: number
+          scored_at?: string | null
+          shift_deadline?: string | null
+          updated_at?: string
+          voided?: boolean
+        }
+        Update: {
+          club_id?: string
+          created_at?: string
+          game_id?: string
+          id?: string
+          phase?: string
+          prompt_id?: string | null
+          prompt_snapshot?: string | null
+          read_deadline?: string | null
+          reveal_deadline?: string | null
+          round_number?: number
+          scored_at?: string | null
+          shift_deadline?: string | null
+          updated_at?: string
+          voided?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "readshift_rounds_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "readshift_rounds_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "readshift_games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "readshift_rounds_prompt_id_fkey"
+            columns: ["prompt_id"]
+            isOneToOne: false
+            referencedRelation: "readshift_prompts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      readshift_signal_assignments: {
+        Row: {
+          club_id: string
+          created_at: string
+          frame_target_user_id: string | null
+          id: string
+          round_id: string
+          signal: string
+          user_id: string
+        }
+        Insert: {
+          club_id: string
+          created_at?: string
+          frame_target_user_id?: string | null
+          id?: string
+          round_id: string
+          signal: string
+          user_id: string
+        }
+        Update: {
+          club_id?: string
+          created_at?: string
+          frame_target_user_id?: string | null
+          id?: string
+          round_id?: string
+          signal?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "readshift_signal_assignments_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "readshift_signal_assignments_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "readshift_rounds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      readshift_stats: {
+        Row: {
+          blur_rounds: number
+          blur_success: number
+          club_id: string
+          correct_reads: number
+          correct_strong_reads: number
+          eligible_reads: number
+          frame_rounds: number
+          frame_success: number
+          games_played: number
+          games_won: number
+          id: string
+          pairings: Json
+          rounds_played: number
+          strong_reads: number
+          tell_rounds: number
+          tell_success: number
+          total_score: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          blur_rounds?: number
+          blur_success?: number
+          club_id: string
+          correct_reads?: number
+          correct_strong_reads?: number
+          eligible_reads?: number
+          frame_rounds?: number
+          frame_success?: number
+          games_played?: number
+          games_won?: number
+          id?: string
+          pairings?: Json
+          rounds_played?: number
+          strong_reads?: number
+          tell_rounds?: number
+          tell_success?: number
+          total_score?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          blur_rounds?: number
+          blur_success?: number
+          club_id?: string
+          correct_reads?: number
+          correct_strong_reads?: number
+          eligible_reads?: number
+          frame_rounds?: number
+          frame_success?: number
+          games_played?: number
+          games_won?: number
+          id?: string
+          pairings?: Json
+          rounds_played?: number
+          strong_reads?: number
+          tell_rounds?: number
+          tell_success?: number
+          total_score?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "readshift_stats_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
             referencedColumns: ["id"]
           },
         ]
@@ -7516,6 +8166,26 @@ export type Database = {
       }
       nfl_week_lock_at: { Args: { _week_id: string }; Returns: string }
       purchase_boost: { Args: { _boost_code: string }; Returns: Json }
+      readshift_read_cards: {
+        Args: { _round_id: string }
+        Returns: {
+          answer_id: string
+          body: string
+        }[]
+      }
+      readshift_round_authors: {
+        Args: { _round_id: string }
+        Returns: {
+          user_id: string
+        }[]
+      }
+      readshift_shift_progress: {
+        Args: { _round_id: string }
+        Returns: {
+          submitted: number
+          total: number
+        }[]
+      }
       recompute_nfl_week_status: {
         Args: { _week_id: string }
         Returns: undefined
