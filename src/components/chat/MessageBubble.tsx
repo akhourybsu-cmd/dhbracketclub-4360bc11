@@ -411,7 +411,19 @@ function MessageBubbleInner({
 
   const imageUrls = extractImageUrls(msg.content);
   const parsedLinks = useMemo(() => parseMessageLinks(msg.content), [msg.content]);
-  const previewLinks = parsedLinks.filter(l => l.contentType !== 'image');
+  // Non-image links only, de-duplicated by URL and capped so a message full of
+  // links can't spam a wall of preview cards (matches Discord's behavior).
+  const previewLinks = useMemo(() => {
+    const seen = new Set<string>();
+    const out: typeof parsedLinks = [];
+    for (const l of parsedLinks) {
+      if (l.contentType === 'image' || seen.has(l.url)) continue;
+      seen.add(l.url);
+      out.push(l);
+      if (out.length >= 3) break;
+    }
+    return out;
+  }, [parsedLinks]);
   const senderColor = getUserColor(msg.user_id);
   const bubbleCorners = getBubbleCorners(isOwn, isFirstInBlock, isLastInBlock, isSingle);
 

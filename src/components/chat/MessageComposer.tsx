@@ -44,6 +44,7 @@ export const MessageComposer = forwardRef<MessageComposerHandle, MessageComposer
     const dropdownRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const cameraInputRef = useRef<HTMLInputElement>(null);
+    const dragDepth = useRef(0);
 
     const [mentionQuery, setMentionQuery] = useState<string | null>(null);
     const [mentionIndex, setMentionIndex] = useState(0);
@@ -53,6 +54,7 @@ export const MessageComposer = forwardRef<MessageComposerHandle, MessageComposer
     const [showGifPicker, setShowGifPicker] = useState(false);
     const [pendingImages, setPendingImages] = useState<PendingImage[]>([]);
     const [uploading, setUploading] = useState(false);
+    const [isDragging, setIsDragging] = useState(false);
     const gifEnabled = isGifProviderConfigured();
 
     useImperativeHandle(ref, () => ({
@@ -125,22 +127,81 @@ export const MessageComposer = forwardRef<MessageComposerHandle, MessageComposer
     }, [value, mentionStart, onChange]);
 
     const MAX_FILE_SIZE = 10 * 1024 * 1024;
+    const MAX_IMAGES = 4;
 
-    const handleFilesSelected = (files: FileList | null) => {
-      if (!files) return;
+    // Single funnel for every image source: the file picker, camera, clipboard
+    // paste, and drag-and-drop all land here. Validates, caps at MAX_IMAGES,
+    // and builds object-URL previews.
+    const addFiles = (incoming: File[]) => {
       const accepted: File[] = [];
-      for (const f of Array.from(files)) {
+      for (const f of incoming) {
         const v = validateImageFile(f, { maxBytes: MAX_FILE_SIZE, label: f.name || 'Image' });
         if (!v.ok) { toast.error(v.error!); continue; }
         accepted.push(f);
       }
-      const imageFiles = accepted.slice(0, 4 - pendingImages.length);
-      const newPending = imageFiles.map(file => ({
-        file,
-        previewUrl: URL.createObjectURL(file),
-      }));
-      setPendingImages(prev => [...prev, ...newPending].slice(0, 4));
+      if (accepted.length === 0) return;
+      setPendingImages(prev => {
+        if (prev.length >= MAX_IMAGES) {
+          toast.error(`You can attach up to ${MAX_IMAGES} images`);
+          return prev;
+        }
+        const room = MAX_IMAGES - prev.length;
+        const newPending = accepted.slice(0, room).map(file => ({
+          file,
+          previewUrl: URL.createObjectURL(file),
+        }));
+        return [...prev, ...newPending];
+      });
       setShowAttachMenu(false);
+    };
+
+    const handleFilesSelected = (files: FileList | null) => {
+      if (files) addFiles(Array.from(files));
+    };
+
+    // Paste an image straight into the composer (screenshots, copied images).
+    // Text paste falls through to the browser's default behavior untouched.
+    const handlePaste = (e: React.ClipboardEvent) => {
+      if (disabled) return;
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      const imgs: File[] = [];
+      for (const it of Array.from(items)) {
+        if (it.kind === 'file' && it.type.startsWith('image/')) {
+          const f = it.getAsFile();
+          if (f) imgs.push(f);
+        }
+      }
+      if (imgs.length > 0) {
+        e.preventDefault(); // don't also drop a stray filename into the text
+        addFiles(imgs);
+      }
+    };
+
+    // Drag-and-drop images onto the composer (desktop). dragDepth tracks
+    // enter/leave across nested children so the overlay doesn't flicker.
+    const dragHasFiles = (e: React.DragEvent) =>
+      Array.from(e.dataTransfer?.types || []).includes('Files');
+    const handleDragEnter = (e: React.DragEvent) => {
+      if (disabled || !dragHasFiles(e)) return;
+      e.preventDefault();
+      dragDepth.current += 1;
+      setIsDragging(true);
+    };
+    const handleDragOver = (e: React.DragEvent) => {
+      if (!disabled && dragHasFiles(e)) e.preventDefault();
+    };
+    const handleDragLeave = () => {
+      dragDepth.current -= 1;
+      if (dragDepth.current <= 0) { dragDepth.current = 0; setIsDragging(false); }
+    };
+    const handleDrop = (e: React.DragEvent) => {
+      if (disabled) return;
+      e.preventDefault();
+      dragDepth.current = 0;
+      setIsDragging(false);
+      const dropped = Array.from(e.dataTransfer?.files || []).filter(f => f.type.startsWith('image/'));
+      if (dropped.length) addFiles(dropped);
     };
 
     const removePendingImage = (index: number) => {
@@ -245,8 +306,12 @@ export const MessageComposer = forwardRef<MessageComposerHandle, MessageComposer
     return (
       <div
         ref={containerRef}
+        onDragEnter={handleDragEnter}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
         className={cn(
-          "flex flex-col bg-background",
+          "relative flex flex-col bg-background",
           compact ? "px-3 pt-1.5 pb-1.5" : "px-2.5 sm:px-3 pt-1.5"
         )}
         style={{
@@ -255,6 +320,20 @@ export const MessageComposer = forwardRef<MessageComposerHandle, MessageComposer
           paddingRight: `max(${compact ? '0.75rem' : '0.625rem'}, env(safe-area-inset-right, 0px))`,
         }}
       >
+        {/* Drag-and-drop overlay */}
+        <AnimatePresence>
+          {isDragging && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-1 z-50 flex flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed border-primary/50 bg-background/85 backdrop-blur-sm pointer-events-none"
+            >
+              <Image className="w-5 h-5 text-primary" />
+              <span className="text-[12px] font-semibold text-primary">Drop image to attach</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
         {/* Image preview strip */}
         <AnimatePresence>
           {pendingImages.length > 0 && (
@@ -373,6 +452,7 @@ export const MessageComposer = forwardRef<MessageComposerHandle, MessageComposer
               onChange={handleChange}
               onKeyDown={handleKeyDown}
               onSelect={detectMention}
+              onPaste={handlePaste}
               placeholder={placeholder || 'Message'}
               rows={1}
               className={cn(
