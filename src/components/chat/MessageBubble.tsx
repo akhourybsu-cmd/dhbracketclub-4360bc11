@@ -54,17 +54,19 @@ const MENTION_RE = /@([\w\s]+?)(?=\s@|\s|$)/g;
  */
 
 const CODE_BLOCK_RE = /```([a-zA-Z0-9_-]*)\r?\n?([\s\S]*?)```/g;
-const INLINE_TOKEN_PATTERNS: Array<{ type: 'code' | 'bold' | 'strike' | 'italic'; re: RegExp }> = [
+const INLINE_TOKEN_PATTERNS: Array<{ type: 'code' | 'bold' | 'strike' | 'italic' | 'spoiler'; re: RegExp }> = [
   // Order matters: `code` first so backtick-wrapped content is opaque,
+  // ||spoiler|| before *bold/italic* so its inner text stays intact,
   // **bold** before *italic* so ** isn't confused with two italic *s,
   // ~~strike~~ standalone.
-  { type: 'code',   re: /`([^`\n]+?)`/ },
-  { type: 'bold',   re: /\*\*([^*\n]+?)\*\*/ },
-  { type: 'strike', re: /~~([^~\n]+?)~~/ },
-  { type: 'italic', re: /(?<!\*)\*([^*\n]+?)\*(?!\*)/ },
+  { type: 'code',    re: /`([^`\n]+?)`/ },
+  { type: 'spoiler', re: /\|\|([^\n]+?)\|\|/ },
+  { type: 'bold',    re: /\*\*([^*\n]+?)\*\*/ },
+  { type: 'strike',  re: /~~([^~\n]+?)~~/ },
+  { type: 'italic',  re: /(?<!\*)\*([^*\n]+?)\*(?!\*)/ },
 ];
 
-interface InlineToken { type: 'text' | 'code' | 'bold' | 'strike' | 'italic'; value: string }
+interface InlineToken { type: 'text' | 'code' | 'bold' | 'strike' | 'italic' | 'spoiler'; value: string }
 
 function tokenizeInline(text: string): InlineToken[] {
   const tokens: InlineToken[] = [];
@@ -107,6 +109,8 @@ function renderInlineTokens(text: string, currentDisplayName?: string, keyPrefix
         return <em key={k} className="italic">{renderUrlsAndMentions(t.value, currentDisplayName, k)}</em>;
       case 'strike':
         return <span key={k} className="line-through opacity-75">{renderUrlsAndMentions(t.value, currentDisplayName, k)}</span>;
+      case 'spoiler':
+        return <Spoiler key={k}>{renderUrlsAndMentions(t.value, currentDisplayName, k)}</Spoiler>;
       case 'text':
       default:
         return <Fragment key={k}>{renderUrlsAndMentions(t.value, currentDisplayName, k)}</Fragment>;
@@ -131,6 +135,31 @@ function renderUrlsAndMentions(text: string, currentDisplayName?: string, keyPre
   );
 }
 
+// Click/tap-to-reveal spoiler (Discord ||text||). Blurred + black fill until
+// revealed; stays revealed once opened. stopPropagation so revealing a spoiler
+// doesn't also trigger the bubble's tap handlers.
+function Spoiler({ children }: { children: React.ReactNode }) {
+  const [revealed, setRevealed] = useState(false);
+  return (
+    <span
+      role="button"
+      tabIndex={0}
+      aria-label={revealed ? undefined : 'Spoiler — click to reveal'}
+      onClick={(e) => { if (!revealed) { e.stopPropagation(); setRevealed(true); } }}
+      onKeyDown={(e) => { if (!revealed && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); setRevealed(true); } }}
+      className={cn(
+        'rounded px-1 -mx-0.5 transition-all duration-150 align-baseline',
+        revealed
+          ? 'bg-foreground/[0.06]'
+          : 'bg-foreground/80 text-transparent select-none cursor-pointer blur-[1px] hover:bg-foreground/70',
+      )}
+      style={revealed ? undefined : { textShadow: '0 0 8px rgba(0,0,0,0.55)' }}
+    >
+      {children}
+    </span>
+  );
+}
+
 function renderContent(text: string, currentUserId?: string, currentDisplayName?: string) {
   // Step 1: split out triple-backtick code blocks (block-level,
   // opaque). Everything inside ``` is rendered verbatim — no URL,
@@ -149,7 +178,7 @@ function renderContent(text: string, currentUserId?: string, currentDisplayName?
   // No code blocks AND no inline-mark candidates → take the original
   // fast path so we don't change behaviour for the most common case
   // (plain text + maybe a URL + maybe a mention).
-  if (segments.length === 1 && segments[0].kind === 'text' && !/[*~`]/.test(text)) {
+  if (segments.length === 1 && segments[0].kind === 'text' && !/[*~`|]/.test(text)) {
     return renderUrlsAndMentions(text, currentDisplayName, 'root');
   }
 
