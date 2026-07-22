@@ -1,11 +1,12 @@
 import { useRef, useEffect, useCallback, useState, forwardRef, useImperativeHandle } from 'react';
 import { toast } from 'sonner';
-import { Send, Plus, Image, Camera, X, Loader2, ImagePlay } from 'lucide-react';
+import { Send, Plus, Image, Camera, X, Loader2, ImagePlay, Paperclip, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { UserAvatar } from './UserAvatar';
 import { supabase } from '@/integrations/supabase/client';
-import { validateImageFile, buildUserScopedPath, sanitizeUploadError } from '@/lib/uploadValidation';
+import { validateImageFile, validateAttachmentFile, buildUserScopedPath, sanitizeUploadError, FILE_ACCEPT } from '@/lib/uploadValidation';
+import { buildPrivateAttachmentUrl } from '@/lib/chatAttachments';
 import { GifPicker } from './GifPicker';
 import { isGifProviderConfigured } from '@/lib/gifProvider';
 
@@ -23,6 +24,14 @@ export interface PendingImage {
   file: File;
   previewUrl: string;
 }
+
+export interface PendingFile {
+  file: File;
+  name: string;
+  ext: string;
+}
+
+const MAX_ATTACHMENTS = 4;
 
 interface MessageComposerProps {
   value: string;
@@ -44,6 +53,7 @@ export const MessageComposer = forwardRef<MessageComposerHandle, MessageComposer
     const dropdownRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const cameraInputRef = useRef<HTMLInputElement>(null);
+    const docInputRef = useRef<HTMLInputElement>(null);
     const dragDepth = useRef(0);
 
     const [mentionQuery, setMentionQuery] = useState<string | null>(null);
@@ -53,6 +63,7 @@ export const MessageComposer = forwardRef<MessageComposerHandle, MessageComposer
     const [showAttachMenu, setShowAttachMenu] = useState(false);
     const [showGifPicker, setShowGifPicker] = useState(false);
     const [pendingImages, setPendingImages] = useState<PendingImage[]>([]);
+    const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
     const [uploading, setUploading] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
     const gifEnabled = isGifProviderConfigured();
@@ -129,10 +140,13 @@ export const MessageComposer = forwardRef<MessageComposerHandle, MessageComposer
     const MAX_FILE_SIZE = 10 * 1024 * 1024;
     const MAX_IMAGES = 4;
 
-    // Single funnel for every image source: the file picker, camera, clipboard
-    // paste, and drag-and-drop all land here. Validates, caps at MAX_IMAGES,
-    // and builds object-URL previews.
-    const addFiles = (incoming: File[]) => {
+    // Combined attachment budget across images + files.
+    const remainingSlots = () => MAX_ATTACHMENTS - (pendingImages.length + pendingFiles.length);
+
+    // Image intake: file picker, camera, clipboard paste, drag-and-drop.
+    // Validates, caps at the shared budget, and builds object-URL previews.
+    const addImages = (incoming: File[]) => {
+      if (remainingSlots() <= 0) { toast.error(`You can attach up to ${MAX_ATTACHMENTS} files`); return; }
       const accepted: File[] = [];
       for (const f of incoming) {
         const v = validateImageFile(f, { maxBytes: MAX_FILE_SIZE, label: f.name || 'Image' });
@@ -141,22 +155,45 @@ export const MessageComposer = forwardRef<MessageComposerHandle, MessageComposer
       }
       if (accepted.length === 0) return;
       setPendingImages(prev => {
-        if (prev.length >= MAX_IMAGES) {
-          toast.error(`You can attach up to ${MAX_IMAGES} images`);
-          return prev;
-        }
-        const room = MAX_IMAGES - prev.length;
-        const newPending = accepted.slice(0, room).map(file => ({
-          file,
-          previewUrl: URL.createObjectURL(file),
-        }));
+        const room = MAX_ATTACHMENTS - (prev.length + pendingFiles.length);
+        if (room <= 0) return prev;
+        const newPending = accepted.slice(0, room).map(file => ({ file, previewUrl: URL.createObjectURL(file) }));
         return [...prev, ...newPending];
       });
       setShowAttachMenu(false);
     };
 
-    const handleFilesSelected = (files: FileList | null) => {
-      if (files) addFiles(Array.from(files));
+    // Non-image file intake (PDF, video, doc, archive, …).
+    const addDocs = (incoming: File[]) => {
+      if (remainingSlots() <= 0) { toast.error(`You can attach up to ${MAX_ATTACHMENTS} files`); return; }
+      const accepted: PendingFile[] = [];
+      for (const f of incoming) {
+        const v = validateAttachmentFile(f, { maxBytes: MAX_FILE_SIZE });
+        if (!v.ok) { toast.error(v.error!); continue; }
+        accepted.push({ file: f, name: f.name || `file.${v.ext}`, ext: v.ext! });
+      }
+      if (accepted.length === 0) return;
+      setPendingFiles(prev => {
+        const room = MAX_ATTACHMENTS - (prev.length + pendingImages.length);
+        if (room <= 0) return prev;
+        return [...prev, ...accepted.slice(0, room)];
+      });
+      setShowAttachMenu(false);
+    };
+
+    // Split a mixed batch (drop/paste) into images vs. everything else.
+    const intake = (files: File[]) => {
+      const imgs = files.filter(f => f.type.startsWith('image/'));
+      const docs = files.filter(f => !f.type.startsWith('image/'));
+      if (imgs.length) addImages(imgs);
+      if (docs.length) addDocs(docs);
+    };
+
+    const handleImagesSelected = (files: FileList | null) => {
+      if (files) addImages(Array.from(files));
+    };
+    const handleDocsSelected = (files: FileList | null) => {
+      if (files) addDocs(Array.from(files));
     };
 
     // Paste an image straight into the composer (screenshots, copied images).
@@ -165,20 +202,20 @@ export const MessageComposer = forwardRef<MessageComposerHandle, MessageComposer
       if (disabled) return;
       const items = e.clipboardData?.items;
       if (!items) return;
-      const imgs: File[] = [];
+      const files: File[] = [];
       for (const it of Array.from(items)) {
-        if (it.kind === 'file' && it.type.startsWith('image/')) {
+        if (it.kind === 'file') {
           const f = it.getAsFile();
-          if (f) imgs.push(f);
+          if (f) files.push(f);
         }
       }
-      if (imgs.length > 0) {
+      if (files.length > 0) {
         e.preventDefault(); // don't also drop a stray filename into the text
-        addFiles(imgs);
+        intake(files);
       }
     };
 
-    // Drag-and-drop images onto the composer (desktop). dragDepth tracks
+    // Drag-and-drop files onto the composer (desktop). dragDepth tracks
     // enter/leave across nested children so the overlay doesn't flicker.
     const dragHasFiles = (e: React.DragEvent) =>
       Array.from(e.dataTransfer?.types || []).includes('Files');
@@ -200,8 +237,8 @@ export const MessageComposer = forwardRef<MessageComposerHandle, MessageComposer
       e.preventDefault();
       dragDepth.current = 0;
       setIsDragging(false);
-      const dropped = Array.from(e.dataTransfer?.files || []).filter(f => f.type.startsWith('image/'));
-      if (dropped.length) addFiles(dropped);
+      const dropped = Array.from(e.dataTransfer?.files || []);
+      if (dropped.length) intake(dropped);
     };
 
     const removePendingImage = (index: number) => {
@@ -210,6 +247,10 @@ export const MessageComposer = forwardRef<MessageComposerHandle, MessageComposer
         URL.revokeObjectURL(removed.previewUrl);
         return prev.filter((_, i) => i !== index);
       });
+    };
+
+    const removePendingFile = (index: number) => {
+      setPendingFiles(prev => prev.filter((_, i) => i !== index));
     };
 
     useEffect(() => {
@@ -234,8 +275,32 @@ export const MessageComposer = forwardRef<MessageComposerHandle, MessageComposer
               upsert: false,
               contentType: pending.file.type,
             });
-          if (!error) return `lovable-private://chat-attachments-private/${path}`;
+          if (!error) return buildPrivateAttachmentUrl(path);
           toast.error(sanitizeUploadError(error, 'Failed to upload image'));
+          return null;
+        })
+      );
+      return results.filter((url): url is string => url !== null);
+    };
+
+    const uploadFiles = async (): Promise<string[]> => {
+      if (!userId || pendingFiles.length === 0) return [];
+      const results = await Promise.all(
+        pendingFiles.map(async (pending) => {
+          const v = validateAttachmentFile(pending.file, { maxBytes: MAX_FILE_SIZE });
+          if (!v.ok) { toast.error(v.error!); return null; }
+          const path = buildUserScopedPath(userId, v.ext!);
+          const { error } = await supabase.storage
+            .from('chat-attachments-private')
+            .upload(path, pending.file, {
+              cacheControl: '3600',
+              upsert: false,
+              contentType: pending.file.type,
+            });
+          // Carry the original filename in the sentinel's metadata fragment so
+          // the receiver's file card can show it.
+          if (!error) return buildPrivateAttachmentUrl(path, pending.name);
+          toast.error(sanitizeUploadError(error, 'Failed to upload file'));
           return null;
         })
       );
@@ -256,18 +321,20 @@ export const MessageComposer = forwardRef<MessageComposerHandle, MessageComposer
 
     const handleSend = async () => {
       const hasText = value.trim().length > 0;
-      const hasImages = pendingImages.length > 0;
-      if ((!hasText && !hasImages) || disabled || uploading) return;
+      const hasAttachments = pendingImages.length > 0 || pendingFiles.length > 0;
+      if ((!hasText && !hasAttachments) || disabled || uploading) return;
 
-      if (hasImages) {
+      if (hasAttachments) {
         setUploading(true);
         try {
-          const uploadedUrls = await uploadImages();
+          const [imageUrls, fileUrls] = await Promise.all([uploadImages(), uploadFiles()]);
+          const uploadedUrls = [...imageUrls, ...fileUrls];
           pendingImages.forEach(p => URL.revokeObjectURL(p.previewUrl));
           setPendingImages([]);
+          setPendingFiles([]);
           onSend(uploadedUrls);
         } catch {
-          // keep images on failure
+          // keep attachments on failure
         } finally {
           setUploading(false);
         }
@@ -301,7 +368,7 @@ export const MessageComposer = forwardRef<MessageComposerHandle, MessageComposer
       requestAnimationFrame(detectMention);
     };
 
-    const canSend = (value.trim().length > 0 || pendingImages.length > 0) && !disabled && !uploading;
+    const canSend = (value.trim().length > 0 || pendingImages.length > 0 || pendingFiles.length > 0) && !disabled && !uploading;
 
     return (
       <div
@@ -329,8 +396,8 @@ export const MessageComposer = forwardRef<MessageComposerHandle, MessageComposer
               exit={{ opacity: 0 }}
               className="absolute inset-1 z-50 flex flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed border-primary/50 bg-background/85 backdrop-blur-sm pointer-events-none"
             >
-              <Image className="w-5 h-5 text-primary" />
-              <span className="text-[12px] font-semibold text-primary">Drop image to attach</span>
+              <Paperclip className="w-5 h-5 text-primary" />
+              <span className="text-[12px] font-semibold text-primary">Drop to attach</span>
             </motion.div>
           )}
         </AnimatePresence>
@@ -358,6 +425,43 @@ export const MessageComposer = forwardRef<MessageComposerHandle, MessageComposer
                         <Loader2 className="w-4 h-4 animate-spin text-primary" />
                       </div>
                     )}
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* File preview strip (non-image attachments) */}
+        <AnimatePresence>
+          {pendingFiles.length > 0 && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="mb-2"
+            >
+              <div className="flex flex-col gap-1.5">
+                {pendingFiles.map((f, i) => (
+                  <div key={i} className="relative flex items-center gap-2.5 rounded-xl bg-muted/10 border border-border/10 pl-2.5 pr-8 py-2">
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <FileText className="w-4 h-4 text-primary/80" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[12px] font-semibold text-foreground/90 truncate">{f.name}</p>
+                      <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wide">{f.ext}</p>
+                    </div>
+                    {uploading
+                      ? <Loader2 className="absolute right-2.5 w-4 h-4 animate-spin text-primary" />
+                      : (
+                        <button
+                          onClick={() => removePendingFile(i)}
+                          className="absolute right-2 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center shadow-sm"
+                          aria-label="Remove file"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      )}
                   </div>
                 ))}
               </div>
@@ -407,6 +511,13 @@ export const MessageComposer = forwardRef<MessageComposerHandle, MessageComposer
                       <Camera className="w-4 h-4 text-primary/70" />
                       <span className="font-medium">Take Photo</span>
                     </button>
+                    <button
+                      onClick={() => { docInputRef.current?.click(); }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-left text-sm hover:bg-muted/40 transition-colors text-foreground/80"
+                    >
+                      <Paperclip className="w-4 h-4 text-primary/70" />
+                      <span className="font-medium">File</span>
+                    </button>
                     {gifEnabled && (
                       <button
                         onClick={() => { setShowAttachMenu(false); setShowGifPicker(true); }}
@@ -423,8 +534,9 @@ export const MessageComposer = forwardRef<MessageComposerHandle, MessageComposer
           )}
 
           {/* Hidden file inputs */}
-          <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={e => { handleFilesSelected(e.target.files); e.target.value = ''; }} />
-          <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={e => { handleFilesSelected(e.target.files); e.target.value = ''; }} />
+          <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={e => { handleImagesSelected(e.target.files); e.target.value = ''; }} />
+          <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={e => { handleImagesSelected(e.target.files); e.target.value = ''; }} />
+          <input ref={docInputRef} type="file" accept={FILE_ACCEPT} multiple className="hidden" onChange={e => { handleDocsSelected(e.target.files); e.target.value = ''; }} />
 
           <div className="flex-1 relative">
             {/* Mention autocomplete dropdown */}

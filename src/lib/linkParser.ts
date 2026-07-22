@@ -3,7 +3,7 @@
  * Detects URLs, classifies them by type, and extracts embed IDs.
  */
 
-export type LinkContentType = 'image' | 'youtube' | 'spotify' | 'link';
+export type LinkContentType = 'image' | 'file' | 'youtube' | 'spotify' | 'link';
 
 export interface ParsedLink {
   url: string;
@@ -32,9 +32,16 @@ export function extractUrls(text: string): string[] {
 }
 
 export function classifyUrl(url: string): ParsedLink {
-  // Image by extension or Supabase storage URL
-  // Image by extension, Supabase public storage URL, or our private sentinel
-  if (IMAGE_EXT_RE.test(url) || STORAGE_IMAGE_RE.test(url) || PRIVATE_ATTACHMENT_RE.test(url)) {
+  // Private bucket sentinel: an image if its path has an image extension,
+  // otherwise a downloadable file attachment. Strip any `#…` metadata
+  // fragment before testing the extension.
+  if (PRIVATE_ATTACHMENT_RE.test(url)) {
+    const path = url.split('#')[0];
+    return { url, contentType: IMAGE_EXT_RE.test(path) ? 'image' : 'file' };
+  }
+
+  // Public image by extension or Supabase public storage URL
+  if (IMAGE_EXT_RE.test(url) || STORAGE_IMAGE_RE.test(url)) {
     return { url, contentType: 'image' };
   }
 

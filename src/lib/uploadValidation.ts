@@ -30,6 +30,51 @@ const MIME_TO_EXT: Record<string, string> = {
 
 export const SAFE_IMAGE_EXTENSIONS = new Set(Object.values(MIME_TO_EXT));
 
+// Non-image chat attachments (documents, media, archives). Extension is
+// derived from MIME — never from the filename — and pinned to this allowlist
+// so we never write an executable/HTML into shared storage.
+const FILE_MIME_TO_EXT: Record<string, string> = {
+  'application/pdf': 'pdf',
+  'text/plain': 'txt',
+  'text/csv': 'csv',
+  'application/json': 'json',
+  'application/zip': 'zip',
+  'video/mp4': 'mp4',
+  'video/quicktime': 'mov',
+  'video/webm': 'webm',
+  'audio/mpeg': 'mp3',
+  'audio/wav': 'wav',
+  'audio/mp4': 'm4a',
+  'audio/x-m4a': 'm4a',
+  'application/msword': 'doc',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+  'application/vnd.ms-excel': 'xls',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
+  'application/vnd.ms-powerpoint': 'ppt',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx',
+};
+export const SAFE_FILE_EXTENSIONS = new Set(Object.values(FILE_MIME_TO_EXT));
+/** Comma-separated accept string for a non-image file <input>. */
+export const FILE_ACCEPT = Object.keys(FILE_MIME_TO_EXT).join(',');
+
+export interface FileValidationResult { ok: boolean; error?: string; ext?: string }
+
+/** Validate a non-image file attachment (size + MIME allowlist). */
+export function validateAttachmentFile(
+  file: File,
+  opts: { maxBytes: number },
+): FileValidationResult {
+  const label = file?.name || 'File';
+  if (!file || file.size === 0) return { ok: false, error: `${label} is empty` };
+  const ext = FILE_MIME_TO_EXT[file.type];
+  if (!ext) return { ok: false, error: `${label}: unsupported file type` };
+  if (file.size > opts.maxBytes) {
+    const mb = Math.round(opts.maxBytes / (1024 * 1024));
+    return { ok: false, error: `${label} exceeds ${mb}MB limit` };
+  }
+  return { ok: true, ext };
+}
+
 export interface ImageValidationOptions {
   maxBytes: number;
   /** Optional human-friendly label used in toast messages. */
@@ -84,7 +129,7 @@ export function sanitizeUploadError(err: unknown, fallback = 'Upload failed'): s
 
 /** Build a non-guessable storage path under a user-scoped folder. */
 export function buildUserScopedPath(userId: string, ext: string, prefix?: string): string {
-  const safeExt = SAFE_IMAGE_EXTENSIONS.has(ext) ? ext : 'bin';
+  const safeExt = SAFE_IMAGE_EXTENSIONS.has(ext) || SAFE_FILE_EXTENSIONS.has(ext) ? ext : 'bin';
   const rand = Math.random().toString(36).slice(2, 10);
   const stamp = Date.now();
   const base = `${stamp}-${rand}.${safeExt}`;

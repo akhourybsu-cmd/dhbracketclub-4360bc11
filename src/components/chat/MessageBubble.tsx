@@ -18,7 +18,8 @@ import {
 import { parseMessageLinks } from '@/lib/linkParser';
 import { LinkPreviewCard } from './LinkPreviewCard';
 import { ChatAttachmentImage } from './ChatAttachmentImage';
-import { isPrivateAttachmentUrl } from '@/lib/chatAttachments';
+import { ChatAttachmentFile } from './ChatAttachmentFile';
+import { isPrivateAttachmentUrl, isImageAttachmentUrl } from '@/lib/chatAttachments';
 
 /* ═══ URL auto-linking + inline image preview ═══ */
 const URL_RE = /((?:https?|lovable-private):\/\/[^\s<]+)/g;
@@ -26,11 +27,20 @@ const IMAGE_EXT_RE = /\.(jpg|jpeg|png|gif|webp|avif|svg)(\?.*)?$/i;
 const STORAGE_IMAGE_RE = /\/storage\/v1\/object\/public\/chat-attachments\//i;
 
 function isImageUrl(url: string): boolean {
-  return IMAGE_EXT_RE.test(url) || STORAGE_IMAGE_RE.test(url) || isPrivateAttachmentUrl(url);
+  // Private bucket URLs are images only when their path is an image extension;
+  // non-image private URLs are file attachments (rendered as download cards).
+  if (isPrivateAttachmentUrl(url)) return isImageAttachmentUrl(url);
+  return IMAGE_EXT_RE.test(url) || STORAGE_IMAGE_RE.test(url);
 }
 
-function stripImageUrls(text: string): string {
-  return text.replace(URL_RE, match => isImageUrl(match) ? '' : match).replace(/\n{2,}/g, '\n').trim();
+function isFileAttachmentUrl(url: string): boolean {
+  return isPrivateAttachmentUrl(url) && !isImageAttachmentUrl(url);
+}
+
+// Strip both image and file attachment URLs from the visible text so the raw
+// sentinel never renders as a link — attachments render in their own strips.
+function stripAttachmentUrls(text: string): string {
+  return text.replace(URL_RE, match => (isImageUrl(match) || isFileAttachmentUrl(match)) ? '' : match).replace(/\n{2,}/g, '\n').trim();
 }
 
 const MENTION_RE = /@([\w\s]+?)(?=\s@|\s|$)/g;
@@ -243,6 +253,12 @@ function extractImageUrls(text: string): string[] {
   return matches.filter(isImageUrl);
 }
 
+function extractFileUrls(text: string): string[] {
+  const matches = text.match(URL_RE);
+  if (!matches) return [];
+  return matches.filter(isFileAttachmentUrl);
+}
+
 /* ═══ Bubble corner rounding logic ═══ */
 function getBubbleCorners(isOwn: boolean, isFirst: boolean, isLast: boolean, isSingle: boolean): string {
   if (isSingle) return 'rounded-2xl';
@@ -439,14 +455,16 @@ function MessageBubbleInner({
   };
 
   const imageUrls = extractImageUrls(msg.content);
+  const fileUrls = extractFileUrls(msg.content);
   const parsedLinks = useMemo(() => parseMessageLinks(msg.content), [msg.content]);
-  // Non-image links only, de-duplicated by URL and capped so a message full of
-  // links can't spam a wall of preview cards (matches Discord's behavior).
+  // Real external links only (not our own image/file attachments), de-duplicated
+  // by URL and capped so a message full of links can't spam a wall of preview
+  // cards (matches Discord's behavior).
   const previewLinks = useMemo(() => {
     const seen = new Set<string>();
     const out: typeof parsedLinks = [];
     for (const l of parsedLinks) {
-      if (l.contentType === 'image' || seen.has(l.url)) continue;
+      if (l.contentType === 'image' || l.contentType === 'file' || seen.has(l.url)) continue;
       seen.add(l.url);
       out.push(l);
       if (out.length >= 3) break;
@@ -570,9 +588,9 @@ function MessageBubbleInner({
                   <div>
                     <p className={cn(
                       "text-[13px] leading-[1.55] break-words whitespace-pre-wrap",
-                      imageUrls.length > 0 && !stripImageUrls(msg.content) && "hidden"
+                      (imageUrls.length > 0 || fileUrls.length > 0) && !stripAttachmentUrls(msg.content) && "hidden"
                     )}>
-                      {renderContent(stripImageUrls(msg.content), currentUserId, currentDisplayName)}
+                      {renderContent(stripAttachmentUrls(msg.content), currentUserId, currentDisplayName)}
                       {msg.is_pinned && <Pin className="w-2 h-2 inline-block ml-1 -mt-0.5" style={{ color: 'hsl(var(--premium-warm) / 0.5)' }} />}
                       {msg.edited_at && <span className="text-[9px] text-muted-foreground/50 ml-1.5">(edited)</span>}
                     </p>
@@ -587,6 +605,13 @@ function MessageBubbleInner({
                       <div className="flex flex-wrap gap-1.5 mt-1.5">
                         {imageUrls.map((url, i) => (
                           <ChatAttachmentImage key={i} url={url} />
+                        ))}
+                      </div>
+                    )}
+                    {fileUrls.length > 0 && (
+                      <div className="flex flex-col gap-1.5 mt-1.5">
+                        {fileUrls.map((url, i) => (
+                          <ChatAttachmentFile key={i} url={url} />
                         ))}
                       </div>
                     )}
