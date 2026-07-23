@@ -19,6 +19,7 @@ import { parseMessageLinks } from '@/lib/linkParser';
 import { LinkPreviewCard } from './LinkPreviewCard';
 import { ChatAttachmentImage } from './ChatAttachmentImage';
 import { ChatAttachmentFile } from './ChatAttachmentFile';
+import { ChatImageLightbox } from './ChatImageLightbox';
 import { isPrivateAttachmentUrl, isImageAttachmentUrl } from '@/lib/chatAttachments';
 
 /* ═══ URL auto-linking + inline image preview ═══ */
@@ -456,6 +457,7 @@ function MessageBubbleInner({
 
   const imageUrls = extractImageUrls(msg.content);
   const fileUrls = extractFileUrls(msg.content);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const parsedLinks = useMemo(() => parseMessageLinks(msg.content), [msg.content]);
   // Real external links only (not our own image/file attachments), de-duplicated
   // by URL and capped so a message full of links can't spam a wall of preview
@@ -604,9 +606,12 @@ function MessageBubbleInner({
                     {imageUrls.length > 0 && (
                       <div className="flex flex-wrap gap-1.5 mt-1.5">
                         {imageUrls.map((url, i) => (
-                          <ChatAttachmentImage key={i} url={url} />
+                          <ChatAttachmentImage key={i} url={url} onOpen={() => setLightboxIndex(i)} />
                         ))}
                       </div>
+                    )}
+                    {lightboxIndex !== null && (
+                      <ChatImageLightbox urls={imageUrls} index={lightboxIndex} onClose={() => setLightboxIndex(null)} />
                     )}
                     {fileUrls.length > 0 && (
                       <div className="flex flex-col gap-1.5 mt-1.5">

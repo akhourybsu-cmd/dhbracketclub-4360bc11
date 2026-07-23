@@ -10,6 +10,8 @@ interface ChatAttachmentImageProps {
   url: string;
   className?: string;
   alt?: string;
+  /** When provided, tapping opens the in-app lightbox instead of a new tab. */
+  onOpen?: () => void;
 }
 
 /**
@@ -17,7 +19,7 @@ interface ChatAttachmentImageProps {
  * - Legacy public URL → renders directly.
  * - Private sentinel URL → resolves to signed URL with skeleton + retry on failure.
  */
-export function ChatAttachmentImage({ url, className, alt = 'Shared image' }: ChatAttachmentImageProps) {
+export function ChatAttachmentImage({ url, className, alt = 'Shared image', onOpen }: ChatAttachmentImageProps) {
   const isPrivate = isPrivateAttachmentUrl(url);
   const [resolved, setResolved] = useState<string | null>(isPrivate ? null : url);
   const [errored, setErrored] = useState(false);
@@ -72,21 +74,35 @@ export function ChatAttachmentImage({ url, className, alt = 'Shared image' }: Ch
     );
   }
 
+  const imgEl = (
+    <img
+      src={resolved}
+      alt={alt}
+      className={cn('rounded-lg max-w-[240px] max-h-[200px] object-cover border border-border/10', className)}
+      loading="lazy"
+      decoding="async"
+      onError={handleError}
+    />
+  );
+
+  // With an onOpen handler, tapping launches the in-app lightbox. Otherwise
+  // fall back to opening the resolved URL in a new tab (legacy behavior).
+  if (onOpen) {
+    return (
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); onOpen(); }}
+        className="block cursor-zoom-in"
+        aria-label="Open image"
+      >
+        {imgEl}
+      </button>
+    );
+  }
+
   return (
-    <a
-      href={resolved}
-      target="_blank"
-      rel="noopener noreferrer"
-      onClick={(e) => e.stopPropagation()}
-    >
-      <img
-        src={resolved}
-        alt={alt}
-        className={cn('rounded-lg max-w-[240px] max-h-[200px] object-cover border border-border/10', className)}
-        loading="lazy"
-        decoding="async"
-        onError={handleError}
-      />
+    <a href={resolved} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
+      {imgEl}
     </a>
   );
 }
