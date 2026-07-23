@@ -25,6 +25,7 @@ interface MessageListProps {
   loadingMore?: boolean;
   isSearchActive?: boolean;
   lastReadAt?: string | null;
+  // undefined = read-state still loading (list defers its open-scroll decision).
   scrollToBottomTrigger?: number;
   /** Set of user IDs currently online in the user's club, surfaced
    *  as a green dot on each message's avatar (Discord-style). */
@@ -52,6 +53,7 @@ export function MessageList({
   scrollToBottomTrigger, onlineUserIds,
 }: MessageListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const dividerRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [autoScroll, setAutoScroll] = useState(true);
   const [newMsgCount, setNewMsgCount] = useState(0);
@@ -67,6 +69,19 @@ export function MessageList({
   // first render after a channel change, and only smooth-scroll for
   // genuine new-message arrivals.
   const justSwitchedRef = useRef(true);
+
+  // Unread divider: index of the last already-read message (the divider renders
+  // right after it). Computed up here so the channel-open scroll can target it,
+  // matching Discord's "land on your first unread" behavior.
+  const unreadDividerAfterIdx = (() => {
+    if (!lastReadAt || isSearchActive) return -1;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (new Date(messages[i].created_at) <= new Date(lastReadAt)) return i;
+    }
+    return -1;
+  })();
+  const hasUnreadDivider = unreadDividerAfterIdx >= 0 && unreadDividerAfterIdx < messages.length - 1;
+  const unreadCount = hasUnreadDivider ? messages.length - 1 - unreadDividerAfterIdx : 0;
 
   // Reset auto-scroll state when channel changes.
   //
@@ -115,17 +130,33 @@ export function MessageList({
   //     new arrivals.
   //   • autoScroll=false → bump the "new messages" badge instead.
   useEffect(() => {
-    if (autoScroll) {
-      messagesEndRef.current?.scrollIntoView({
-        behavior: justSwitchedRef.current ? 'auto' : 'smooth',
-      });
+    // First render after a channel switch: land on the unread divider if there
+    // is one (so you start reading where you left off), otherwise snap to the
+    // bottom. Either way, do it instantly before the user sees anything.
+    if (justSwitchedRef.current) {
+      // Wait until messages have loaded AND the channel's read-state has
+      // resolved (undefined = still loading) before choosing where to land.
+      if (messages.length === 0 || lastReadAt === undefined) return;
       justSwitchedRef.current = false;
+      prevMsgCount.current = messages.length;
+      setNewMsgCount(0);
+      if (hasUnreadDivider && dividerRef.current) {
+        dividerRef.current.scrollIntoView({ block: 'center', behavior: 'auto' });
+        setAutoScroll(false); // we're parked at the divider, not the bottom
+      } else {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+      }
+      return;
+    }
+
+    if (autoScroll) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
       setNewMsgCount(0);
     } else if (messages.length > prevMsgCount.current && prevScrollHeight.current === null) {
       setNewMsgCount(prev => prev + (messages.length - prevMsgCount.current));
     }
     prevMsgCount.current = messages.length;
-  }, [messages, autoScroll]);
+  }, [messages, autoScroll, hasUnreadDivider, lastReadAt]);
 
   // Re-anchor on resize
   useEffect(() => {
@@ -189,17 +220,7 @@ export function MessageList({
   };
 
   const filtered = messages;
-
-  // Determine unread divider position
-  const unreadDividerAfterIdx = (() => {
-    if (!lastReadAt || isSearchActive) return -1;
-    for (let i = filtered.length - 1; i >= 0; i--) {
-      if (new Date(filtered[i].created_at) <= new Date(lastReadAt)) return i;
-    }
-    return -1;
-  })();
-  const hasUnreadDivider = unreadDividerAfterIdx >= 0 && unreadDividerAfterIdx < filtered.length - 1;
-  const unreadCount = hasUnreadDivider ? filtered.length - 1 - unreadDividerAfterIdx : 0;
+  // (unread divider position is computed near the top of the component)
 
   return (
     <div ref={scrollRef} className="flex-1 overflow-y-auto overflow-x-hidden px-2 sm:px-4 relative" style={{ minHeight: 0, overscrollBehavior: 'contain' }}>
@@ -258,7 +279,7 @@ export function MessageList({
 
               {/* New messages divider */}
               {hasUnreadDivider && idx === unreadDividerAfterIdx + 1 && (
-                <div className="flex items-center gap-3 py-4">
+                <div ref={dividerRef} className="flex items-center gap-3 py-4">
                   <div className="flex-1 h-px bg-primary/25" />
                   <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-primary/80 bg-primary/10 px-3 py-1 rounded-full">
                     {unreadCount === 1 ? '1 New Message' : `${unreadCount} New Messages`}

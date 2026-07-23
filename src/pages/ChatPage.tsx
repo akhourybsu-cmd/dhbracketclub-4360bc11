@@ -107,7 +107,10 @@ export default function ChatPage() {
   const [currentDisplayName, setCurrentDisplayName] = useState<string>('');
 
   // Last read timestamp for unread divider
-  const [lastReadAt, setLastReadAt] = useState<string | null>(null);
+  // undefined = read-state still loading for the current channel; string|null =
+  // resolved. The message list waits for a resolved value before deciding
+  // whether to land on the unread divider.
+  const [lastReadAt, setLastReadAt] = useState<string | null | undefined>(undefined);
 
   // Channel settings dialog
   const [settingsChannel, setSettingsChannel] = useState<Channel | null>(null);
@@ -569,7 +572,7 @@ export default function ChatPage() {
     setThreadReply('');
     setShowPinned(false);
     setPinnedMessages([]);
-    setLastReadAt(null);
+    setLastReadAt(undefined);
     setShowSearch(false);
     setSearchQuery('');
     setSearchResults(null);
