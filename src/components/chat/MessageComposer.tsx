@@ -1,6 +1,6 @@
 import { useRef, useEffect, useCallback, useState, forwardRef, useImperativeHandle } from 'react';
 import { toast } from 'sonner';
-import { Send, Plus, Image, Camera, X, Loader2, ImagePlay, Paperclip, FileText } from 'lucide-react';
+import { Send, Plus, Image, Camera, X, Loader2, ImagePlay, Paperclip, FileText, Smile } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { UserAvatar } from './UserAvatar';
@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { validateImageFile, validateAttachmentFile, buildUserScopedPath, sanitizeUploadError, FILE_ACCEPT } from '@/lib/uploadValidation';
 import { buildPrivateAttachmentUrl } from '@/lib/chatAttachments';
 import { GifPicker } from './GifPicker';
+import { EmojiPicker } from './EmojiPicker';
 import { isGifProviderConfigured } from '@/lib/gifProvider';
 
 export interface MentionMember {
@@ -62,6 +63,7 @@ export const MessageComposer = forwardRef<MessageComposerHandle, MessageComposer
 
     const [showAttachMenu, setShowAttachMenu] = useState(false);
     const [showGifPicker, setShowGifPicker] = useState(false);
+    const [showEmoji, setShowEmoji] = useState(false);
     const [pendingImages, setPendingImages] = useState<PendingImage[]>([]);
     const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
     const [uploading, setUploading] = useState(false);
@@ -92,15 +94,16 @@ export const MessageComposer = forwardRef<MessageComposerHandle, MessageComposer
     }, [autoFocus]);
 
     useEffect(() => {
-      if (!showAttachMenu) return;
+      if (!showAttachMenu && !showEmoji) return;
       const handler = (e: MouseEvent) => {
         if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
           setShowAttachMenu(false);
+          setShowEmoji(false);
         }
       };
       document.addEventListener('mousedown', handler);
       return () => document.removeEventListener('mousedown', handler);
-    }, [showAttachMenu]);
+    }, [showAttachMenu, showEmoji]);
 
     const detectMention = useCallback(() => {
       const el = textareaRef.current;
@@ -137,8 +140,22 @@ export const MessageComposer = forwardRef<MessageComposerHandle, MessageComposer
       });
     }, [value, mentionStart, onChange]);
 
+    // Insert an emoji (or any text) at the caret, keeping focus + selection.
+    const insertAtCursor = useCallback((text: string) => {
+      const el = textareaRef.current;
+      const start = el?.selectionStart ?? value.length;
+      const end = el?.selectionEnd ?? value.length;
+      const next = value.slice(0, start) + text + value.slice(end);
+      onChange(next);
+      requestAnimationFrame(() => {
+        if (!el) return;
+        const pos = start + text.length;
+        el.selectionStart = el.selectionEnd = pos;
+        el.focus();
+      });
+    }, [value, onChange]);
+
     const MAX_FILE_SIZE = 10 * 1024 * 1024;
-    const MAX_IMAGES = 4;
 
     // Combined attachment budget across images + files.
     const remainingSlots = () => MAX_ATTACHMENTS - (pendingImages.length + pendingFiles.length);
@@ -575,6 +592,37 @@ export const MessageComposer = forwardRef<MessageComposerHandle, MessageComposer
               style={{ minHeight: compact ? 36 : 38, maxHeight: compact ? 96 : 120, lineHeight: 1.4 }}
             />
           </div>
+
+          {/* Emoji picker button */}
+          {!compact && (
+            <div className="relative flex-shrink-0">
+              <button
+                onClick={() => { setShowEmoji(v => !v); setShowAttachMenu(false); }}
+                aria-label="Emoji"
+                aria-expanded={showEmoji}
+                type="button"
+                className={cn(
+                  "w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90",
+                  showEmoji ? "bg-primary/15 text-primary" : "text-muted-foreground/60 hover:text-foreground/80 hover:bg-muted/30"
+                )}
+              >
+                <Smile className="w-[22px] h-[22px]" />
+              </button>
+              <AnimatePresence>
+                {showEmoji && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                    className="absolute bottom-full right-0 mb-2 z-50"
+                  >
+                    <EmojiPicker onSelect={(emoji) => insertAtCursor(emoji)} />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
 
           {/* Send button — external, circular */}
           <button
