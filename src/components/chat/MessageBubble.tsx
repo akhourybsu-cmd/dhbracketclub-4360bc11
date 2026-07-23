@@ -4,7 +4,7 @@ import { motion, AnimatePresence, useMotionValue, useTransform, useReducedMotion
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import {
-  Pin, Reply, Trash2, Pencil, Check, X, MessageSquare, Loader2, Flag,
+  Pin, Reply, Trash2, Pencil, Check, X, MessageSquare, Loader2, Flag, SmilePlus,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -20,6 +20,7 @@ import { LinkPreviewCard } from './LinkPreviewCard';
 import { ChatAttachmentImage } from './ChatAttachmentImage';
 import { ChatAttachmentFile } from './ChatAttachmentFile';
 import { ChatImageLightbox } from './ChatImageLightbox';
+import { EmojiPicker } from './EmojiPicker';
 import { isPrivateAttachmentUrl, isImageAttachmentUrl } from '@/lib/chatAttachments';
 
 /* ═══ URL auto-linking + inline image preview ═══ */
@@ -317,6 +318,7 @@ function MessageBubbleInner({
     onToggleOverlay?.(open ? msg.id : null);
   }, [msg.id, onToggleOverlay]);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showReactPicker, setShowReactPicker] = useState(false);
   const [showReportConfirm, setShowReportConfirm] = useState(false);
   const [reporting, setReporting] = useState(false);
   const [overlayPos, setOverlayPos] = useState<{ left: number; top: number } | null>(null);
@@ -613,6 +615,18 @@ function MessageBubbleInner({
                     {lightboxIndex !== null && (
                       <ChatImageLightbox urls={imageUrls} index={lightboxIndex} onClose={() => setLightboxIndex(null)} />
                     )}
+                    {showReactPicker && createPortal(
+                      <div
+                        className="fixed inset-0 z-[70] flex items-center justify-center p-4"
+                        onClick={() => setShowReactPicker(false)}
+                      >
+                        <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" />
+                        <div className="relative" onClick={(e) => e.stopPropagation()}>
+                          <EmojiPicker onSelect={(emoji) => { handleReaction(emoji); setShowReactPicker(false); }} />
+                        </div>
+                      </div>,
+                      document.body,
+                    )}
                     {fileUrls.length > 0 && (
                       <div className="flex flex-col gap-1.5 mt-1.5">
                         {fileUrls.map((url, i) => (
@@ -750,6 +764,14 @@ function MessageBubbleInner({
                     {emoji}
                   </button>
                 ))}
+                <button
+                  onClick={(e) => { e.stopPropagation(); setShowOverlay(false); setShowReactPicker(true); }}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-muted/50 transition-colors active:scale-90 flex-shrink-0"
+                  title="More reactions"
+                  aria-label="More reactions"
+                >
+                  <SmilePlus className="w-4 h-4 text-muted-foreground/70" />
+                </button>
                 <div className="w-px h-5 bg-border/20 mx-0.5 flex-shrink-0" />
                 <button
                   onClick={(e) => { e.stopPropagation(); onOpenThread(msg); setShowOverlay(false); }}
