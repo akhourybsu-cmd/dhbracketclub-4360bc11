@@ -41,6 +41,15 @@ export default function ChatPage() {
   // Dynamic viewport height to handle mobile keyboard
   const [chatHeight, setChatHeight] = useState<string>('calc(100dvh - env(safe-area-inset-top, 0px))');
   const [scrollToBottomTrigger, setScrollToBottomTrigger] = useState(0);
+  const [jumpSignal, setJumpSignal] = useState<{ id: string; n: number } | null>(null);
+
+  // Jump to a message in the main list (from the pinned panel). Closes the
+  // pinned/search side view first so the list is on screen.
+  const jumpToMessage = (id: string) => {
+    setShowPinned(false);
+    setSearchResults(null);
+    setJumpSignal(prev => ({ id, n: (prev?.n ?? 0) + 1 }));
+  };
 
   useEffect(() => {
     const vv = window.visualViewport;
@@ -811,21 +820,30 @@ export default function ChatPage() {
                 </div>
                 <div className="space-y-2">
                   {pinnedMessages.map(msg => (
-                    <div key={msg.id} className="glass-card p-3.5">
+                    <button
+                      key={msg.id}
+                      type="button"
+                      onClick={() => jumpToMessage(msg.id)}
+                      className="glass-card p-3.5 w-full text-left hover:bg-muted/10 transition-colors btn-press"
+                      title="Jump to message"
+                    >
                       <div className="flex items-center gap-2 mb-1.5 relative z-10">
                         <UserAvatar userId={msg.user_id} name={msg.profiles?.display_name || '?'} avatarUrl={msg.profiles?.avatar_url} size={24} />
                         <span className="text-[11px] font-bold text-foreground/80">{msg.profiles?.display_name}</span>
                         <span className="text-[9px] text-muted-foreground/70">{format(new Date(msg.created_at), 'MMM d, h:mm a')}</span>
-                        <button
-                          onClick={() => handleTogglePin(msg)}
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          onClick={(e) => { e.stopPropagation(); handleTogglePin(msg); }}
+                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); handleTogglePin(msg); } }}
                           className="ml-auto p-1 rounded-md hover:bg-muted/50 transition-colors"
                           title="Unpin"
                         >
                           <Pin className="w-3 h-3 text-premium-warm" />
-                        </button>
+                        </span>
                       </div>
-                      <p className="text-[13px] text-foreground/80 leading-relaxed pl-8 relative z-10">{msg.content}</p>
-                    </div>
+                      <p className="text-[13px] text-foreground/80 leading-relaxed pl-8 relative z-10 line-clamp-3">{msg.content}</p>
+                    </button>
                   ))}
                   {pinnedMessages.length === 0 && <p className="text-xs text-muted-foreground/70 text-center py-8">No pinned messages</p>}
                 </div>
@@ -849,6 +867,7 @@ export default function ChatPage() {
                   editContent={editContent}
                   onEditContentChange={setEditContent}
                   onCancelEdit={cancelEdit}
+                  jumpSignal={jumpSignal}
                   onLoadMore={searchResults ? undefined : handleLoadMore}
                   hasMore={searchResults ? false : hasMore}
                   loadingMore={loadingMore}
@@ -883,8 +902,10 @@ export default function ChatPage() {
                           <span className="text-[10px] text-muted-foreground/65 font-medium italic">
                             {typingUsers.length === 1 ? (
                               <><span className="font-bold not-italic text-foreground/80">{typingUsers[0]}</span> is typing…</>
-                            ) : (
+                            ) : typingUsers.length <= 3 ? (
                               <><span className="font-bold not-italic text-foreground/80">{typingUsers.join(', ')}</span> are typing…</>
+                            ) : (
+                              <>Several people are typing…</>
                             )}
                           </span>
                         </motion.div>

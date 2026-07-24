@@ -30,6 +30,8 @@ interface MessageListProps {
   /** Set of user IDs currently online in the user's club, surfaced
    *  as a green dot on each message's avatar (Discord-style). */
   onlineUserIds?: Set<string>;
+  /** Bump `n` to scroll to `id` and briefly highlight it (jump-to-message). */
+  jumpSignal?: { id: string; n: number } | null;
 }
 
 function getDateLabel(dateStr: string) {
@@ -50,7 +52,7 @@ export function MessageList({
   onStartEditing, onDeleteMessage, onSaveEdit,
   editingMessageId, editContent, onEditContentChange, onCancelEdit,
   onLoadMore, hasMore, loadingMore, isSearchActive, lastReadAt,
-  scrollToBottomTrigger, onlineUserIds,
+  scrollToBottomTrigger, onlineUserIds, jumpSignal,
 }: MessageListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const dividerRef = useRef<HTMLDivElement>(null);
@@ -219,6 +221,21 @@ export function MessageList({
     setNewMsgCount(0);
   };
 
+  // Jump-to-message: scroll a target message into view and pulse a highlight
+  // ring. Best-effort — if the message isn't in the loaded window it's a no-op.
+  useEffect(() => {
+    if (!jumpSignal) return;
+    const el = scrollRef.current?.querySelector<HTMLElement>(`[data-message-id="${jumpSignal.id}"]`);
+    if (!el) return;
+    setAutoScroll(false);
+    el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    el.classList.add('rounded-xl', 'ring-2', 'ring-primary/50', 'transition-shadow');
+    const t = setTimeout(() => {
+      el.classList.remove('ring-2', 'ring-primary/50');
+    }, 1800);
+    return () => clearTimeout(t);
+  }, [jumpSignal]);
+
   const filtered = messages;
   // (unread divider position is computed near the top of the component)
 
@@ -268,7 +285,7 @@ export function MessageList({
           const senderGap = !sameAuthor && idx > 0 && !showDate;
 
           return (
-            <div key={msg.id} style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 60px' }}>
+            <div key={msg.id} data-message-id={msg.id} style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 60px' }}>
               {showDate && (
                 <div className={cn("flex items-center gap-3", idx === 0 ? "py-3" : "pt-5 pb-3")}>
                   <div className="flex-1 h-px bg-border/10" />

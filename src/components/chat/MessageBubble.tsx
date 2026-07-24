@@ -4,7 +4,7 @@ import { motion, AnimatePresence, useMotionValue, useTransform, useReducedMotion
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import {
-  Pin, Reply, Trash2, Pencil, Check, X, MessageSquare, Loader2, Flag, SmilePlus,
+  Pin, Reply, Trash2, Pencil, Check, X, MessageSquare, Loader2, Flag, SmilePlus, Copy,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -433,6 +433,19 @@ function MessageBubbleInner({
     tinyHaptic();
   }, [msg.id, onToggleReaction, setShowOverlay, tinyHaptic]);
 
+  const handleCopy = useCallback(async (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setShowOverlay(false);
+    // Copy the human-readable text — strip our attachment sentinel URLs.
+    const text = stripAttachmentUrls(msg.content);
+    try {
+      await navigator.clipboard.writeText(text || msg.content);
+      toast.success('Copied to clipboard');
+    } catch {
+      toast.error('Could not copy');
+    }
+  }, [msg.content, setShowOverlay]);
+
   const confirmDelete = () => {
     onDeleteMessage(msg.id);
     setShowDeleteConfirm(false);
@@ -789,6 +802,16 @@ function MessageBubbleInner({
                 >
                   <Pin className="w-3.5 h-3.5 text-muted-foreground/70" />
                 </button>
+                {stripAttachmentUrls(msg.content) && (
+                  <button
+                    onClick={handleCopy}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-muted/50 transition-colors active:scale-90 flex-shrink-0"
+                    title="Copy text"
+                    aria-label="Copy text"
+                  >
+                    <Copy className="w-3.5 h-3.5 text-muted-foreground/70" />
+                  </button>
+                )}
                 {isOwn ? (
                   <>
                     <button
