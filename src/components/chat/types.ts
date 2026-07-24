@@ -35,6 +35,10 @@ export type Message = {
   reply_count?: number;
   reactions?: MessageReaction[];
   _optimistic?: boolean;
+  /** Inline reply: the message this one is replying to. */
+  reply_to_id?: string | null;
+  /** Denormalized preview of the referenced message (for the quoted reference). */
+  reply_to?: { id: string; content: string; user_id: string; display_name?: string | null } | null;
 };
 
 export type ChannelMeta = {

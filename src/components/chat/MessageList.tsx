@@ -11,7 +11,8 @@ interface MessageListProps {
   userId: string | undefined;
   currentDisplayName?: string;
   onToggleReaction: (messageId: string, emoji: string) => void;
-  onOpenThread: (msg: Message) => void;
+  onReply: (msg: Message) => void;
+  onReplyJump?: (msgId: string) => void;
   onTogglePin: (msg: Message) => void;
   onStartEditing: (msg: Message) => void;
   onDeleteMessage: (msgId: string) => void;
@@ -48,7 +49,7 @@ function getDateLabel(dateStr: string) {
 
 export function MessageList({
   messages, selectedChannel, userId, currentDisplayName,
-  onToggleReaction, onOpenThread, onTogglePin,
+  onToggleReaction, onReply, onReplyJump, onTogglePin,
   onStartEditing, onDeleteMessage, onSaveEdit,
   editingMessageId, editContent, onEditContentChange, onCancelEdit,
   onLoadMore, hasMore, loadingMore, isSearchActive, lastReadAt,
@@ -317,7 +318,8 @@ export function MessageList({
                 currentDisplayName={currentDisplayName}
                 isAuthorOnline={!!onlineUserIds?.has(msg.user_id)}
                 onToggleReaction={onToggleReaction}
-                onOpenThread={onOpenThread}
+                onReply={onReply}
+                onReplyJump={onReplyJump}
                 onTogglePin={onTogglePin}
                 onStartEditing={onStartEditing}
                 onDeleteMessage={onDeleteMessage}

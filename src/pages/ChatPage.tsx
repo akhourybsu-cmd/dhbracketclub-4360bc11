@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
 import { AnimatePresence, motion } from 'framer-motion';
-import { Hash, ChevronLeft, Pin, Search, X, Link2, Settings, Menu, Lock, MoreVertical, Bell } from 'lucide-react';
+import { Hash, ChevronLeft, Pin, Search, X, Link2, Settings, Menu, Lock, MoreVertical, Bell, Reply } from 'lucide-react';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { getChannelTypeMeta } from '@/components/chat/channelTypeMeta';
 import { StatusPill } from '@/components/ui/status-pill';
@@ -42,6 +42,12 @@ export default function ChatPage() {
   const [chatHeight, setChatHeight] = useState<string>('calc(100dvh - env(safe-area-inset-top, 0px))');
   const [scrollToBottomTrigger, setScrollToBottomTrigger] = useState(0);
   const [jumpSignal, setJumpSignal] = useState<{ id: string; n: number } | null>(null);
+  const [replyingTo, setReplyingTo] = useState<Message | null>(null);
+
+  const startReply = useCallback((msg: Message) => {
+    setReplyingTo(msg);
+    setTimeout(() => composerRef.current?.focus(), 50);
+  }, []);
 
   // Jump to a message in the main list (from the pinned panel). Closes the
   // pinned/search side view first so the list is on screen.
@@ -360,6 +366,13 @@ export default function ChatPage() {
     }
     setNewMessage('');
 
+    // Capture + clear the inline-reply target for this send.
+    const replyTarget = replyingTo;
+    setReplyingTo(null);
+    const replyToPreview = replyTarget
+      ? { id: replyTarget.id, content: replyTarget.content, user_id: replyTarget.user_id, display_name: replyTarget.profiles?.display_name }
+      : null;
+
     const optimisticId = `opt-${Date.now()}`;
     const optimisticMsg: Message = {
       id: optimisticId,
@@ -373,13 +386,20 @@ export default function ChatPage() {
       profiles: { display_name: user.user_metadata?.display_name || user.email?.split('@')[0] || 'You', avatar_url: null },
       reply_count: 0,
       reactions: [],
+      reply_to_id: replyTarget?.id ?? null,
+      reply_to: replyToPreview,
       _optimistic: true,
     };
     setMessages(prev => [...prev, optimisticMsg]);
 
-    const { data: inserted, error } = await supabase
+    const { data: inserted, error } = await (supabase as any)
       .from('messages')
-      .insert({ channel_id: selectedChannel.id, user_id: user.id, content })
+      .insert({
+        channel_id: selectedChannel.id,
+        user_id: user.id,
+        content,
+        ...(replyTarget ? { reply_to_id: replyTarget.id } : {}),
+      })
       .select('*, profiles:user_id(display_name, avatar_url)')
       .single();
 
@@ -388,7 +408,7 @@ export default function ChatPage() {
       toast.error('Failed to send message');
     } else {
       setMessages(prev => prev.map(m => m.id === optimisticId
-        ? { ...inserted, reply_count: 0, reactions: [] }
+        ? { ...inserted, reply_count: 0, reactions: [], reply_to: replyToPreview }
         : m
       ));
       // Fire-and-forget: push notification + link preview generation
@@ -858,7 +878,8 @@ export default function ChatPage() {
                   currentDisplayName={currentDisplayName}
                   onlineUserIds={onlineIds}
                   onToggleReaction={toggleReaction}
-                  onOpenThread={openThread}
+                  onReply={startReply}
+                  onReplyJump={jumpToMessage}
                   onTogglePin={handleTogglePin}
                   onStartEditing={startEditing}
                   onDeleteMessage={deleteMessage}
@@ -908,6 +929,32 @@ export default function ChatPage() {
                               <>Several people are typing…</>
                             )}
                           </span>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                    {/* Inline-reply bar */}
+                    <AnimatePresence>
+                      {replyingTo && canPost && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.15 }}
+                          className="px-4 sm:px-5 pt-1.5"
+                        >
+                          <div className="flex items-center gap-2 rounded-lg bg-muted/25 border border-border/15 px-3 py-1.5">
+                            <Reply className="w-3.5 h-3.5 flex-shrink-0 text-primary/70 -scale-x-100" />
+                            <span className="text-[11px] text-muted-foreground/80 min-w-0 truncate">
+                              Replying to <span className="font-bold text-foreground/85">{replyingTo.profiles?.display_name || 'Player'}</span>
+                            </span>
+                            <button
+                              onClick={() => setReplyingTo(null)}
+                              className="ml-auto w-6 h-6 rounded-md flex items-center justify-center hover:bg-muted/50 transition-colors flex-shrink-0"
+                              aria-label="Cancel reply"
+                            >
+                              <X className="w-3.5 h-3.5 text-muted-foreground/70" />
+                            </button>
+                          </div>
                         </motion.div>
                       )}
                     </AnimatePresence>

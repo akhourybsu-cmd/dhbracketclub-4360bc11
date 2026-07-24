@@ -61,19 +61,27 @@ export function useChatRealtime({
               if (prev.some(m => m.id === newMsg.id)) return prev;
               const hasOptimistic = prev.some(m => m._optimistic && m.content === newMsg.content);
               if (hasOptimistic) {
-                return prev.map(m => m._optimistic && m.content === newMsg.content ? { ...newMsg, profiles: m.profiles, reply_count: 0, reactions: [] } : m);
+                return prev.map(m => m._optimistic && m.content === newMsg.content ? { ...newMsg, profiles: m.profiles, reply_count: 0, reactions: [], reply_to: (m as any).reply_to ?? null } : m);
               }
               return prev;
             });
             return;
           }
           const cached = membersRef.current.find(m => m.id === newMsg.user_id);
-          if (cached) {
-            setMessages(prev => [...prev, { ...newMsg, profiles: { display_name: cached.display_name, avatar_url: cached.avatar_url }, reply_count: 0, reactions: [] }]);
-          } else {
-            const { data: profile } = await supabase.from('profiles').select('display_name, avatar_url').eq('id', newMsg.user_id).single();
-            setMessages(prev => [...prev, { ...newMsg, profiles: profile, reply_count: 0, reactions: [] }]);
+          const profiles = cached
+            ? { display_name: cached.display_name, avatar_url: cached.avatar_url }
+            : (await supabase.from('profiles').select('display_name, avatar_url').eq('id', newMsg.user_id).single()).data;
+          // Resolve the inline-reply reference (if any) for the quoted preview.
+          let replyTo = null;
+          if (newMsg.reply_to_id) {
+            const { data: ref } = await supabase
+              .from('messages')
+              .select('id, content, user_id, profiles:user_id(display_name)')
+              .eq('id', newMsg.reply_to_id)
+              .maybeSingle();
+            if (ref) replyTo = { id: (ref as any).id, content: (ref as any).content, user_id: (ref as any).user_id, display_name: (ref as any).profiles?.display_name };
           }
+          setMessages(prev => [...prev, { ...newMsg, profiles, reply_count: 0, reactions: [], reply_to: replyTo }]);
           play('ping');
         })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages', filter: `channel_id=eq.${channelId}` },

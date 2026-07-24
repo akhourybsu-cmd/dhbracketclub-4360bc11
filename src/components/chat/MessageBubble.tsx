@@ -147,6 +147,14 @@ function renderUrlsAndMentions(text: string, currentDisplayName?: string, keyPre
   );
 }
 
+// One-line preview of a referenced (replied-to) message: strip attachment
+// sentinels, collapse whitespace, and truncate. Falls back to "Attachment".
+function replyPreview(content: string): string {
+  const t = stripAttachmentUrls(content).replace(/\s+/g, ' ').trim();
+  if (!t) return 'Attachment';
+  return t.length > 80 ? `${t.slice(0, 80)}…` : t;
+}
+
 // Click/tap-to-reveal spoiler (Discord ||text||). Blurred + black fill until
 // revealed; stays revealed once opened. stopPropagation so revealing a spoiler
 // doesn't also trigger the bubble's tap handlers.
@@ -284,7 +292,10 @@ interface MessageBubbleProps {
   currentUserId?: string;
   currentDisplayName?: string;
   onToggleReaction: (messageId: string, emoji: string) => void;
-  onOpenThread: (msg: Message) => void;
+  /** Start an inline reply to this message (populates the composer). */
+  onReply: (msg: Message) => void;
+  /** Jump to (scroll + highlight) the message this one is replying to. */
+  onReplyJump?: (msgId: string) => void;
   onTogglePin: (msg: Message) => void;
   onStartEditing: (msg: Message) => void;
   onDeleteMessage: (msgId: string) => void;
@@ -307,7 +318,7 @@ const HEADER_OFFSET = 80;
 function MessageBubbleInner({
   msg, isOwn, sameAuthor, nextSameAuthor,
   currentUserId, currentDisplayName,
-  onToggleReaction, onOpenThread, onTogglePin,
+  onToggleReaction, onReply, onReplyJump, onTogglePin,
   onStartEditing, onDeleteMessage, onSaveEdit,
   editingMessageId, editContent, onEditContentChange, onCancelEdit,
   isOverlayOpen, onToggleOverlay,
@@ -516,7 +527,7 @@ function MessageBubbleInner({
           }
         }}
         onDragEnd={(_, info) => {
-          if (info.offset.x > SWIPE_THRESHOLD) onOpenThread(msg);
+          if (info.offset.x > SWIPE_THRESHOLD) onReply(msg);
           setSwiped(false);
         }}
         onContextMenu={handleContextMenu}
@@ -559,6 +570,26 @@ function MessageBubbleInner({
                 <span className="text-[10px] text-muted-foreground/45 font-medium flex-shrink-0">
                   {format(new Date(msg.created_at), 'h:mm a')}
                 </span>
+              </div>
+            )}
+
+            {/* Inline-reply quoted reference — Discord-style, above the bubble */}
+            {msg.reply_to && !isBeingEdited && (
+              <div className={cn("flex mb-1", isOwn && "justify-end")}>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onReplyJump?.(msg.reply_to!.id); }}
+                  className="flex items-center gap-1.5 max-w-[88%] pl-1 pr-2 py-0.5 rounded-md hover:bg-muted/25 transition-colors group/ref"
+                  title="Jump to message"
+                >
+                  <Reply className="w-3 h-3 flex-shrink-0 text-muted-foreground/45 -scale-x-100" />
+                  <span className="text-[11px] font-semibold text-primary/70 flex-shrink-0">
+                    {msg.reply_to.display_name || 'Player'}
+                  </span>
+                  <span className="text-[11px] text-muted-foreground/55 truncate group-hover/ref:text-muted-foreground/80 transition-colors">
+                    {replyPreview(msg.reply_to.content)}
+                  </span>
+                </button>
               </div>
             )}
 
@@ -699,32 +730,6 @@ function MessageBubbleInner({
               </div>
             )}
 
-            {/* Thread indicator — Discord-style "thread chip" with
-                visible surface, accent stripe, hover-to-deepen state,
-                and an explicit "View thread →" affordance so users
-                know it's clickable on first encounter. */}
-            {(msg.reply_count || 0) > 0 && (
-              <button
-                onClick={(e) => { e.stopPropagation(); onOpenThread(msg); }}
-                className={cn(
-                  // Mobile: py-2 + min-h-[36px] for HIG-acceptable tap
-                  // target. Desktop keeps the denser py-1.5 since chips
-                  // hover-target reliably with a mouse.
-                  "group/thread relative inline-flex items-center gap-2 mt-2 pl-2.5 pr-3 py-2 lg:py-1.5 min-h-[36px] lg:min-h-0 rounded-lg text-[11.5px] font-bold transition-colors",
-                  "bg-primary/8 hover:bg-primary/14 text-primary border border-primary/20 hover:border-primary/35",
-                  isOwn ? "ml-auto" : ""
-                )}
-                style={{ touchAction: 'manipulation' }}
-                aria-label={`View thread — ${msg.reply_count} ${msg.reply_count === 1 ? 'reply' : 'replies'}`}
-              >
-                <MessageSquare className="w-3.5 h-3.5 flex-shrink-0" />
-                <span>
-                  <span className="tabular-nums">{msg.reply_count}</span>{' '}
-                  {msg.reply_count === 1 ? 'reply' : 'replies'}
-                </span>
-                <span className="text-primary/60 group-hover/thread:text-primary group-hover/thread:translate-x-0.5 transition-all font-extrabold">→</span>
-              </button>
-            )}
           </div>
         </div>
       </motion.div>
@@ -787,7 +792,7 @@ function MessageBubbleInner({
                 </button>
                 <div className="w-px h-5 bg-border/20 mx-0.5 flex-shrink-0" />
                 <button
-                  onClick={(e) => { e.stopPropagation(); onOpenThread(msg); setShowOverlay(false); }}
+                  onClick={(e) => { e.stopPropagation(); onReply(msg); setShowOverlay(false); }}
                   className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-muted/50 transition-colors active:scale-90 flex-shrink-0"
                   title="Reply"
                   aria-label="Reply"

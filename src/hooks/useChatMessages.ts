@@ -34,9 +34,24 @@ export function useChatMessages(userId: string | undefined) {
       if (r.user_id === userId) entry.userReacted = true;
     });
 
+    // Resolve inline-reply references: batch-fetch the messages being replied
+    // to (may be outside this page) for the quoted-reference preview.
+    const refIds = [...new Set(rawMsgs.map(m => m.reply_to_id).filter(Boolean))] as string[];
+    const refMap = new Map<string, { id: string; content: string; user_id: string; display_name?: string | null }>();
+    if (refIds.length) {
+      const { data: refs } = await supabase
+        .from('messages')
+        .select('id, content, user_id, profiles:user_id(display_name)')
+        .in('id', refIds);
+      (refs || []).forEach((r: any) => refMap.set(r.id, {
+        id: r.id, content: r.content, user_id: r.user_id, display_name: r.profiles?.display_name,
+      }));
+    }
+
     return rawMsgs.map(m => ({
       ...m,
       reply_count: replyCounts.get(m.id) || 0,
+      reply_to: m.reply_to_id ? (refMap.get(m.reply_to_id) ?? null) : null,
       reactions: grouped.has(m.id)
         ? Array.from(grouped.get(m.id)!.entries()).map(([emoji, v]) => ({ emoji, count: v.count, user_reacted: v.userReacted }))
         : [],
