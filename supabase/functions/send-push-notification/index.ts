@@ -19,6 +19,26 @@ function getSupabase() {
   return createClient(url, key);
 }
 
+// ── Write in-app notification rows (durable inbox, independent of push).
+// Best-effort: never let an inbox write failure break push delivery. ──
+type NotifRow = {
+  user_id: string;
+  club_id?: string | null;
+  type: string;
+  title: string;
+  body?: string | null;
+  url?: string | null;
+  actor_user_id?: string | null;
+};
+async function insertNotifications(supabase: any, rows: NotifRow[]) {
+  if (!rows.length) return;
+  try {
+    await supabase.from("notifications").insert(rows);
+  } catch (e) {
+    console.error("notifications insert failed:", e);
+  }
+}
+
 // ── Send push to subscriptions, cleaning up expired ones ──
 async function deliverPush(
   subscriptions: any[],
@@ -209,33 +229,25 @@ Deno.serve(async (req) => {
         sender_user_id,
         target_user_id,
         target_user_ids,
+        club_id,
       } = body;
 
-      let query = supabase
-        .from("push_subscriptions")
-        .select("endpoint, p256dh, auth, user_id");
-
+      // Intended recipients (deduped, sender excluded) — computed from the
+      // request, NOT from who has a push subscription, so the in-app inbox
+      // reaches users who denied push too.
+      let recipientIds: string[] = [];
       if (Array.isArray(target_user_ids) && target_user_ids.length > 0) {
-        const recipients = [...new Set(
+        recipientIds = [...new Set(
           target_user_ids.filter((u: any) => typeof u === "string" && u && u !== sender_user_id)
         )];
-        if (recipients.length === 0) {
-          return jsonResponse({ sent: 0, filtered: 0, reason: "no_recipients" });
-        }
-        query = query.in("user_id", recipients);
       } else if (target_user_id) {
-        if (sender_user_id && target_user_id === sender_user_id) {
-          return jsonResponse({ sent: 0, filtered: 0, reason: "self_target" });
-        }
-        query = query.eq("user_id", target_user_id);
-      } else {
-        query = query.neq("user_id", sender_user_id || "");
+        if (!(sender_user_id && target_user_id === sender_user_id)) recipientIds = [target_user_id];
+      }
+      if (recipientIds.length === 0) {
+        return jsonResponse({ sent: 0, filtered: 0, reason: "no_recipients" });
       }
 
-      const { data: subscriptions } = await query;
-      if (!subscriptions || subscriptions.length === 0) return jsonResponse({ sent: 0 });
-
-      const userIds = [...new Set(subscriptions.map((s: any) => s.user_id))];
+      const userIds = recipientIds;
       // Map type -> notification_preferences column.
       const prefColumn =
         type === "poll" ? "polls" :
@@ -265,8 +277,30 @@ Deno.serve(async (req) => {
         (prefRows || []).filter((p: any) => p[prefColumn] === false).map((p: any) => p.user_id),
       );
 
-      const filtered = subscriptions.filter((s: any) => !disabledUsers.has(s.user_id));
-      if (filtered.length === 0) return jsonResponse({ sent: 0, filtered: subscriptions.length });
+      // Recipients who haven't disabled this type — they get an inbox row
+      // regardless of push subscription status.
+      const enabled = userIds.filter((u: string) => !disabledUsers.has(u));
+      if (enabled.length === 0) return jsonResponse({ sent: 0, filtered: userIds.length });
+
+      await insertNotifications(supabase, enabled.map((uid: string) => ({
+        user_id: uid,
+        club_id: typeof club_id === "string" ? club_id : null,
+        type,
+        title: title || `New ${type}`,
+        body: message || null,
+        url: url || null,
+        actor_user_id: sender_user_id || null,
+      })));
+
+      // Push delivery to the subset of enabled recipients that have subscriptions.
+      const { data: subscriptions } = await supabase
+        .from("push_subscriptions")
+        .select("endpoint, p256dh, auth, user_id")
+        .in("user_id", enabled);
+
+      if (!subscriptions || subscriptions.length === 0) {
+        return jsonResponse({ sent: 0, notified: enabled.length });
+      }
 
       const payload = JSON.stringify({
         title: title || `New ${type}`,
@@ -279,8 +313,8 @@ Deno.serve(async (req) => {
         icon: "/pwa-icon-512.png",
       });
 
-      const result = await deliverPush(filtered, payload, supabase);
-      return jsonResponse({ sent: result.sent, expired: result.expired });
+      const result = await deliverPush(subscriptions, payload, supabase);
+      return jsonResponse({ sent: result.sent, expired: result.expired, notified: enabled.length });
     }
 
     // ══════════════════════════════════════════
@@ -293,7 +327,7 @@ Deno.serve(async (req) => {
 
     const [{ data: sender }, { data: channel }] = await Promise.all([
       supabase.from("profiles").select("display_name").eq("id", record.user_id).single(),
-      supabase.from("channels").select("name").eq("id", record.channel_id).single(),
+      supabase.from("channels").select("name, club_id").eq("id", record.channel_id).single(),
     ]);
 
     const senderName = sender?.display_name || "Someone";
@@ -328,6 +362,41 @@ Deno.serve(async (req) => {
     const textMentionIds = new Set(mentionedUserIds);
     const replyToAuthorId = typeof record.reply_to_author_id === "string" ? record.reply_to_author_id : undefined;
     if (replyToAuthorId && replyToAuthorId !== record.user_id) mentionedUserIds.add(replyToAuthorId);
+
+    // ── In-app inbox for the *personal* chat notifications (mentions + reply).
+    // Regular channel messages are intentionally NOT inbox'd (too noisy). This
+    // runs over the intended recipients regardless of push subscription, gated
+    // by the same mentions preference + channel mute the push path uses.
+    {
+      const personalTargets = [...new Set([...textMentionIds, ...(replyToAuthorId ? [replyToAuthorId] : [])])]
+        .filter((u) => u && u !== record.user_id);
+      if (personalTargets.length > 0) {
+        const [{ data: pPrefs }, { data: pChan }] = await Promise.all([
+          supabase.from("notification_preferences").select("user_id, mentions").in("user_id", personalTargets),
+          supabase.from("channel_notification_prefs").select("user_id, mode").eq("channel_id", record.channel_id).in("user_id", personalTargets),
+        ]);
+        const mentionsOff = new Set((pPrefs || []).filter((p: any) => p.mentions === false).map((p: any) => p.user_id));
+        const mutedFor = new Set((pChan || []).filter((p: any) => p.mode === "muted").map((p: any) => p.user_id));
+        const inboxUrl = `/chat?channel=${record.channel_id}&message=${record.id}`;
+        const rows = personalTargets
+          .filter((u) => !mentionsOff.has(u) && !mutedFor.has(u))
+          .map((u) => {
+            const isReplyOnly = replyToAuthorId === u && !textMentionIds.has(u);
+            return {
+              user_id: u,
+              club_id: (channel as any)?.club_id ?? null,
+              type: isReplyOnly ? "reply" : "mention",
+              title: isReplyOnly
+                ? `${senderName} replied to you`
+                : `${senderName} mentioned you in #${channelName}`,
+              body: preview,
+              url: inboxUrl,
+              actor_user_id: record.user_id,
+            };
+          });
+        await insertNotifications(supabase, rows);
+      }
+    }
 
     // Get all subscriptions except sender
     const { data: subscriptions } = await supabase

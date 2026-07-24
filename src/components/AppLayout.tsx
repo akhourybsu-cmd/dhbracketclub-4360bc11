@@ -3,6 +3,7 @@ import { useLocation, Link } from 'react-router-dom';
 import { LayoutDashboard, MessageSquareText, CalendarDays, Swords, Newspaper, User, Trophy, BarChart3, MessageCircle, Bookmark, Link2, ScrollText, Lock, FileText, Sparkles, Shield, Menu, Brackets as BracketsIcon, TrendingUp, Settings, Cake, BookOpen, BookMarked } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { NotificationBell } from '@/components/NotificationBell';
 import dhMonogram from '@/assets/dh-monogram.png';
 import { useSoundEffect } from '@/hooks/useSoundEffect';
 import { supabase } from '@/integrations/supabase/client';
@@ -200,6 +201,7 @@ function AppLayoutInner({ children }: { children: ReactNode }) {
               <h1 className="text-[15px] font-bold tracking-tight truncate">{mobileTitle}</h1>
             )}
           </div>
+          <NotificationBell className="min-w-[44px] min-h-[44px]" />
           <Link
             to="/profile"
             aria-label="Profile"
@@ -274,12 +276,13 @@ function AppLayoutInner({ children }: { children: ReactNode }) {
                 ) : (
                   <img src={dhMonogram} alt="DH" className="w-10 h-10 object-contain drop-shadow-lg flex-shrink-0" style={{ filter: 'drop-shadow(0 0 10px hsl(var(--club-accent) / 0.25))' }} />
                 )}
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <h1 className="text-[15px] font-extrabold tracking-tight leading-none truncate">
                     <span className="gradient-text">{club?.name ?? 'DH'}</span>
                   </h1>
                   <p className="text-[8px] text-muted-foreground/70 font-bold uppercase tracking-[0.2em] mt-0.5">Compete With Your Crew</p>
                 </div>
+                <NotificationBell className="w-9 h-9 flex-shrink-0" />
               </div>
             </div>
 
