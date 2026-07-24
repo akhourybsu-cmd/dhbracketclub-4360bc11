@@ -3,44 +3,13 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatDistanceToNowStrict } from 'date-fns';
-import {
-  Bell, CheckCheck, AtSign, Reply, Heart, Bookmark, CalendarDays, MessageCircle,
-  BarChart3, FileText, ScrollText, Cake, BookOpen, Trophy, TrendingUp, Lock,
-  Shield, Sparkles, VenetianMask, Brackets as BracketsIcon,
-} from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
+import { Bell, CheckCheck, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useNotifications, type AppNotification } from '@/hooks/useNotifications';
-
-// type → icon + accent token (mirrors the app's feature palette).
-const META: Record<string, { icon: LucideIcon; color: string }> = {
-  mention: { icon: AtSign, color: 'primary' },
-  reply: { icon: Reply, color: 'primary' },
-  reaction: { icon: Heart, color: 'destructive' },
-  draft: { icon: Bookmark, color: 'gold' },
-  poll: { icon: MessageCircle, color: 'warning' },
-  event: { icon: CalendarDays, color: 'success' },
-  posts: { icon: FileText, color: 'primary' },
-  lore: { icon: ScrollText, color: 'accent-foreground' },
-  celebrations: { icon: Cake, color: 'warning' },
-  narrative: { icon: BookOpen, color: 'primary' },
-  rankings: { icon: BarChart3, color: 'accent-foreground' },
-  brackets: { icon: BracketsIcon, color: 'primary' },
-  pickem: { icon: Trophy, color: 'gold' },
-  portfolio_wars: { icon: TrendingUp, color: 'success' },
-  lockbox: { icon: Lock, color: 'destructive' },
-  nexus: { icon: Shield, color: 'primary' },
-  runedelve: { icon: Sparkles, color: 'success' },
-  readshift: { icon: VenetianMask, color: 'primary' },
-  system: { icon: Bell, color: 'primary' },
-};
-
-function iconFor(type: string) {
-  return META[type] ?? { icon: Bell, color: 'primary' };
-}
+import { notifIcon } from '@/components/notifications/meta';
 
 function Row({ n, onClick }: { n: AppNotification; onClick: () => void }) {
-  const { icon: Icon, color } = iconFor(n.type);
+  const { icon: Icon, color } = notifIcon(n.type);
   return (
     <button
       onClick={onClick}
@@ -161,6 +130,15 @@ export function NotificationBell({ className }: { className?: string }) {
                     items.map(n => <Row key={n.id} n={n} onClick={() => openItem(n)} />)
                   )}
                 </div>
+
+                {items.length > 0 && (
+                  <button
+                    onClick={() => { setOpen(false); navigate('/notifications'); }}
+                    className="w-full flex items-center justify-center gap-1 px-3 py-2.5 border-t border-border/15 text-[12px] font-semibold text-primary/80 hover:text-primary hover:bg-muted/20 transition-colors"
+                  >
+                    See all notifications <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </motion.div>
             </>
           )}

@@ -10,7 +10,7 @@ import { Hash, ChevronLeft, Pin, Search, X, Link2, Settings, Menu, Lock, MoreVer
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { getChannelTypeMeta } from '@/components/chat/channelTypeMeta';
 import { StatusPill } from '@/components/ui/status-pill';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useNavDrawer } from '@/contexts/NavDrawerContext';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -167,6 +167,22 @@ export default function ChatPage() {
   const selectedChannelRef = useRef<Channel | null>(null);
   selectedChannelRef.current = selectedChannel;
 
+  // Deep-link support: /chat?channel=<id>&message=<id> (from notifications).
+  // Open the target channel, then jump to the message once its list loads.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const pendingJumpRef = useRef<string | null>(null);
+  useEffect(() => {
+    const chId = searchParams.get('channel');
+    if (!chId || channels.length === 0) return;
+    const target = channels.find(c => c.id === chId);
+    if (target) {
+      if (target.id !== selectedChannelRef.current?.id) setSelectedChannel(target);
+      setShowChannelList(false);
+      pendingJumpRef.current = searchParams.get('message');
+    }
+    setSearchParams({}, { replace: true });
+  }, [channels, searchParams, setSearchParams]);
+
   const fetchChannels = useCallback(async () => {
     if (!user) return;
     const [{ data: cats }, { data: chs }] = await Promise.all([
@@ -322,6 +338,13 @@ export default function ChatPage() {
         if (m) next.set(selectedChannel.id, { ...m, unread: false });
         return next;
       });
+
+      // Deep-link jump: land on the notification's message once loaded.
+      if (pendingJumpRef.current) {
+        const id = pendingJumpRef.current;
+        pendingJumpRef.current = null;
+        setTimeout(() => setJumpSignal(prev => ({ id, n: (prev?.n ?? 0) + 1 })), 120);
+      }
     });
   }, [selectedChannel?.id, user?.id]);
 
