@@ -73,10 +73,16 @@ export function useNotifications({ pageSize = 30, unreadOnly = false }: UseNotif
   useEffect(() => { setLoading(true); void load(); }, [load]);
 
   // Granular realtime so pagination isn't reset on every change.
+  // Unique per-mount id so strict-mode double-invocation (or any quick
+  // remount) never reuses a channel that has already called `.subscribe()`
+  // — reusing the same channel name causes Supabase to throw
+  // "cannot add postgres_changes callbacks after subscribe()", which
+  // previously took down the entire AppLayout via NotificationBell.
+  const channelIdRef = useRef<string>(Math.random().toString(36).slice(2, 10));
   useEffect(() => {
     if (!uid) return;
     const ch = sb
-      .channel(`notifications-${uid}-${unreadOnly ? 'u' : 'a'}`)
+      .channel(`notifications-${uid}-${unreadOnly ? 'u' : 'a'}-${channelIdRef.current}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${uid}` },
         (p: any) => {
           const row = p.new as AppNotification;
