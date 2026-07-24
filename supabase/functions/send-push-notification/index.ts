@@ -320,6 +320,15 @@ Deno.serve(async (req) => {
       }
     }
 
+    // A reply pings its referenced author like a mention (Discord-style): a
+    // "replied to you" push that bypasses throttle/active-viewer and is gated
+    // by the mentions preference. Snapshot true @-mentions first so the two
+    // cases can be worded differently, then fold the reply author in so the
+    // generic channel push excludes them (no double-notify).
+    const textMentionIds = new Set(mentionedUserIds);
+    const replyToAuthorId = typeof record.reply_to_author_id === "string" ? record.reply_to_author_id : undefined;
+    if (replyToAuthorId && replyToAuthorId !== record.user_id) mentionedUserIds.add(replyToAuthorId);
+
     // Get all subscriptions except sender
     const { data: subscriptions } = await supabase
       .from("push_subscriptions")
@@ -393,8 +402,9 @@ Deno.serve(async (req) => {
       return jsonResponse({ sent: 0, filtered: subscriptions.length });
     }
 
-    // Build separate payloads for mentioned vs regular users
-    const mentionSubs = filteredSubscriptions.filter((s: any) => mentionedUserIds.has(s.user_id));
+    // Build separate payloads for @-mentioned / reply-target / regular users.
+    const mentionSubs = filteredSubscriptions.filter((s: any) => textMentionIds.has(s.user_id));
+    const replySubs = filteredSubscriptions.filter((s: any) => replyToAuthorId && s.user_id === replyToAuthorId && !textMentionIds.has(s.user_id));
     const regularSubs = filteredSubscriptions.filter((s: any) => !mentionedUserIds.has(s.user_id));
 
     let totalSent = 0;
@@ -410,6 +420,20 @@ Deno.serve(async (req) => {
         icon: "/pwa-icon-512.png",
       });
       const r = await deliverPush(mentionSubs, mentionPayload, supabase);
+      totalSent += r.sent;
+      totalExpired += r.expired;
+    }
+
+    // Reply notifications — the referenced author, worded as a reply
+    if (replySubs.length > 0) {
+      const replyPayload = JSON.stringify({
+        title: `${senderName} replied to you`,
+        body: preview,
+        tag: `dh-reply-${record.channel_id}`,
+        data: { url: `/chat?channel=${record.channel_id}` },
+        icon: "/pwa-icon-512.png",
+      });
+      const r = await deliverPush(replySubs, replyPayload, supabase);
       totalSent += r.sent;
       totalExpired += r.expired;
     }
