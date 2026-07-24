@@ -69,29 +69,72 @@ export function ShiftPhase({ game, round, assignment, myAnswer, participants, pr
         </div>
       )}
 
-      <div className="glass-card p-4">
-        <label className="form-label">Your answer</label>
-        <Textarea
-          value={body}
-          onChange={(e) => setBody(e.target.value.slice(0, ANSWER_MAX_CHARS))}
-          placeholder="Keep it plausible…"
-          rows={3}
-          disabled={locked}
-          className="form-input resize-none"
-        />
-        <div className="flex items-center justify-between mt-1.5">
-          <span className="text-[10px] text-muted-foreground/60 tabular-nums">{body.length}/{ANSWER_MAX_CHARS}</span>
-          {myAnswer && !locked && <span className="text-[10px] font-bold text-success flex items-center gap-1"><Check className="w-3 h-3" /> Saved · editable</span>}
-          {locked && <span className="text-[10px] font-bold text-muted-foreground/70">Locked</span>}
+      {myAnswer && !locked ? (
+        <div
+          className="glass-card p-4 relative overflow-hidden"
+          style={{ background: 'hsl(142 70% 45% / 0.08)', border: '1.5px solid hsl(142 70% 45% / 0.45)' }}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] font-extrabold uppercase tracking-[0.16em] flex items-center gap-1.5" style={{ color: 'hsl(142 70% 55%)' }}>
+              <Check className="w-3.5 h-3.5" /> Answer Locked In
+            </span>
+            <span className="text-[10px] font-semibold text-muted-foreground/70">Editable until phase ends</span>
+          </div>
+          <p className="text-[15px] font-semibold leading-snug mb-3 italic">"{body}"</p>
+          <Textarea
+            value={body}
+            onChange={(e) => setBody(e.target.value.slice(0, ANSWER_MAX_CHARS))}
+            placeholder="Edit your answer…"
+            rows={2}
+            className="form-input resize-none text-[13px]"
+          />
+          <div className="flex items-center justify-between mt-1.5">
+            <span className="text-[10px] text-muted-foreground/60 tabular-nums">{body.length}/{ANSWER_MAX_CHARS}</span>
+          </div>
+          <button
+            onClick={save}
+            disabled={saving || !body.trim() || body === myAnswer.body}
+            className="rs-cta w-full h-11 rounded-xl btn-press mt-2 disabled:opacity-40"
+          >
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+            {body === myAnswer.body ? 'No Changes' : 'Update Answer'}
+          </button>
         </div>
-        {!locked && (
+      ) : locked ? (
+        <div
+          className="glass-card p-4"
+          style={{ background: 'hsl(var(--muted) / 0.3)', border: '1.5px solid hsl(var(--border))' }}
+        >
+          <div className="flex items-center gap-1.5 mb-2">
+            <Check className="w-3.5 h-3.5 text-muted-foreground" />
+            <span className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-muted-foreground">Locked</span>
+          </div>
+          {body ? (
+            <p className="text-[15px] font-semibold leading-snug italic">"{body}"</p>
+          ) : (
+            <p className="text-[13px] text-muted-foreground">No answer submitted.</p>
+          )}
+        </div>
+      ) : (
+        <div className="glass-card p-4">
+          <label className="form-label">Your answer</label>
+          <Textarea
+            value={body}
+            onChange={(e) => setBody(e.target.value.slice(0, ANSWER_MAX_CHARS))}
+            placeholder="Keep it plausible…"
+            rows={3}
+            className="form-input resize-none"
+          />
+          <div className="flex items-center justify-between mt-1.5">
+            <span className="text-[10px] text-muted-foreground/60 tabular-nums">{body.length}/{ANSWER_MAX_CHARS}</span>
+          </div>
           <button onClick={save} disabled={saving || !body.trim()}
             className="rs-cta w-full h-11 rounded-xl btn-press mt-2">
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-            {myAnswer ? 'Update Answer' : 'Submit Answer'}
+            Submit Answer
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       <p className="text-[11px] text-muted-foreground/60 flex items-center justify-center gap-1.5">
         <Users className="w-3 h-3" /> {progress.submitted} of {progress.total} players have responded
