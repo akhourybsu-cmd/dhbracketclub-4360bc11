@@ -9,8 +9,6 @@ interface UseChatRealtimeOptions {
   members: MentionMember[];
   play: (sound: string) => void;
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
-  threadParentRef: React.RefObject<Message | null>;
-  setThreadMessages: React.Dispatch<React.SetStateAction<Message[]>>;
   /** Shared echo set from useChatActions. Whenever we optimistically
    *  toggle a reaction locally, an entry is added here so that the
    *  inevitable INSERT/DELETE realtime event for OUR own toggle gets
@@ -25,8 +23,6 @@ export function useChatRealtime({
   members,
   play,
   setMessages,
-  threadParentRef,
-  setThreadMessages,
   reactionEchoRef,
 }: UseChatRealtimeOptions) {
   // Use refs for values that change frequently but shouldn't cause re-subscribe
@@ -41,21 +37,10 @@ export function useChatRealtime({
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `channel_id=eq.${channelId}` },
         async (payload) => {
           const newMsg = payload.new as any;
-          if (newMsg.parent_message_id) {
-            const currentThread = threadParentRef.current;
-            if (currentThread && newMsg.parent_message_id === currentThread.id) {
-              const { data: profile } = await supabase.from('profiles').select('display_name, avatar_url').eq('id', newMsg.user_id).single();
-              setThreadMessages(prev => {
-                const hasOpt = prev.some(m => m._optimistic && m.content === newMsg.content && m.user_id === newMsg.user_id);
-                if (hasOpt) {
-                  return prev.map(m => m._optimistic && m.content === newMsg.content ? { ...newMsg, profiles: profile || m.profiles } : m);
-                }
-                return [...prev, { ...newMsg, profiles: profile }];
-              });
-            }
-            setMessages(prev => prev.map(m => m.id === newMsg.parent_message_id ? { ...m, reply_count: (m.reply_count || 0) + 1 } : m));
-            return;
-          }
+          // Legacy thread children (parent_message_id set) never appear in the
+          // channel timeline — the fetch excludes them and inline replies use
+          // reply_to_id instead. Ignore them here too.
+          if (newMsg.parent_message_id) return;
           if (newMsg.user_id === userId) {
             setMessages(prev => {
               if (prev.some(m => m.id === newMsg.id)) return prev;
@@ -87,16 +72,11 @@ export function useChatRealtime({
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages', filter: `channel_id=eq.${channelId}` },
         (payload) => {
           const updated = payload.new as any;
-          if (updated.parent_message_id) {
-            setThreadMessages(prev => prev.map(m => m.id === updated.id ? { ...m, content: updated.content, edited_at: updated.edited_at, is_pinned: updated.is_pinned } : m));
-          } else {
-            setMessages(prev => prev.map(m => m.id === updated.id ? { ...m, content: updated.content, edited_at: updated.edited_at, is_pinned: updated.is_pinned } : m));
-          }
+          setMessages(prev => prev.map(m => m.id === updated.id ? { ...m, content: updated.content, edited_at: updated.edited_at, is_pinned: updated.is_pinned } : m));
         })
       .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages' },
         (payload) => {
           setMessages(prev => prev.filter(m => m.id !== payload.old.id));
-          setThreadMessages(prev => prev.filter(m => m.id !== payload.old.id));
         })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'message_reactions' },
         (payload) => {
@@ -146,7 +126,7 @@ export function useChatRealtime({
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [channelId, userId, play, setMessages, setThreadMessages, threadParentRef]);
+  }, [channelId, userId, play, setMessages]);
 }
 
 export function useChatTyping(

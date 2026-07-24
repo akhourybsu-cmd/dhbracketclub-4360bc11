@@ -18,7 +18,6 @@ import { toast } from 'sonner';
 import { ChannelList } from '@/components/chat/ChannelList';
 import { MessageList } from '@/components/chat/MessageList';
 import { MessageComposer, type MessageComposerHandle, type MentionMember } from '@/components/chat/MessageComposer';
-import { ThreadPanel } from '@/components/chat/ThreadPanel';
 import { UserAvatar } from '@/components/chat/UserAvatar';
 import { ChannelSettingsDialog } from '@/components/chat/ChannelSettingsDialog';
 import { CHANNEL_EMOJI } from '@/components/chat/types';
@@ -27,7 +26,6 @@ import type { Channel, Category, ChannelMeta, Message } from '@/components/chat/
 import { useChatMessages } from '@/hooks/useChatMessages';
 import { useChatRealtime, useChatTyping } from '@/hooks/useChatRealtime';
 import { useChatActions } from '@/hooks/useChatActions';
-import { notifyThreadReply } from '@/lib/chatNotifications';
 import { applySlashCommand } from '@/lib/chatSlashCommands';
 import { useClubPresence } from '@/hooks/useClubPresence';
 
@@ -99,13 +97,6 @@ export default function ChatPage() {
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
 
-  // Thread
-  const [threadParent, setThreadParent] = useState<Message | null>(null);
-  const [threadMessages, setThreadMessages] = useState<Message[]>([]);
-  const [threadReply, setThreadReply] = useState('');
-  const threadParentRef = useRef<Message | null>(null);
-  threadParentRef.current = threadParent;
-
   // Pinned
   const [showPinned, setShowPinned] = useState(false);
   const [pinnedMessages, setPinnedMessages] = useState<Message[]>([]);
@@ -154,8 +145,6 @@ export default function ChatPage() {
     members,
     play,
     setMessages,
-    threadParentRef,
-    setThreadMessages,
     reactionEchoRef,
   });
 
@@ -421,66 +410,6 @@ export default function ChatPage() {
     setSending(false);
   };
 
-  const openThread = useCallback(async (msg: Message) => {
-    setThreadParent(msg);
-    setShowPinned(false);
-    const { data } = await supabase
-      .from('messages')
-      .select('*, profiles:user_id(display_name, avatar_url)')
-      .eq('parent_message_id', msg.id)
-      .order('created_at', { ascending: true });
-    setThreadMessages(data || []);
-  }, []);
-
-  const handleThreadReply = async () => {
-    if (!threadReply.trim() || !threadParent || !user || !selectedChannel) return;
-    play('tap');
-    const content = threadReply.trim();
-    setThreadReply('');
-
-    const optimisticId = `opt-thread-${Date.now()}`;
-    const optimisticReply: Message = {
-      id: optimisticId,
-      channel_id: selectedChannel.id,
-      user_id: user.id,
-      content,
-      parent_message_id: threadParent.id,
-      is_pinned: false,
-      created_at: new Date().toISOString(),
-      edited_at: null,
-      profiles: { display_name: user.user_metadata?.display_name || user.email?.split('@')[0] || 'You', avatar_url: null },
-      reply_count: 0,
-      reactions: [],
-      _optimistic: true,
-    };
-    setThreadMessages(prev => [...prev, optimisticReply]);
-
-    const { data: inserted, error } = await supabase.from('messages').insert({
-      channel_id: selectedChannel.id, user_id: user.id, content,
-      parent_message_id: threadParent.id,
-    }).select('*, profiles:user_id(display_name, avatar_url)').single();
-
-    if (error || !inserted) {
-      setThreadMessages(prev => prev.filter(m => m.id !== optimisticId));
-      toast.error('Failed to send reply');
-    } else {
-      setThreadMessages(prev => prev.map(m => m.id === optimisticId ? { ...inserted } : m));
-      // Personal-only push: parent author + prior thread participants + @mentions.
-      // Does NOT broadcast to the whole channel (P0 fix preserved).
-      const senderDisplayName =
-        user.user_metadata?.display_name || user.email?.split('@')[0] || 'Someone';
-      notifyThreadReply({
-        parentMessageId: threadParent.id,
-        parentAuthorId: threadParent.user_id,
-        channelId: selectedChannel.id,
-        senderUserId: user.id,
-        senderDisplayName,
-        content,
-        members,
-      });
-    }
-  };
-
   const handleTogglePin = useCallback(async (msg: Message) => {
     await togglePin(msg);
     if (showPinned) {
@@ -495,7 +424,6 @@ export default function ChatPage() {
   const loadPinnedMessages = async () => {
     if (!selectedChannel) return;
     setShowPinned(true);
-    setThreadParent(null);
     const { data } = await supabase
       .from('messages')
       .select('*, profiles:user_id(display_name, avatar_url)')
@@ -596,9 +524,7 @@ export default function ChatPage() {
     setSelectedChannel(ch);
     // Clear all channel-specific state atomically
     setMessages([]);
-    setThreadParent(null);
-    setThreadMessages([]);
-    setThreadReply('');
+    setReplyingTo(null);
     setShowPinned(false);
     setPinnedMessages([]);
     setLastReadAt(undefined);
@@ -646,7 +572,7 @@ export default function ChatPage() {
   }, [searchQuery, showSearch, selectedChannel]);
 
   const pinnedCount = useMemo(() => messages.filter(m => m.is_pinned).length, [messages]);
-  const showSidePanel = !!threadParent || showPinned;
+  const showSidePanel = showPinned;
 
   const channelType = selectedChannel?.channel_type || 'general';
   const postPermission = selectedChannel?.post_permission || 'all';
@@ -728,7 +654,7 @@ export default function ChatPage() {
             paddingRight: 'max(0.625rem, env(safe-area-inset-right, 0px))',
           }}
         >
-          <button onClick={() => { setShowChannelList(true); setThreadParent(null); setThreadMessages([]); setShowPinned(false); }} className="p-1.5 -ml-0.5 rounded-lg hover:bg-muted/50 active:bg-muted/70 transition-colors lg:hidden">
+          <button onClick={() => { setShowChannelList(true); setShowPinned(false); }} className="p-1.5 -ml-0.5 rounded-lg hover:bg-muted/50 active:bg-muted/70 transition-colors lg:hidden">
             <ChevronLeft className="w-5 h-5 text-foreground/70" />
           </button>
           <div
@@ -828,7 +754,7 @@ export default function ChatPage() {
         <div className="flex flex-1 min-h-0">
           {/* Message area — hide on mobile when thread/pinned is open */}
           <div className={cn("flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden", showSidePanel && "hidden lg:flex")}>
-            {showPinned && !threadParent ? (
+            {showPinned ? (
               <div className="flex-1 overflow-y-auto px-4 sm:px-5 py-4">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-sm font-bold flex items-center gap-1.5">
@@ -1005,22 +931,6 @@ export default function ChatPage() {
               </>
             )}
           </div>
-
-          {/* Thread side panel — show full-screen on mobile */}
-          <AnimatePresence>
-            {threadParent && (
-              <div className={cn("flex flex-col min-h-0", "w-full lg:w-auto")}>
-                <ThreadPanel
-                  parent={threadParent}
-                  replies={threadMessages}
-                  replyValue={threadReply}
-                  onReplyChange={setThreadReply}
-                  onSendReply={handleThreadReply}
-                  onClose={() => { setThreadParent(null); const isDesktop = window.matchMedia('(min-width: 1024px)').matches; if (isDesktop) setTimeout(() => composerRef.current?.focus(), 100); }}
-                />
-              </div>
-            )}
-          </AnimatePresence>
         </div>
       </div>
       {settingsChannel && (
