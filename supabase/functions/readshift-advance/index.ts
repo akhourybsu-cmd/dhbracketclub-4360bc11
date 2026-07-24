@@ -233,12 +233,21 @@ async function startRound(admin: any, g: Record<string, any>, roundNumber: numbe
   // Choose a prompt not already used in this game.
   const { data: usedRows } = await admin.from('readshift_rounds').select('prompt_id').eq('game_id', g.id);
   const used = new Set((usedRows || []).map((r: any) => r.prompt_id).filter(Boolean));
-  let promptQ = admin.from('readshift_prompts').select('id, body, category, is_group').eq('is_active', true).eq('mode', g.prompt_mode);
-  const { data: prompts } = await promptQ;
+  let { data: prompts } = await admin.from('readshift_prompts').select('id, body, category, is_group').eq('is_active', true).eq('mode', g.prompt_mode);
+  // Fallback: if no prompts exist for the requested mode, use any active prompt so the round is never promptless.
+  if (!prompts || prompts.length === 0) {
+    const { data: anyPrompts } = await admin.from('readshift_prompts').select('id, body, category, is_group').eq('is_active', true);
+    prompts = anyPrompts || [];
+  }
   const cats: string[] = g.prompt_categories || [];
   const pool = (prompts || []).filter((p: any) =>
     !used.has(p.id) && (cats.length === 0 || cats.includes(p.category)));
-  const finalPool = pool.length ? pool : (prompts || []).filter((p: any) => !used.has(p.id));
+  // Cascading fallback: category-filtered → mode-only unused → any unused → any prompt.
+  const finalPool = pool.length
+    ? pool
+    : ((prompts || []).filter((p: any) => !used.has(p.id)).length
+        ? (prompts || []).filter((p: any) => !used.has(p.id))
+        : (prompts || []));
   // Deterministic pick from the game seed + round.
   const rnd = ((Number(g.seed) ^ (roundNumber * 0x9e3779b1)) >>> 0) / 4294967296;
   const prompt = finalPool.length ? finalPool[Math.floor(rnd * finalPool.length)] : null;
