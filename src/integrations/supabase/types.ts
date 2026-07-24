@@ -5219,6 +5219,53 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          actor_user_id: string | null
+          body: string | null
+          club_id: string | null
+          created_at: string
+          id: string
+          read_at: string | null
+          title: string
+          type: string
+          url: string | null
+          user_id: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          body?: string | null
+          club_id?: string | null
+          created_at?: string
+          id?: string
+          read_at?: string | null
+          title: string
+          type: string
+          url?: string | null
+          user_id: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          body?: string | null
+          club_id?: string | null
+          created_at?: string
+          id?: string
+          read_at?: string | null
+          title?: string
+          type?: string
+          url?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       platform_assets: {
         Row: {
           category: string
