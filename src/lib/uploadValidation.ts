@@ -89,6 +89,15 @@ export interface ImageValidationResult {
   ext?: string;
 }
 
+/** Map a filename to a safe image extension, or null. `jpeg` → `jpg`. */
+function imageExtFromName(name: string): string | null {
+  const m = /\.([a-z0-9]+)$/i.exec(name || '');
+  if (!m) return null;
+  const raw = m[1].toLowerCase();
+  const norm = raw === 'jpeg' ? 'jpg' : raw;
+  return SAFE_IMAGE_EXTENSIONS.has(norm) ? norm : null;
+}
+
 export function validateImageFile(
   file: File,
   opts: ImageValidationOptions,
@@ -98,20 +107,38 @@ export function validateImageFile(
   if (!file || file.size === 0) {
     return { ok: false, error: `${label} is empty` };
   }
-  if (!ALLOWED_IMAGE_MIME.has(file.type)) {
+
+  // Prefer the MIME type, but fall back to the filename extension when the
+  // browser reports an empty/unknown type. Photo-library pickers on iOS
+  // (HEIC), screenshots, and some gallery apps routinely hand us a File with
+  // `type === ''`, which the strict MIME check used to reject outright — the
+  // "photo library doesn't upload" bug. The extension is still pinned to the
+  // safe allowlist, so nothing unsafe slips through.
+  let ext = MIME_TO_EXT[file.type];
+  if (!ext) ext = imageExtFromName(file.name) ?? undefined;
+  if (!ext) {
     return {
       ok: false,
       error: `${label} must be a JPG, PNG, WEBP, GIF, or HEIC file`,
     };
   }
+
   if (file.size > opts.maxBytes) {
     const mb = Math.round(opts.maxBytes / (1024 * 1024));
     return { ok: false, error: `${label} exceeds ${mb}MB limit` };
   }
 
-  // Always derive the extension from MIME — never trust the filename.
-  const ext = MIME_TO_EXT[file.type] ?? 'bin';
   return { ok: true, ext };
+}
+
+const EXT_TO_MIME: Record<string, string> = Object.fromEntries(
+  Object.entries(MIME_TO_EXT).map(([mime, ext]) => [ext, mime]),
+);
+
+/** Best-effort MIME for a stored extension — used to set a correct
+ *  content-type on upload when the browser gave us an empty `file.type`. */
+export function mimeForExt(ext: string): string | undefined {
+  return EXT_TO_MIME[ext];
 }
 
 /**

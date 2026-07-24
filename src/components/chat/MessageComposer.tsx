@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { UserAvatar } from './UserAvatar';
 import { supabase } from '@/integrations/supabase/client';
-import { validateImageFile, validateAttachmentFile, buildUserScopedPath, sanitizeUploadError, FILE_ACCEPT } from '@/lib/uploadValidation';
+import { validateImageFile, validateAttachmentFile, buildUserScopedPath, sanitizeUploadError, FILE_ACCEPT, mimeForExt } from '@/lib/uploadValidation';
 import { buildPrivateAttachmentUrl } from '@/lib/chatAttachments';
 import { GifPicker } from './GifPicker';
 import { EmojiPicker } from './EmojiPicker';
@@ -290,7 +290,10 @@ export const MessageComposer = forwardRef<MessageComposerHandle, MessageComposer
             .upload(path, pending.file, {
               cacheControl: '3600',
               upsert: false,
-              contentType: pending.file.type,
+              // Fall back to a MIME derived from the extension when the browser
+              // gave us an empty type (iOS HEIC / screenshots), so the stored
+              // object serves as an image rather than octet-stream.
+              contentType: pending.file.type || mimeForExt(v.ext!),
             });
           if (!error) return buildPrivateAttachmentUrl(path);
           toast.error(sanitizeUploadError(error, 'Failed to upload image'));
