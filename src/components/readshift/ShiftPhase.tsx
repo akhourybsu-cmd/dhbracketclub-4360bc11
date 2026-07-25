@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { SignalExplainer } from './SignalBadge';
 import * as api from '@/lib/readshift/api';
 import { ANSWER_MAX_CHARS } from '@/lib/readshift/constants';
+import { CumulativeStandings } from './CumulativeStandings';
 import type { RsGame, RsRound, RsSignalAssignment, RsAnswer, RsParticipant } from '@/lib/readshift/dbTypes';
 
 interface Props {
