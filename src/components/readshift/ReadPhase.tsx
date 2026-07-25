@@ -45,8 +45,16 @@ export function ReadPhase({ game, round, readCards, authorPool, myGuesses, myAns
   const answered = guessable.filter((c) => guessBy[c.answer_id]).length;
 
   const pick = async (answerId: string, guessed: string) => {
-    setGuessBy((prev) => ({ ...prev, [answerId]: guessed }));
-    try { await api.saveGuess(round.id, clubId, userId, answerId, guessed); } catch { toast.error('Could not save guess'); }
+    const nextMap = { ...guessBy, [answerId]: guessed };
+    setGuessBy(nextMap);
+    try {
+      await api.saveGuess(round.id, clubId, userId, answerId, guessed);
+      // If this completed our ballot and early_advance is on, poke the server.
+      if (game.early_advance) {
+        const done = guessable.every((c) => nextMap[c.answer_id]);
+        if (done) void api.pokeAdvance(game.id);
+      }
+    } catch { toast.error('Could not save guess'); }
   };
   const markStrong = async (answerId: string) => {
     const next = strong === answerId ? null : answerId;
