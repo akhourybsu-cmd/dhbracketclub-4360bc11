@@ -25,7 +25,7 @@ interface Props {
   onSaved: () => void;
 }
 
-export function ReadPhase({ round, readCards, authorPool, myGuesses, myAnswer, participants, progress, userId, clubId, onSaved }: Props) {
+export function ReadPhase({ game, round, readCards, authorPool, myGuesses, myAnswer, participants, progress, userId, clubId, onSaved }: Props) {
   const nameOf = (uid: string) => participants.find((p) => p.user_id === uid)?.profiles?.display_name || 'Player';
   const cards = useMemo(() => [...readCards].sort((a, b) => a.answer_id.localeCompare(b.answer_id)), [readCards]);
   const poolNames = useMemo(
