@@ -42,6 +42,9 @@ export function ShiftPhase({ game, round, assignment, myAnswer, participants, pr
       await api.saveAnswer(round.id, clubId, userId, body);
       toast.success('Answer saved');
       onSaved();
+      // If early_advance is on and this was the last player to submit,
+      // ask the server to advance the phase immediately.
+      if (game.early_advance) void api.pokeAdvance(game.id);
     } catch (e: any) {
       toast.error(e?.message || 'Could not save');
     } finally { setSaving(false); }
