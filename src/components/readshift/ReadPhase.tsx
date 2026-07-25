@@ -67,6 +67,7 @@ export function ReadPhase({ game, round, readCards, authorPool, myGuesses, myAns
 
   return (
     <div className="space-y-4">
+      <CumulativeStandings game={game} participants={participants} refreshKey={round.id} variant="compact" />
       <div className="glass-card px-4 py-2.5 flex items-center justify-between">
         <span className="text-[13px] font-bold">Round {round.round_number} · Who wrote what?</span>
         {deadline && (
