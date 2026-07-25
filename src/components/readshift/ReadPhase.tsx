@@ -58,16 +58,13 @@ export function ReadPhase({ round, readCards, authorPool, myGuesses, myAnswer, p
 
   return (
     <div className="space-y-4">
-      <div className="glass-card p-4">
-        <div className="flex items-center justify-between">
-          <span className="text-[13px] font-bold">Round {round.round_number} · Who wrote what?</span>
-          {deadline && (
-            <span className="text-[11px] font-semibold text-muted-foreground/70 flex items-center gap-1">
-              <Clock className="w-3 h-3" /> {deadline.getTime() > Date.now() ? `${formatDistanceToNowStrict(deadline)} left` : 'Locking…'}
-            </span>
-          )}
-        </div>
-        <p className="text-[11px] text-muted-foreground/70 mt-1">Assign an author to each answer. Tap the star for your one Strong Read (worth double).</p>
+      <div className="glass-card px-4 py-2.5 flex items-center justify-between">
+        <span className="text-[13px] font-bold">Round {round.round_number} · Who wrote what?</span>
+        {deadline && (
+          <span className="text-[11px] font-semibold text-muted-foreground/70 flex items-center gap-1">
+            <Clock className="w-3 h-3" /> {deadline.getTime() > Date.now() ? `${formatDistanceToNowStrict(deadline)} left` : 'Locking…'}
+          </span>
+        )}
       </div>
 
       <div className="space-y-3">
