@@ -8,6 +8,7 @@ import { Star, Award, MessageSquare, Send, Smile, Trophy } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { SignalBadge, signalHsl } from './SignalBadge';
+import { CumulativeStandings } from './CumulativeStandings';
 import * as api from '@/lib/readshift/api';
 import type {
   RsGame, RsRound, RsRoundResult, RsRoundAward, RsComment, RsParticipant, RsRevealAnswer,
