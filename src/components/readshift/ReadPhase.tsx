@@ -8,6 +8,7 @@ import { formatDistanceToNowStrict } from 'date-fns';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import * as api from '@/lib/readshift/api';
+import { CumulativeStandings } from './CumulativeStandings';
 import type { RsGame, RsRound, RsReadCard, RsGuess, RsParticipant, RsAnswer } from '@/lib/readshift/dbTypes';
 
 interface Props {
