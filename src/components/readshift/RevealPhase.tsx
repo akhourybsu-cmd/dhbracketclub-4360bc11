@@ -8,6 +8,7 @@ import { Star, Award, MessageSquare, Send, Smile, Trophy } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { SignalBadge, signalHsl } from './SignalBadge';
+import { CumulativeStandings } from './CumulativeStandings';
 import * as api from '@/lib/readshift/api';
 import type {
   RsGame, RsRound, RsRoundResult, RsRoundAward, RsComment, RsParticipant, RsRevealAnswer,
@@ -27,7 +28,7 @@ interface Props {
   comments: RsComment[]; participants: RsParticipant[]; userId: string; clubId: string; onChanged: () => void;
 }
 
-export function RevealPhase({ round, result, awards, comments, participants, userId, clubId, onChanged }: Props) {
+export function RevealPhase({ game, round, result, awards, comments, participants, userId, clubId, onChanged }: Props) {
   const nameOf = (uid: string | null) =>
     (uid ? participants.find((p) => p.user_id === uid)?.profiles?.display_name || 'Player' : '—');
   const initialsOf = (uid: string | null) =>
@@ -83,6 +84,10 @@ export function RevealPhase({ round, result, awards, comments, participants, use
 
   return (
     <div className="space-y-4">
+      {/* Cumulative standings first — most players want to see the running totals */}
+      <CumulativeStandings game={game} participants={participants} refreshKey={round.id} variant="full" />
+
+
       {/* ───────── Round Scoreboard ───────── */}
       {scoreboard.length > 0 && (
         <div className="glass-card overflow-hidden">

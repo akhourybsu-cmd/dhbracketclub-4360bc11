@@ -8,6 +8,7 @@ import { formatDistanceToNowStrict } from 'date-fns';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import * as api from '@/lib/readshift/api';
+import { CumulativeStandings } from './CumulativeStandings';
 import type { RsGame, RsRound, RsReadCard, RsGuess, RsParticipant, RsAnswer } from '@/lib/readshift/dbTypes';
 
 interface Props {
@@ -24,7 +25,7 @@ interface Props {
   onSaved: () => void;
 }
 
-export function ReadPhase({ round, readCards, authorPool, myGuesses, myAnswer, participants, progress, userId, clubId, onSaved }: Props) {
+export function ReadPhase({ game, round, readCards, authorPool, myGuesses, myAnswer, participants, progress, userId, clubId, onSaved }: Props) {
   const nameOf = (uid: string) => participants.find((p) => p.user_id === uid)?.profiles?.display_name || 'Player';
   const cards = useMemo(() => [...readCards].sort((a, b) => a.answer_id.localeCompare(b.answer_id)), [readCards]);
   const poolNames = useMemo(
@@ -44,8 +45,16 @@ export function ReadPhase({ round, readCards, authorPool, myGuesses, myAnswer, p
   const answered = guessable.filter((c) => guessBy[c.answer_id]).length;
 
   const pick = async (answerId: string, guessed: string) => {
-    setGuessBy((prev) => ({ ...prev, [answerId]: guessed }));
-    try { await api.saveGuess(round.id, clubId, userId, answerId, guessed); } catch { toast.error('Could not save guess'); }
+    const nextMap = { ...guessBy, [answerId]: guessed };
+    setGuessBy(nextMap);
+    try {
+      await api.saveGuess(round.id, clubId, userId, answerId, guessed);
+      // If this completed our ballot and early_advance is on, poke the server.
+      if (game.early_advance) {
+        const done = guessable.every((c) => nextMap[c.answer_id]);
+        if (done) void api.pokeAdvance(game.id);
+      }
+    } catch { toast.error('Could not save guess'); }
   };
   const markStrong = async (answerId: string) => {
     const next = strong === answerId ? null : answerId;
@@ -58,6 +67,7 @@ export function ReadPhase({ round, readCards, authorPool, myGuesses, myAnswer, p
 
   return (
     <div className="space-y-4">
+      <CumulativeStandings game={game} participants={participants} refreshKey={round.id} variant="compact" />
       <div className="glass-card px-4 py-2.5 flex items-center justify-between">
         <span className="text-[13px] font-bold">Round {round.round_number} · Who wrote what?</span>
         {deadline && (

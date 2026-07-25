@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { SignalExplainer } from './SignalBadge';
 import * as api from '@/lib/readshift/api';
 import { ANSWER_MAX_CHARS } from '@/lib/readshift/constants';
+import { CumulativeStandings } from './CumulativeStandings';
 import type { RsGame, RsRound, RsSignalAssignment, RsAnswer, RsParticipant } from '@/lib/readshift/dbTypes';
 
 interface Props {
@@ -41,6 +42,9 @@ export function ShiftPhase({ game, round, assignment, myAnswer, participants, pr
       await api.saveAnswer(round.id, clubId, userId, body);
       toast.success('Answer saved');
       onSaved();
+      // If early_advance is on and this was the last player to submit,
+      // ask the server to advance the phase immediately.
+      if (game.early_advance) void api.pokeAdvance(game.id);
     } catch (e: any) {
       toast.error(e?.message || 'Could not save');
     } finally { setSaving(false); }
@@ -48,6 +52,7 @@ export function ShiftPhase({ game, round, assignment, myAnswer, participants, pr
 
   return (
     <div className="space-y-4">
+      <CumulativeStandings game={game} participants={participants} refreshKey={round.id} variant="compact" />
       <div className="glass-card p-5">
         <div className="flex items-center justify-between mb-2">
           <span className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-muted-foreground/60">Round {round.round_number} · Prompt</span>
