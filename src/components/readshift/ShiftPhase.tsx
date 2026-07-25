@@ -52,6 +52,7 @@ export function ShiftPhase({ game, round, assignment, myAnswer, participants, pr
 
   return (
     <div className="space-y-4">
+      <CumulativeStandings game={game} participants={participants} refreshKey={round.id} variant="compact" />
       <div className="glass-card p-5">
         <div className="flex items-center justify-between mb-2">
           <span className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-muted-foreground/60">Round {round.round_number} · Prompt</span>
