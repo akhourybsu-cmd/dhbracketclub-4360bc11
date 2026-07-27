@@ -68,13 +68,21 @@ export function ReadPhase({ game, round, readCards, authorPool, myGuesses, myAns
   return (
     <div className="space-y-4">
       <CumulativeStandings game={game} participants={participants} refreshKey={round.id} variant="compact" />
-      <div className="glass-card px-4 py-2.5 flex items-center justify-between">
-        <span className="text-[13px] font-bold">Round {round.round_number} · Who wrote what?</span>
-        {deadline && (
-          <span className="text-[11px] font-semibold text-muted-foreground/70 flex items-center gap-1">
-            <Clock className="w-3 h-3" /> {deadline.getTime() > Date.now() ? `${formatDistanceToNowStrict(deadline)} left` : 'Locking…'}
+      <div className="glass-card p-4">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-muted-foreground/60">
+            Round {round.round_number} · Prompt
           </span>
-        )}
+          {deadline && (
+            <span className="text-[11px] font-semibold text-muted-foreground/70 flex items-center gap-1">
+              <Clock className="w-3 h-3" /> {deadline.getTime() > Date.now() ? `${formatDistanceToNowStrict(deadline)} left` : 'Locking…'}
+            </span>
+          )}
+        </div>
+        <p className="text-[16px] font-extrabold leading-snug">{round.prompt_snapshot || 'Prompt unavailable'}</p>
+        <p className="text-[11px] font-bold text-muted-foreground/70 mt-2.5 pt-2.5 border-t border-border/15">
+          Who wrote what? Tap an answer to assign an author.
+        </p>
       </div>
 
       <div className="space-y-3">
