@@ -3555,6 +3555,118 @@
   .rs-shell::before { background: radial-gradient(ellipse 100% 80% at 50% 40%, transparent 55%, hsl(270 60% 2% / 0.55) 100%); }
 }
 
+/* ─── READSHIFT premium primitives (author picker, numbered cards, prompt hero) ─── */
+
+.rs-mode .rs-answer-num {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 1.75rem; height: 1.75rem; border-radius: 0.625rem;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-weight: 900; font-size: 12px; letter-spacing: 0.04em;
+  color: hsl(285 92% 82%);
+  background: linear-gradient(160deg, hsl(278 60% 22% / 0.9), hsl(268 55% 12% / 0.85));
+  border: 1px solid hsl(280 70% 55% / 0.35);
+  box-shadow: inset 0 1px 0 hsl(290 90% 82% / 0.18), 0 4px 12px -6px hsl(280 80% 40% / 0.55);
+  flex-shrink: 0;
+}
+
+.rs-mode .rs-prompt-hero {
+  position: relative; overflow: hidden;
+  padding: 1rem 1.05rem 1.1rem; border-radius: 18px;
+  background:
+    radial-gradient(ellipse 120% 90% at 50% -20%, hsl(300 90% 60% / 0.22), transparent 65%),
+    linear-gradient(180deg, hsl(272 46% 14% / 0.95), hsl(270 52% 8% / 0.95));
+  border: 1px solid hsl(282 70% 58% / 0.32);
+  box-shadow: inset 0 1px 0 hsl(292 92% 82% / 0.14), 0 18px 44px -22px hsl(285 88% 40% / 0.6);
+}
+.rs-mode .rs-prompt-hero::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: repeating-linear-gradient(74deg, transparent 0 120px, hsl(285 90% 65% / 0.03) 120px 121px);
+  mask-image: linear-gradient(180deg, black, transparent 90%);
+}
+.rs-mode .rs-prompt-eyebrow {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  font-size: 9.5px; font-weight: 900; letter-spacing: 0.22em; text-transform: uppercase;
+  color: hsl(285 92% 78%);
+  padding: 0.3rem 0.6rem; border-radius: 999px;
+  background: hsl(285 80% 60% / 0.16); border: 1px solid hsl(285 80% 60% / 0.32);
+}
+.rs-mode .rs-prompt-body {
+  font-family: ui-serif, Georgia, "Times New Roman", serif;
+  font-weight: 700; font-size: 20px; line-height: 1.24; letter-spacing: -0.005em;
+  color: hsl(288 40% 98%); margin-top: 0.75rem; text-wrap: balance;
+  position: relative;
+}
+
+.rs-mode .rs-author-btn {
+  position: relative; display: inline-flex; align-items: center; gap: 0.55rem;
+  min-height: 44px; padding: 0.5rem 0.7rem 0.5rem 0.5rem;
+  border-radius: 12px; font-size: 12.5px; font-weight: 700;
+  color: hsl(285 22% 90%);
+  background: linear-gradient(180deg, hsl(268 34% 15% / 0.85), hsl(268 40% 11% / 0.9));
+  border: 1px solid hsl(278 42% 42% / 0.28);
+  box-shadow: inset 0 1px 0 hsl(290 90% 82% / 0.06);
+  transition: transform 90ms ease, border-color 150ms ease, background 200ms ease, box-shadow 200ms ease;
+  text-align: left; cursor: pointer; width: 100%;
+}
+.rs-mode .rs-author-btn:hover { border-color: hsl(285 78% 60% / 0.4); }
+.rs-mode .rs-author-btn:active { transform: scale(0.97); }
+.rs-mode .rs-author-btn[data-selected="true"] {
+  background: linear-gradient(180deg, hsl(285 78% 40% / 0.4), hsl(295 82% 30% / 0.45));
+  border-color: hsl(295 92% 72% / 0.7);
+  color: hsl(292 95% 97%);
+  box-shadow: inset 0 1px 0 hsl(295 95% 88% / 0.32), 0 8px 22px -10px hsl(292 90% 50% / 0.6);
+}
+.rs-mode .rs-author-btn .rs-author-initials {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 1.65rem; height: 1.65rem; border-radius: 9px;
+  font-size: 10px; font-weight: 900; color: hsl(285 92% 82%);
+  background: hsl(280 60% 26% / 0.55); border: 1px solid hsl(285 78% 60% / 0.28);
+  flex-shrink: 0;
+}
+.rs-mode .rs-author-btn[data-selected="true"] .rs-author-initials {
+  background: hsl(0 0% 100% / 0.95); color: hsl(295 82% 24%); border-color: transparent;
+}
+.rs-mode .rs-author-btn .rs-author-check {
+  margin-left: auto; width: 1rem; height: 1rem;
+  opacity: 0; transform: scale(0.6);
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+.rs-mode .rs-author-btn[data-selected="true"] .rs-author-check { opacity: 1; transform: scale(1); }
+.rs-mode .rs-author-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.rs-mode .rs-strong-btn {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  height: 32px; padding: 0 0.75rem; border-radius: 999px;
+  font-size: 10px; font-weight: 900; letter-spacing: 0.14em; text-transform: uppercase;
+  color: hsl(45 90% 80%);
+  background: hsl(45 60% 22% / 0.4); border: 1px solid hsl(45 80% 55% / 0.3);
+  transition: transform 90ms ease, background 200ms ease, box-shadow 200ms ease, color 200ms ease;
+  cursor: pointer;
+}
+.rs-mode .rs-strong-btn:active { transform: scale(0.95); }
+.rs-mode .rs-strong-btn[aria-pressed="true"] {
+  color: hsl(45 20% 12%);
+  background: linear-gradient(135deg, hsl(48 96% 66%), hsl(38 96% 58%));
+  border-color: transparent;
+  box-shadow: 0 8px 22px -10px hsl(45 96% 55% / 0.7), inset 0 1px 0 hsl(48 100% 92% / 0.6);
+}
+.rs-mode .rs-strong-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.rs-mode .rs-eyebrow {
+  display: flex; align-items: center; gap: 0.55rem;
+  font-size: 10px; font-weight: 900; letter-spacing: 0.18em; text-transform: uppercase;
+  color: hsl(280 30% 72%); padding: 0 0.15rem;
+}
+.rs-mode .rs-eyebrow::before, .rs-mode .rs-eyebrow::after {
+  content: ''; flex: 1; height: 1px;
+  background: linear-gradient(90deg, transparent, hsl(280 55% 45% / 0.28), transparent);
+}
+
+.rs-mode .rs-cta { border-radius: 14px; }
+.rs-mode .rs-cta:not(:disabled):hover {
+  box-shadow: 0 12px 34px -10px hsl(288 90% 55% / 0.75), inset 0 1px 0 hsl(295 95% 88% / 0.45);
+}
+
 /* ─── Portfolio Wars (Trading Floor) skin ─── */
 .pw-mode {
   --pw-bg: 220 50% 4%;
