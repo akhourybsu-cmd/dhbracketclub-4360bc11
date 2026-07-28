@@ -15,6 +15,7 @@ import { ReadPhase } from '@/components/readshift/ReadPhase';
 import { RevealPhase } from '@/components/readshift/RevealPhase';
 import { FinalResults } from '@/components/readshift/FinalResults';
 import { CommissionerControls } from '@/components/readshift/CommissionerControls';
+import { RoundHistory } from '@/components/readshift/RoundHistory';
 import { StatusPill } from '@/components/ui/status-pill';
 import { cn } from '@/lib/utils';
 import * as api from '@/lib/readshift/api';
