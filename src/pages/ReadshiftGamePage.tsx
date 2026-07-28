@@ -249,6 +249,16 @@ export default function ReadshiftGamePage() {
           </div>
         )}
 
+        {/* Round history (all completed rounds so far) */}
+        {!isLobby && game.phase !== 'cancelled' && (
+          <RoundHistory
+            game={game}
+            participants={activeParts}
+            excludeRoundId={game.phase === 'reveal' ? rs.round?.id ?? null : null}
+            refreshKey={`${game.phase}:${game.current_round}`}
+          />
+        )}
+
         {/* Commissioner controls (in-flight games only) */}
         {canManage && ['shift', 'read', 'reveal', 'paused'].includes(game.phase) && (
           <CommissionerControls game={game} onChanged={refreshAll} />
