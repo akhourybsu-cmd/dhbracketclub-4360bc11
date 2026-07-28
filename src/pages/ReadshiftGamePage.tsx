@@ -15,6 +15,7 @@ import { ReadPhase } from '@/components/readshift/ReadPhase';
 import { RevealPhase } from '@/components/readshift/RevealPhase';
 import { FinalResults } from '@/components/readshift/FinalResults';
 import { CommissionerControls } from '@/components/readshift/CommissionerControls';
+import { RoundHistory } from '@/components/readshift/RoundHistory';
 import { StatusPill } from '@/components/ui/status-pill';
 import { cn } from '@/lib/utils';
 import * as api from '@/lib/readshift/api';
@@ -246,6 +247,16 @@ export default function ReadshiftGamePage() {
               {game.phase === 'paused' ? 'The host paused this game. It resumes when they pick it back up.' : 'This game was cancelled.'}
             </p>
           </div>
+        )}
+
+        {/* Round history (all completed rounds so far) */}
+        {!isLobby && game.phase !== 'cancelled' && (
+          <RoundHistory
+            game={game}
+            participants={activeParts}
+            excludeRoundId={game.phase === 'reveal' ? rs.round?.id ?? null : null}
+            refreshKey={`${game.phase}:${game.current_round}`}
+          />
         )}
 
         {/* Commissioner controls (in-flight games only) */}
