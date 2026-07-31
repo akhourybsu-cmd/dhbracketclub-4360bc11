@@ -678,18 +678,208 @@ export function computeFunAwards(d: StatsDataset): FunAward[] {
 
 /* ───── Identity nickname ───── */
 
-export function computeIdentity(agg: UserAggregate, pq: PickQuality, t: TimingProfile): string {
-  if (agg.championships > 0) return 'Champion';
-  if (agg.wins >= 3) return 'Closer';
-  if (pq.totalRated >= 10 && pq.stealRate >= 0.35) return 'Late Bloomer';
-  if (pq.totalRated >= 10 && pq.earlyAvg - pq.lateAvg >= 1.5) return 'Sniper';
-  if (agg.draftsPlayed >= 3 && agg.consistency <= 4) return 'Steady Hand';
-  if (t.sampleCount >= 8 && t.avgMs < 60_000) return 'Quickdraw';
-  if (t.sampleCount >= 8 && t.avgMs > 5 * 60_000) return 'Slow Burner';
-  if (agg.podiums >= 2) return 'Contender';
-  if (agg.draftsPlayed === 0) return 'Rookie';
-  return 'Drafter';
+export interface IdentityProfile {
+  title: string;
+  blurb: string;
+  /** Rough prestige tier, used for colouring. */
+  tier: 'legend' | 'elite' | 'notable' | 'base';
 }
+
+/** Rich draft identity. Ordered most-prestigious → most-generic; the first
+ *  rule that matches wins, so hard-earned titles always outrank flavour. */
+export function computeIdentityProfile(agg: UserAggregate, pq: PickQuality, t: TimingProfile): IdentityProfile {
+  const L = (title: string, blurb: string): IdentityProfile => ({ title, blurb, tier: 'legend' });
+  const E = (title: string, blurb: string): IdentityProfile => ({ title, blurb, tier: 'elite' });
+  const N = (title: string, blurb: string): IdentityProfile => ({ title, blurb, tier: 'notable' });
+  const B = (title: string, blurb: string): IdentityProfile => ({ title, blurb, tier: 'base' });
+
+  if (agg.championships >= 3) return L('Dynasty', 'Three or more titles. The era belongs to you.');
+  if (agg.championships === 2) return L('Two-Time', 'Back in the winner\'s circle — twice.');
+  if (agg.championships === 1 && agg.regularSeasonTitles >= 1) return L('Wire-to-Wire', 'Regular season crown and the title in the same run.');
+  if (agg.championships === 1) return L('Champion', 'You have a ring. Nobody can take it back.');
+  if (agg.regularSeasonTitles >= 1) return E('Frontrunner', 'Regular season champion — dominance over the long haul.');
+  if (agg.finalsAppearances >= 2) return E('Perennial', 'Multiple finals appearances. Always in the mix.');
+  if (agg.draftsPlayed >= 6 && agg.winRate >= 0.5) return E('Apex Drafter', 'You win over half the drafts you enter.');
+  if (agg.wins >= 4) return E('Closer', 'A serial winner when it matters.');
+  if (pq.totalRated >= 20 && pq.avgPickScore >= 8) return E('Tastemaker', 'An 8+ average across a large body of picks.');
+  if (pq.totalRated >= 15 && pq.topMvpPicks >= 6) return E('Marksman', 'You keep finding 9s and 10s.');
+  if (pq.totalRated >= 12 && pq.stealRate >= 0.4) return N('Steal Artist', 'Late rounds are where you do damage.');
+  if (pq.totalRated >= 12 && pq.earlyAvg - pq.lateAvg >= 1.5) return N('Front-Loader', 'You spend your best ammo early.');
+  if (pq.totalRated >= 12 && pq.bustRate <= 0.05) return N('Clean Board', 'You almost never take a bust.');
+  if (agg.draftsPlayed >= 5 && agg.consistency <= 4) return N('Steady Hand', 'Your scores barely move — reliability is the edge.');
+  if (agg.draftsPlayed >= 5 && agg.consistency >= 12) return N('Wildcard', 'Boom or bust. Never boring.');
+  if (t.sampleCount >= 10 && t.avgMs < 45_000) return N('Quickdraw', 'On the clock for seconds, not minutes.');
+  if (t.sampleCount >= 10 && t.avgMs > 8 * 60_000) return N('The Deliberator', 'Every pick gets the full treatment.');
+  if (agg.podiums >= 4) return N('Podium Regular', 'Top three shows up on your card a lot.');
+  if (agg.podiums >= 2) return N('Contender', 'Knocking on the door.');
+  if (agg.wins >= 1) return N('Winner', 'You have taken one down.');
+  if (agg.draftsPlayed >= 10) return B('Iron Drafter', 'Never miss a draft night.');
+  if (agg.draftsPlayed === 0) return B('Rookie', 'No scored drafts yet — your first report is coming.');
+  if (agg.draftsPlayed <= 2) return B('Newcomer', 'Early days. Build the résumé.');
+  return B('Drafter', 'Grinding out the reps.');
+}
+
+export function computeIdentity(agg: UserAggregate, pq: PickQuality, t: TimingProfile): string {
+  return computeIdentityProfile(agg, pq, t).title;
+}
+
+/* ───── Achievements ─────
+ *
+ * Hard, specific objectives. Unlike the Hall of Fame (which is a
+ * "who's best right now" comparison between members), achievements are
+ * absolute — either you did the thing or you didn't — and most of them
+ * are deliberately difficult. Everything is derived from data already in
+ * the dataset; nothing is persisted, so scope filters apply naturally. */
+
+export type AchievementTier = 'bronze' | 'silver' | 'gold' | 'mythic';
+
+export interface Achievement {
+  key: string;
+  icon: string;
+  title: string;
+  description: string;
+  tier: AchievementTier;
+  unlocked: boolean;
+  /** Current progress toward `target` (clamped display value). */
+  progress: number;
+  target: number;
+  /** Optional human detail, e.g. the pick that earned it. */
+  detail?: string;
+}
+
+export function computeAchievements(userId: string, d: StatsDataset): Achievement[] {
+  const agg = computeUserAggregate(userId, d);
+  const pq = computePickQuality(userId, d);
+  const timing = computeTiming(userId, d);
+  const out: Achievement[] = [];
+  if (!agg) return out;
+
+  const completed = buildCompletionDates(d);
+  const draftsById = new Map(d.drafts.map(x => [x.id, x]));
+  const myResults = d.results
+    .filter(r => r.user_id === userId)
+    .sort((a, b) => (completed.get(a.draft_id) || '').localeCompare(completed.get(b.draft_id) || ''));
+
+  /* Per-draft rated picks for this user, keyed by draft. */
+  const ratedByDraft = new Map<string, number[]>();
+  const myPickMeta = new Map<string, { round: number; draftId: string; text: string }>();
+  const myPickByText = new Map<string, { round: number; draftId: string; text: string }>();
+  for (const p of d.picks) {
+    if (p.user_id !== userId) continue;
+    const meta = { round: p.round, draftId: p.draft_id, text: p.pick_text };
+    myPickMeta.set(p.id, meta);
+    const k = `${p.draft_id}::${normText(p.pick_text)}`;
+    if (!myPickByText.has(k)) myPickByText.set(k, meta);
+  }
+  let bestSingle = 0;
+  let bestSingleText = '';
+  let lateBombs = 0;   // late-round picks ≥ 8
+  let perfectTens = 0;
+  for (const r of myResults) {
+    const arr: number[] = [];
+    for (const pr of r.pick_ratings || []) {
+      const meta = myPickMeta.get(pr.pick_id) || myPickByText.get(`${r.draft_id}::${normText(pr.pick_text)}`);
+      if (!meta) continue;
+      const s = Number(pr.score) || 0;
+      arr.push(s);
+      if (s > bestSingle) { bestSingle = s; bestSingleText = meta.text || pr.pick_text; }
+      if (s >= 10) perfectTens++;
+      const rounds = draftsById.get(r.draft_id)?.num_rounds || 5;
+      if (meta.round > Math.ceil(rounds / 2) && s >= 8) lateBombs++;
+    }
+    ratedByDraft.set(r.draft_id, arr);
+  }
+
+  /* Perfect boards: every rated pick in a draft ≥ 8 (min 4 picks). */
+  let perfectBoards = 0;
+  let cleanBoards = 0; // no pick ≤ 4, min 4 picks
+  for (const [, arr] of ratedByDraft) {
+    if (arr.length < 4) continue;
+    if (arr.every(s => s >= 8)) perfectBoards++;
+    if (arr.every(s => s > 4)) cleanBoards++;
+  }
+
+  /* Consecutive-win / podium streaks by completion order. */
+  let winStreak = 0, bestWinStreak = 0, podStreak = 0, bestPodStreak = 0;
+  for (const r of myResults) {
+    if (r.rank === 1) { winStreak++; bestWinStreak = Math.max(bestWinStreak, winStreak); } else winStreak = 0;
+    if (r.rank <= 3) { podStreak++; bestPodStreak = Math.max(bestPodStreak, podStreak); } else podStreak = 0;
+  }
+
+  /* Wire-to-wire blowout: won a draft by ≥ 10 total score over 2nd. */
+  let biggestMargin = 0;
+  for (const r of myResults) {
+    if (r.rank !== 1) continue;
+    const others = d.results
+      .filter(x => x.draft_id === r.draft_id && x.user_id !== userId)
+      .map(x => Number(x.total_score) || 0);
+    if (!others.length) continue;
+    const margin = (Number(r.total_score) || 0) - Math.max(...others);
+    if (margin > biggestMargin) biggestMargin = margin;
+  }
+
+  /* Category range: distinct categories won. */
+  const wonCategories = new Set<string>();
+  for (const r of myResults) {
+    if (r.rank !== 1) continue;
+    const cat = draftsById.get(r.draft_id)?.category;
+    if (cat) wonCategories.add(cat.toLowerCase());
+  }
+
+  /* Giant killer: beat the #1 playoff seed in a playoff match. */
+  let giantKills = 0;
+  for (const m of d.matches) {
+    if (m.winner_user_id !== userId) continue;
+    const opp = m.user_a === userId ? m.user_b : m.user_a;
+    if (!opp) continue;
+    const seed = d.standings.find(s => s.season_id === m.season_id && s.user_id === opp)?.playoff_seed;
+    if (seed === 1) giantKills++;
+  }
+
+  const A = (
+    key: string, icon: string, title: string, description: string,
+    tier: AchievementTier, progress: number, target: number, detail?: string,
+  ) => out.push({
+    key, icon, title, description, tier,
+    progress: Math.min(progress, target), target,
+    unlocked: progress >= target, detail,
+  });
+
+  A('immaculate', '💠', 'Immaculate', 'Land a pick rated a perfect 10.0', 'mythic', perfectTens, 1,
+    bestSingle >= 10 ? bestSingleText : bestSingle > 0 ? `Best so far: ${bestSingle.toFixed(1)}` : undefined);
+  A('perfect_board', '🧊', 'Perfect Board', 'Finish a draft with every pick rated 8.0+', 'mythic', perfectBoards, 1);
+  A('threepeat', '👑', 'Three-Peat', 'Win three drafts in a row', 'mythic', bestWinStreak, 3);
+  A('dynasty', '🏛️', 'Dynasty', 'Win two league championships', 'mythic', agg.championships, 2);
+  A('blowout', '💥', 'Statement Win', 'Win a draft by 10+ total score', 'gold', Math.floor(biggestMargin), 10,
+    biggestMargin > 0 ? `Best margin: +${biggestMargin.toFixed(1)}` : undefined);
+  A('giant_killer', '🗡️', 'Giant Killer', 'Beat the #1 playoff seed in the postseason', 'gold', giantKills, 1);
+  A('back_to_back', '🔗', 'Back-to-Back', 'Win two drafts in a row', 'gold', bestWinStreak, 2);
+  A('hot_hand', '🔥', 'Hot Hand', 'String together 10 straight picks rated 7.5+', 'gold',
+    computeLongestStreak(userId, d), 10);
+  A('renaissance', '🎭', 'Renaissance', 'Win drafts in five different categories', 'gold', wonCategories.size, 5);
+  A('steal_artist', '🕵️', 'Steal Artist', 'Bank 15 late-round picks rated 8.0+', 'gold', lateBombs, 15);
+  A('podium_run', '🥇', 'Podium Run', 'Finish top three in five consecutive drafts', 'silver', bestPodStreak, 5);
+  A('clean_sheets', '🧼', 'No Busts', 'Complete five drafts without a single pick rated 4.0 or lower', 'silver', cleanBoards, 5);
+  A('century', '💯', 'Century Club', 'Bank 100 lifetime season points', 'silver', agg.totalSeasonPoints, 100);
+  A('quickdraw', '⚡', 'Quickdraw', 'Average under 45 seconds per pick across 20+ picks', 'silver',
+    timing.sampleCount >= 20 && timing.avgMs < 45_000 ? 1 : 0, 1,
+    timing.sampleCount >= 20 ? `Avg ${fmtDuration(timing.avgMs)}` : `${timing.sampleCount}/20 timed picks`);
+  A('marathon', '🕰️', 'The Long Game', 'Spend a cumulative 3 hours on the clock', 'bronze',
+    Math.floor(timing.totalMs / 60000), 180, timing.totalMs ? fmtDuration(timing.totalMs) : undefined);
+  A('iron', '🛡️', 'Iron Drafter', 'Play 25 scored drafts', 'bronze', agg.draftsPlayed, 25);
+  A('scholar', '📚', 'Well Read', 'Accumulate 100 rated picks', 'bronze', pq.totalRated, 100);
+  A('first_blood', '🎬', 'First Blood', 'Win your first draft', 'bronze', agg.wins, 1);
+
+  const tierRank: Record<AchievementTier, number> = { mythic: 0, gold: 1, silver: 2, bronze: 3 };
+  return out.sort((a, b) => {
+    if (a.unlocked !== b.unlocked) return a.unlocked ? -1 : 1;
+    if (a.unlocked) return tierRank[b.tier] - tierRank[a.tier];
+    const ap = a.progress / a.target, bp = b.progress / b.target;
+    if (ap !== bp) return bp - ap;
+    return tierRank[a.tier] - tierRank[b.tier];
+  });
+}
+
 
 /* ───── Scope filtering ─────
  *
