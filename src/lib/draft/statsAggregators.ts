@@ -370,8 +370,39 @@ export interface CareerPoint {
   rank: number;
 }
 
+/** Completion date for a draft.
+ *
+ * Ordering career history by `drafts.created_at` was misleading: a draft
+ * opened in January but scored in June sorted as a January data point.
+ * The truthful timestamp is when the Draft Report landed — i.e. the
+ * earliest `draft_results.created_at` for that draft. Falls back to the
+ * last pick timestamp, then to the draft's creation date. */
+export function buildCompletionDates(d: StatsDataset): Map<string, string> {
+  const out = new Map<string, string>();
+  for (const r of d.results) {
+    if (!r.created_at) continue;
+    const cur = out.get(r.draft_id);
+    if (!cur || r.created_at < cur) out.set(r.draft_id, r.created_at);
+  }
+  for (const p of d.picks) {
+    if (out.has(p.draft_id) || !p.picked_at) continue;
+    // track max pick time per draft
+    const key = `__pick:${p.draft_id}`;
+    const cur = out.get(key);
+    if (!cur || p.picked_at > cur) out.set(key, p.picked_at);
+  }
+  for (const drf of d.drafts) {
+    if (out.has(drf.id)) continue;
+    out.set(drf.id, out.get(`__pick:${drf.id}`) || drf.created_at);
+  }
+  // strip helper keys
+  for (const k of Array.from(out.keys())) if (k.startsWith('__pick:')) out.delete(k);
+  return out;
+}
+
 export function computeCareerPulse(userId: string, d: StatsDataset): CareerPoint[] {
   const draftsById = new Map(d.drafts.map(x => [x.id, x]));
+  const completed = buildCompletionDates(d);
   return d.results
     .filter(r => r.user_id === userId)
     .map(r => {
@@ -379,7 +410,7 @@ export function computeCareerPulse(userId: string, d: StatsDataset): CareerPoint
       return drf ? {
         draftId: r.draft_id,
         topic: drf.topic,
-        date: drf.created_at,
+        date: r.created_at || completed.get(r.draft_id) || drf.created_at,
         score: Number(r.total_score) || 0,
         rank: r.rank,
       } : null;
@@ -387,6 +418,7 @@ export function computeCareerPulse(userId: string, d: StatsDataset): CareerPoint
     .filter((x): x is CareerPoint => !!x)
     .sort((a, b) => a.date.localeCompare(b.date));
 }
+
 
 /* ───── Streaks (consecutive picks ≥ threshold within same draft) ───── */
 
