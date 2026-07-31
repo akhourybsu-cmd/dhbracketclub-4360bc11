@@ -48,7 +48,7 @@ export function useDraftStatsHub() {
       const [picks, results, drafts, seasons, standings, matches, entries] = await withTimeout(
         Promise.all([
           qAll<any>((f, t) => supabase.from('draft_picks').select('id, draft_id, user_id, round, pick_number, pick_text, picked_at').order('id').range(f, t) as any, 'draft_picks'),
-          qAll<any>((f, t) => supabase.from('draft_results' as any).select('id, draft_id, user_id, rank, total_score, points_awarded, pick_ratings').order('id').range(f, t) as any, 'draft_results'),
+          qAll<any>((f, t) => supabase.from('draft_results' as any).select('id, draft_id, user_id, rank, total_score, points_awarded, pick_ratings, created_at').order('id').range(f, t) as any, 'draft_results'),
           qAll<any>((f, t) => supabase.from('drafts').select('id, topic, category, created_by, created_at, num_rounds, status').order('id').range(f, t) as any, 'drafts'),
           q<any[]>(supabase.from('draft_seasons' as any).select('id, name, season_number, subtitle, status, starts_at, champion_user_id, runner_up_user_id, third_place_user_id, regular_season_champion_user_id') as any, 'draft_seasons'),
           q<any[]>(supabase.from('draft_season_standings' as any).select('season_id, user_id, season_points, drafts_played, wins, podiums, avg_finish, avg_score, best_score, worst_score, consistency, rank, playoff_seed') as any, 'draft_season_standings'),

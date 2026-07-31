@@ -23,13 +23,15 @@ import {
   computeTopicTendencies,
   computeLeaderboard,
   computeFunAwards,
-  computeIdentity,
+  computeIdentityProfile,
+  computeAchievements,
   fmtDuration,
   displayName,
   type ScopeKey,
   type LeaderMetric,
 } from '@/lib/draft/statsAggregators';
 import { Archive } from 'lucide-react';
+import AchievementsPanel from './AchievementsPanel';
 
 function Counter({ value, decimals = 0, suffix = '' }: { value: number; decimals?: number; suffix?: string }) {
   const animated = useCountUp(value);
@@ -126,7 +128,7 @@ function ScopeBar({ scope, onScope, seasons, composition }: {
 }
 
 /* ─── Hero identity card ─── */
-function HeroIdentity({ nickname, agg, totalPoints }: { nickname: string; agg: ReturnType<typeof computeUserAggregate>; totalPoints: number }) {
+function HeroIdentity({ identity, agg, totalPoints }: { identity: { title: string; blurb: string }; agg: ReturnType<typeof computeUserAggregate>; totalPoints: number }) {
   if (!agg) return null;
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
@@ -139,7 +141,8 @@ function HeroIdentity({ nickname, agg, totalPoints }: { nickname: string; agg: R
         <div className="absolute -top-4 -right-4 text-[120px] leading-none opacity-[0.06] select-none pointer-events-none" aria-hidden>★</div>
         <div className="relative z-10">
           <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/80">Your Draft Identity</p>
-          <h2 className="text-2xl font-extrabold mt-1 tracking-tight" style={{ color: 'hsl(var(--gold))' }}>{nickname}</h2>
+          <h2 className="text-2xl font-extrabold mt-1 tracking-tight" style={{ color: 'hsl(var(--gold))' }}>{identity.title}</h2>
+          <p className="text-[11px] text-muted-foreground/80 leading-snug mt-0.5">{identity.blurb}</p>
           <p className="text-[11px] text-muted-foreground/70 mt-1">
             {agg.draftsPlayed} draft{agg.draftsPlayed === 1 ? '' : 's'} · {(agg.winRate * 100).toFixed(0)}% win rate · {(agg.podiumRate * 100).toFixed(0)}% podium rate
           </p>
@@ -623,7 +626,10 @@ export default function DraftStatsHub() {
   const streak = useMemo(() => user ? computeLongestStreak(user.id, scoped) : 0, [scoped, user]);
   const tt = useMemo(() => user ? computeTopicTendencies(user.id, scoped) : null, [scoped, user]);
   const awards = useMemo(() => computeFunAwards(scoped), [scoped]);
-  const nickname = useMemo(() => (agg && pq && timing) ? computeIdentity(agg, pq, timing) : 'Drafter', [agg, pq, timing]);
+  const identity = useMemo(() => (agg && pq && timing)
+    ? computeIdentityProfile(agg, pq, timing)
+    : { title: 'Drafter', blurb: 'Grinding out the reps.', tier: 'base' as const }, [agg, pq, timing]);
+  const achievements = useMemo(() => user ? computeAchievements(user.id, scoped) : [], [scoped, user]);
 
   const seasonChips = useMemo(() =>
     [...dataset.seasons]
@@ -731,7 +737,7 @@ export default function DraftStatsHub() {
         {/* LEFT column */}
         <div className="space-y-3">
           {!noPersonal && agg && (
-            <HeroIdentity nickname={nickname} agg={agg} totalPoints={agg.totalSeasonPoints} />
+            <HeroIdentity identity={identity} agg={agg} totalPoints={agg.totalSeasonPoints} />
           )}
 
           {!noPersonal && agg && (
@@ -743,6 +749,8 @@ export default function DraftStatsHub() {
           {pulse.length >= 1 && <CareerPulse points={pulse} />}
 
           {pq && pq.totalRated > 0 && <PickQualityCard pq={pq} />}
+
+          {!noPersonal && <AchievementsPanel achievements={achievements} />}
         </div>
 
         {/* RIGHT column */}
