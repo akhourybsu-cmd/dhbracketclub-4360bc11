@@ -737,21 +737,52 @@ export function computeIdentity(agg: UserAggregate, pq: PickQuality, t: TimingPr
  * are deliberately difficult. Everything is derived from data already in
  * the dataset; nothing is persisted, so scope filters apply naturally. */
 
-export type AchievementTier = 'bronze' | 'silver' | 'gold' | 'mythic';
+export type AchievementTier = 'bronze' | 'silver' | 'gold' | 'platinum' | 'mythic';
+
+export const ACHIEVEMENT_TIER_ORDER: AchievementTier[] = ['bronze', 'silver', 'gold', 'platinum', 'mythic'];
+
+export interface AchievementRung {
+  tier: AchievementTier;
+  /** Metric value required to earn this rung. */
+  target: number;
+  /** Rung-specific display name, e.g. "Steal Artist III". */
+  label: string;
+  earned: boolean;
+}
 
 export interface Achievement {
   key: string;
   icon: string;
   title: string;
   description: string;
+  /** Raw (unclamped) metric value driving the ladder. */
+  value: number;
+  /** Ascending ladder, bronze → mythic. */
+  rungs: AchievementRung[];
+  /** Index of the highest earned rung, -1 when none. */
+  earnedIndex: number;
+  /** Highest earned tier, or the first rung's tier when nothing earned. */
   tier: AchievementTier;
+  /** True once at least the bronze rung is earned. */
   unlocked: boolean;
-  /** Current progress toward `target` (clamped display value). */
+  /** True when every rung is earned. */
+  maxed: boolean;
+  /** Progress within the *current* rung being chased. */
   progress: number;
   target: number;
+  /** Optional formatter for value/target display (durations etc). */
+  unit?: 'count' | 'minutes' | 'score';
   /** Optional human detail, e.g. the pick that earned it. */
   detail?: string;
 }
+
+/** Display helper — formats a metric value for the given unit. */
+export function formatAchievementValue(n: number, unit: Achievement['unit']): string {
+  if (unit === 'minutes') return fmtDuration(n * 60_000);
+  if (unit === 'score') return n.toFixed(1);
+  return String(Math.round(n));
+}
+
 
 export function computeAchievements(userId: string, d: StatsDataset): Achievement[] {
   const agg = computeUserAggregate(userId, d);
@@ -842,49 +873,178 @@ export function computeAchievements(userId: string, d: StatsDataset): Achievemen
     if (seed === 1) giantKills++;
   }
 
+  /* Ladder builder.
+   *
+   * Every achievement is now cumulative: a single metric drives a
+   * bronze → silver → gold → platinum → mythic ladder. Ladders with
+   * fewer than five sensible steps simply declare fewer rungs — the
+   * top rung is always the hardest tier that ladder supports. */
   const A = (
     key: string, icon: string, title: string, description: string,
-    tier: AchievementTier, progress: number, target: number, detail?: string,
-  ) => out.push({
-    key, icon, title, description, tier,
-    progress: Math.min(progress, target), target,
-    unlocked: progress >= target, detail,
+    value: number,
+    steps: Array<[AchievementTier, number, string]>,
+    opts?: { unit?: Achievement['unit']; detail?: string },
+  ) => {
+    const rungs: AchievementRung[] = steps.map(([tier, target, label]) => ({
+      tier, target, label, earned: value >= target,
+    }));
+    let earnedIndex = -1;
+    rungs.forEach((r, i) => { if (r.earned) earnedIndex = i; });
+    const maxed = earnedIndex === rungs.length - 1;
+    const chasing = maxed ? rungs[rungs.length - 1] : rungs[earnedIndex + 1];
+    const floor = earnedIndex >= 0 ? rungs[earnedIndex].target : 0;
+    out.push({
+      key, icon, title, description,
+      value,
+      rungs,
+      earnedIndex,
+      tier: earnedIndex >= 0 ? rungs[earnedIndex].tier : rungs[0].tier,
+      unlocked: earnedIndex >= 0,
+      maxed,
+      progress: maxed ? chasing.target : Math.max(0, Math.min(value, chasing.target) - floor),
+      target: maxed ? chasing.target : chasing.target - floor,
+      unit: opts?.unit,
+      detail: opts?.detail,
+    });
+  };
+
+  const longestStreak = computeLongestStreak(userId, d);
+  const timedMinutes = Math.floor(timing.totalMs / 60000);
+
+  A('first_blood', '🎬', 'Trophy Hunter', 'Win drafts outright', agg.wins, [
+    ['bronze', 1, 'First Blood'],
+    ['silver', 3, 'Contender'],
+    ['gold', 6, 'Front-Runner'],
+    ['platinum', 12, 'Serial Winner'],
+    ['mythic', 20, 'Dominator'],
+  ]);
+  A('iron', '🛡️', 'Iron Drafter', 'Play scored drafts', agg.draftsPlayed, [
+    ['bronze', 5, 'Regular'],
+    ['silver', 15, 'Veteran'],
+    ['gold', 25, 'Iron Drafter'],
+    ['platinum', 50, 'Ironclad'],
+    ['mythic', 100, 'Eternal'],
+  ]);
+  A('scholar', '📚', 'Well Read', 'Accumulate rated picks', pq.totalRated, [
+    ['bronze', 25, 'Student'],
+    ['silver', 60, 'Scholar'],
+    ['gold', 100, 'Curator'],
+    ['platinum', 250, 'Archivist'],
+    ['mythic', 500, 'Loremaster'],
+  ]);
+  A('century', '💯', 'Point Bank', 'Bank lifetime season points', Math.floor(agg.totalSeasonPoints), [
+    ['bronze', 25, 'Scorer'],
+    ['silver', 50, 'Half Century'],
+    ['gold', 100, 'Century Club'],
+    ['platinum', 250, 'Double Century'],
+    ['mythic', 500, 'Point God'],
+  ]);
+  A('hot_hand', '🔥', 'Hot Hand', 'Longest run of picks rated 7.5+', longestStreak, [
+    ['bronze', 3, 'Warm'],
+    ['silver', 6, 'Heating Up'],
+    ['gold', 10, 'Hot Hand'],
+    ['platinum', 15, 'On Fire'],
+    ['mythic', 20, 'Unconscious'],
+  ]);
+  A('steal_artist', '🕵️', 'Steal Artist', 'Late-round picks rated 8.0+', lateBombs, [
+    ['bronze', 3, 'Bargain Hunter'],
+    ['silver', 8, 'Value Merchant'],
+    ['gold', 15, 'Steal Artist'],
+    ['platinum', 30, 'Grand Larcenist'],
+    ['mythic', 50, 'Ghost of the Board'],
+  ]);
+  A('podium_run', '🥇', 'Podium Run', 'Longest streak of top-three finishes', bestPodStreak, [
+    ['bronze', 2, 'Consistent'],
+    ['silver', 3, 'Reliable'],
+    ['gold', 5, 'Podium Run'],
+    ['platinum', 8, 'Fixture'],
+    ['mythic', 12, 'Immovable'],
+  ]);
+  A('clean_sheets', '🧼', 'No Busts', 'Drafts finished with no pick rated 4.0 or lower', cleanBoards, [
+    ['bronze', 1, 'Tidy'],
+    ['silver', 3, 'Disciplined'],
+    ['gold', 5, 'No Busts'],
+    ['platinum', 10, 'Spotless'],
+    ['mythic', 20, 'Flawless Record'],
+  ]);
+  A('perfect_board', '🧊', 'Perfect Board', 'Drafts where every pick rated 8.0+', perfectBoards, [
+    ['silver', 1, 'Perfect Board'],
+    ['gold', 2, 'Twice Perfect'],
+    ['platinum', 4, 'Machine'],
+    ['mythic', 7, 'Untouchable'],
+  ]);
+  A('immaculate', '💠', 'Immaculate', 'Picks rated a perfect 10.0', perfectTens, [
+    ['gold', 1, 'Immaculate'],
+    ['platinum', 3, 'Immaculate III'],
+    ['mythic', 6, 'Perfectionist'],
+  ], {
+    detail: bestSingle >= 10 ? bestSingleText : bestSingle > 0 ? `Best so far: ${bestSingle.toFixed(1)}` : undefined,
   });
+  A('streak_king', '👑', 'Win Streak', 'Consecutive draft wins', bestWinStreak, [
+    ['silver', 2, 'Back-to-Back'],
+    ['gold', 3, 'Three-Peat'],
+    ['platinum', 4, 'Four-Peat'],
+    ['mythic', 5, 'Untouchable Run'],
+  ]);
+  A('dynasty', '🏛️', 'Dynasty', 'League championships won', agg.championships, [
+    ['gold', 1, 'Champion'],
+    ['platinum', 2, 'Dynasty'],
+    ['mythic', 3, 'Immortal'],
+  ]);
+  A('blowout', '💥', 'Statement Win', 'Biggest winning margin in total score', Math.floor(biggestMargin), [
+    ['bronze', 3, 'Clear Win'],
+    ['silver', 6, 'Comfortable'],
+    ['gold', 10, 'Statement Win'],
+    ['platinum', 15, 'Blowout'],
+    ['mythic', 20, 'Annihilation'],
+  ], {
+    unit: 'score',
+    detail: biggestMargin > 0 ? `Best margin: +${biggestMargin.toFixed(1)}` : undefined,
+  });
+  A('renaissance', '🎭', 'Renaissance', 'Distinct categories won', wonCategories.size, [
+    ['bronze', 2, 'Dabbler'],
+    ['silver', 3, 'Well Rounded'],
+    ['gold', 5, 'Renaissance'],
+    ['platinum', 8, 'Polymath'],
+    ['mythic', 12, 'Omniscient'],
+  ]);
+  A('giant_killer', '🗡️', 'Giant Killer', 'Postseason wins over the #1 seed', giantKills, [
+    ['gold', 1, 'Giant Killer'],
+    ['platinum', 2, 'Kingslayer'],
+    ['mythic', 3, 'Nemesis'],
+  ]);
+  A('marathon', '🕰️', 'The Long Game', 'Cumulative time on the clock', timedMinutes, [
+    ['bronze', 30, 'Deliberate'],
+    ['silver', 90, 'Patient'],
+    ['gold', 180, 'The Long Game'],
+    ['platinum', 420, 'Marathoner'],
+    ['mythic', 900, 'Time Lord'],
+  ], { unit: 'minutes', detail: timing.totalMs ? fmtDuration(timing.totalMs) : undefined });
+  A('quickdraw', '⚡', 'Quickdraw', 'Timed picks made averaging under 45s',
+    timing.sampleCount >= 20 && timing.avgMs < 45_000 ? timing.sampleCount : 0, [
+      ['bronze', 20, 'Quickdraw'],
+      ['silver', 50, 'Snap Judgement'],
+      ['gold', 100, 'Gunslinger'],
+      ['platinum', 200, 'Lightning'],
+    ], {
+      detail: timing.sampleCount >= 20 ? `Avg ${fmtDuration(timing.avgMs)}` : `${timing.sampleCount}/20 timed picks`,
+    });
 
-  A('immaculate', '💠', 'Immaculate', 'Land a pick rated a perfect 10.0', 'mythic', perfectTens, 1,
-    bestSingle >= 10 ? bestSingleText : bestSingle > 0 ? `Best so far: ${bestSingle.toFixed(1)}` : undefined);
-  A('perfect_board', '🧊', 'Perfect Board', 'Finish a draft with every pick rated 8.0+', 'mythic', perfectBoards, 1);
-  A('threepeat', '👑', 'Three-Peat', 'Win three drafts in a row', 'mythic', bestWinStreak, 3);
-  A('dynasty', '🏛️', 'Dynasty', 'Win two league championships', 'mythic', agg.championships, 2);
-  A('blowout', '💥', 'Statement Win', 'Win a draft by 10+ total score', 'gold', Math.floor(biggestMargin), 10,
-    biggestMargin > 0 ? `Best margin: +${biggestMargin.toFixed(1)}` : undefined);
-  A('giant_killer', '🗡️', 'Giant Killer', 'Beat the #1 playoff seed in the postseason', 'gold', giantKills, 1);
-  A('back_to_back', '🔗', 'Back-to-Back', 'Win two drafts in a row', 'gold', bestWinStreak, 2);
-  A('hot_hand', '🔥', 'Hot Hand', 'String together 10 straight picks rated 7.5+', 'gold',
-    computeLongestStreak(userId, d), 10);
-  A('renaissance', '🎭', 'Renaissance', 'Win drafts in five different categories', 'gold', wonCategories.size, 5);
-  A('steal_artist', '🕵️', 'Steal Artist', 'Bank 15 late-round picks rated 8.0+', 'gold', lateBombs, 15);
-  A('podium_run', '🥇', 'Podium Run', 'Finish top three in five consecutive drafts', 'silver', bestPodStreak, 5);
-  A('clean_sheets', '🧼', 'No Busts', 'Complete five drafts without a single pick rated 4.0 or lower', 'silver', cleanBoards, 5);
-  A('century', '💯', 'Century Club', 'Bank 100 lifetime season points', 'silver', agg.totalSeasonPoints, 100);
-  A('quickdraw', '⚡', 'Quickdraw', 'Average under 45 seconds per pick across 20+ picks', 'silver',
-    timing.sampleCount >= 20 && timing.avgMs < 45_000 ? 1 : 0, 1,
-    timing.sampleCount >= 20 ? `Avg ${fmtDuration(timing.avgMs)}` : `${timing.sampleCount}/20 timed picks`);
-  A('marathon', '🕰️', 'The Long Game', 'Spend a cumulative 3 hours on the clock', 'bronze',
-    Math.floor(timing.totalMs / 60000), 180, timing.totalMs ? fmtDuration(timing.totalMs) : undefined);
-  A('iron', '🛡️', 'Iron Drafter', 'Play 25 scored drafts', 'bronze', agg.draftsPlayed, 25);
-  A('scholar', '📚', 'Well Read', 'Accumulate 100 rated picks', 'bronze', pq.totalRated, 100);
-  A('first_blood', '🎬', 'First Blood', 'Win your first draft', 'bronze', agg.wins, 1);
-
-  const tierRank: Record<AchievementTier, number> = { mythic: 0, gold: 1, silver: 2, bronze: 3 };
+  const tierRank: Record<AchievementTier, number> = { mythic: 0, platinum: 1, gold: 2, silver: 3, bronze: 4 };
   return out.sort((a, b) => {
     if (a.unlocked !== b.unlocked) return a.unlocked ? -1 : 1;
-    if (a.unlocked) return tierRank[a.tier] - tierRank[b.tier];
+    if (a.unlocked) {
+      if (a.maxed !== b.maxed) return a.maxed ? -1 : 1;
+      const t = tierRank[a.tier] - tierRank[b.tier];
+      if (t !== 0) return t;
+      return b.earnedIndex - a.earnedIndex;
+    }
     const ap = a.progress / a.target, bp = b.progress / b.target;
     if (ap !== bp) return bp - ap;
     return tierRank[a.tier] - tierRank[b.tier];
   });
 }
+
 
 
 /* ───── Scope filtering ─────
