@@ -126,7 +126,15 @@ export interface UserAggregate {
 }
 
 export function computeChampionshipsByUser(d: StatsDataset): Map<string, number> {
-  // best-of-3 series clinches: 2+ final game wins in same season
+  // Source of truth is `draft_seasons.champion_user_id` (set when a season
+  // is finalised). Falls back to a best-of-3 series clinch (2+ final-game
+  // wins in the same season) for seasons whose champion column was never
+  // written — otherwise a completed playoff bracket would show 0 titles.
+  const championBySeason = new Map<string, string>();
+  for (const s of d.seasons) {
+    if (s.champion_user_id) championBySeason.set(s.id, s.champion_user_id);
+  }
+
   const finalsBySeason = new Map<string, Map<string, number>>();
   for (const m of d.matches) {
     if (m.round !== 'final' || !m.winner_user_id) continue;
@@ -134,11 +142,16 @@ export function computeChampionshipsByUser(d: StatsDataset): Map<string, number>
     seasonMap.set(m.winner_user_id, (seasonMap.get(m.winner_user_id) || 0) + 1);
     finalsBySeason.set(m.season_id, seasonMap);
   }
-  const champCount = new Map<string, number>();
-  for (const [, sm] of finalsBySeason) {
+  for (const [seasonId, sm] of finalsBySeason) {
+    if (championBySeason.has(seasonId)) continue;
     for (const [uid, wins] of sm) {
-      if (wins >= 2) champCount.set(uid, (champCount.get(uid) || 0) + 1);
+      if (wins >= 2) championBySeason.set(seasonId, uid);
     }
+  }
+
+  const champCount = new Map<string, number>();
+  for (const [, uid] of championBySeason) {
+    champCount.set(uid, (champCount.get(uid) || 0) + 1);
   }
   return champCount;
 }
@@ -219,19 +232,32 @@ export interface PickQuality {
   topMvpPicks: number; // picks scoring ≥ 9
 }
 
+const normText = (t: string | null | undefined) =>
+  (t || '').trim().toLowerCase().replace(/\s+/g, ' ');
+
 export function computePickQuality(userId: string, d: StatsDataset): PickQuality {
   const myResults = d.results.filter(r => r.user_id === userId);
   const myPickIdMap = new Map<string, { round: number; draftId: string; pickText: string }>();
+  // Secondary index keyed by `${draft_id}::${normalised pick_text}`. The AI
+  // judge occasionally returns a pick_id it invented rather than the real
+  // row id (~2% of ratings in production), which used to make those picks
+  // vanish from Pick Quality even though they still counted in total_score.
+  const myPickTextMap = new Map<string, { round: number; draftId: string; pickText: string }>();
   for (const p of d.picks) {
     if (p.user_id !== userId) continue;
-    myPickIdMap.set(p.id, { round: p.round, draftId: p.draft_id, pickText: p.pick_text });
+    const meta = { round: p.round, draftId: p.draft_id, pickText: p.pick_text };
+    myPickIdMap.set(p.id, meta);
+    const key = `${p.draft_id}::${normText(p.pick_text)}`;
+    if (!myPickTextMap.has(key)) myPickTextMap.set(key, meta);
   }
 
   const ratings: { score: number; round: number; text: string; draftId: string; totalRounds: number }[] = [];
   const draftRounds = new Map(d.drafts.map(x => [x.id, x.num_rounds]));
   for (const r of myResults) {
     for (const pr of r.pick_ratings || []) {
-      const meta = myPickIdMap.get(pr.pick_id);
+      const meta =
+        myPickIdMap.get(pr.pick_id) ||
+        myPickTextMap.get(`${r.draft_id}::${normText(pr.pick_text)}`);
       if (!meta) continue;
       ratings.push({
         score: Number(pr.score) || 0,
@@ -374,9 +400,10 @@ export function computeLongestStreak(userId: string, d: StatsDataset, threshold 
   for (const r of myResults) {
     const arr = (picksByDraftUser.get(r.draft_id) || []).sort((a, b) => a.pick_number - b.pick_number);
     const scoreById = new Map((r.pick_ratings || []).map(pr => [pr.pick_id, Number(pr.score) || 0]));
+    const scoreByText = new Map((r.pick_ratings || []).map(pr => [normText(pr.pick_text), Number(pr.score) || 0]));
     let cur = 0;
     for (const p of arr) {
-      const s = scoreById.get(p.id);
+      const s = scoreById.get(p.id) ?? scoreByText.get(normText(p.pick_text));
       if (s !== undefined && s >= threshold) {
         cur++;
         if (cur > best) best = cur;

@@ -667,6 +667,11 @@ export default function DraftStatsHub() {
 
   const noPersonal = !agg || agg.draftsPlayed === 0;
 
+  // A scope can be empty even when the full dataset isn't (e.g. a season the
+  // user sat out). Without this, every section short-circuits to null and
+  // the page renders as a bare scope bar with no explanation.
+  const scopeEmpty = scoped.results.length === 0;
+
   return (
     <div className="space-y-3 pb-4">
       {/* Scope chips stay full-width above the dashboard grid so they
@@ -705,6 +710,23 @@ export default function DraftStatsHub() {
             RIGHT — "Comparison + context" (Timing · Leaderboards · Topics · Awards · Seasons)
           Mobile/tablet is a single column with the previous order preserved.
           items-start so columns at different heights align cleanly. */}
+      {scopeEmpty ? (
+        <div className="da-glass p-5 text-center">
+          <BarChart3 className="w-6 h-6 mx-auto mb-2 text-muted-foreground/50" />
+          <p className="text-[12.5px] font-extrabold">No scored drafts in this view</p>
+          <p className="text-[10.5px] text-muted-foreground/65 leading-snug mt-1">
+            {scope === 'misc'
+              ? 'None of your off-season drafts have a generated report yet.'
+              : 'This season has no completed Draft Reports yet — stats appear once a draft is scored.'}
+          </p>
+          <button
+            onClick={() => setScope('all')}
+            className="mt-3 px-3 h-8 rounded-lg text-[11px] font-bold btn-press bg-gold/15 text-gold"
+          >
+            View all-time
+          </button>
+        </div>
+      ) : (
       <div className="lg:grid lg:grid-cols-2 lg:gap-4 lg:items-start space-y-3 lg:space-y-0">
         {/* LEFT column */}
         <div className="space-y-3">
@@ -733,9 +755,12 @@ export default function DraftStatsHub() {
 
           <FunAwards awards={awards} userId={user?.id} />
 
-          <SeasonHistory dataset={dataset} userId={user?.id} />
+          {/* Scope-aware: in a season scope this narrows to that season,
+              in Misc scope it renders nothing (no seasons in the slice). */}
+          <SeasonHistory dataset={scoped} userId={user?.id} />
         </div>
       </div>
+      )}
 
       <button onClick={refresh}
         className="w-full h-9 rounded-lg bg-muted/40 text-[11px] font-bold text-foreground/70 hover:bg-muted/60 btn-press flex items-center justify-center gap-1.5">
