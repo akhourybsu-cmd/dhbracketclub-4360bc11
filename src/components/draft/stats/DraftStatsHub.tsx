@@ -308,16 +308,20 @@ function PickQualityCard({ pq }: { pq: ReturnType<typeof computePickQuality> }) 
         <div>
           <div className="flex items-end gap-0.5 h-16 px-1">
             {pq.histogram.map((c, i) => (
-              <div key={i} className="flex-1 flex flex-col items-center gap-0.5">
+              /* The column must be full-height or the bar's percentage
+                 height resolves against an auto-height parent and
+                 collapses to a sliver — which is what made this chart
+                 look like an empty box. */
+              <div key={i} className="flex-1 h-full flex flex-col justify-end items-center">
                 <div className="w-full rounded-t transition-all"
                   style={{
-                    height: `${maxBucket ? (c / maxBucket) * 100 : 0}%`,
+                    height: `${maxBucket ? Math.max((c / maxBucket) * 100, c > 0 ? 6 : 0) : 0}%`,
                     background: i >= 7 ? 'hsl(var(--gold))' : i >= 5 ? 'hsl(var(--gold) / 0.5)' : 'hsl(var(--muted-foreground) / 0.35)',
-                    minHeight: c > 0 ? '4px' : 0,
                   }} />
               </div>
             ))}
           </div>
+
           <div className="flex justify-between mt-1 px-1">
             <span className="text-[8px] text-muted-foreground/50">0</span>
             <span className="text-[8px] text-muted-foreground/50">5</span>

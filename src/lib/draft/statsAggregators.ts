@@ -317,6 +317,12 @@ export interface TimingProfile {
   sampleCount: number;
 }
 
+/* Drafts run asynchronously over days, so the raw gap between two picks
+ * is mostly "nobody was looking at the app", not deliberation. Counting
+ * those gaps produced nonsense tempo numbers (22h "slowest pick",
+ * 884h "on clock"). Only deltas inside an active session window count. */
+const ACTIVE_PICK_WINDOW_MS = 30 * 60 * 1000;
+
 export function computeTiming(userId: string, d: StatsDataset): TimingProfile {
   // Group picks per draft, sort by pick_number, compute delta vs previous pick (any user) for this user's picks
   const byDraft = new Map<string, StatsPick[]>();
@@ -333,7 +339,7 @@ export function computeTiming(userId: string, d: StatsDataset): TimingProfile {
       if (cur.user_id !== userId) continue;
       if (!prev.picked_at || !cur.picked_at) continue;
       const dt = new Date(cur.picked_at).getTime() - new Date(prev.picked_at).getTime();
-      if (dt > 500 && dt < 24 * 60 * 60 * 1000) deltas.push(dt);
+      if (dt > 500 && dt <= ACTIVE_PICK_WINDOW_MS) deltas.push(dt);
     }
   }
   if (deltas.length === 0) {
@@ -873,7 +879,7 @@ export function computeAchievements(userId: string, d: StatsDataset): Achievemen
   const tierRank: Record<AchievementTier, number> = { mythic: 0, gold: 1, silver: 2, bronze: 3 };
   return out.sort((a, b) => {
     if (a.unlocked !== b.unlocked) return a.unlocked ? -1 : 1;
-    if (a.unlocked) return tierRank[b.tier] - tierRank[a.tier];
+    if (a.unlocked) return tierRank[a.tier] - tierRank[b.tier];
     const ap = a.progress / a.target, bp = b.progress / b.target;
     if (ap !== bp) return bp - ap;
     return tierRank[a.tier] - tierRank[b.tier];
