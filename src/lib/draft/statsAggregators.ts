@@ -737,21 +737,52 @@ export function computeIdentity(agg: UserAggregate, pq: PickQuality, t: TimingPr
  * are deliberately difficult. Everything is derived from data already in
  * the dataset; nothing is persisted, so scope filters apply naturally. */
 
-export type AchievementTier = 'bronze' | 'silver' | 'gold' | 'mythic';
+export type AchievementTier = 'bronze' | 'silver' | 'gold' | 'platinum' | 'mythic';
+
+export const ACHIEVEMENT_TIER_ORDER: AchievementTier[] = ['bronze', 'silver', 'gold', 'platinum', 'mythic'];
+
+export interface AchievementRung {
+  tier: AchievementTier;
+  /** Metric value required to earn this rung. */
+  target: number;
+  /** Rung-specific display name, e.g. "Steal Artist III". */
+  label: string;
+  earned: boolean;
+}
 
 export interface Achievement {
   key: string;
   icon: string;
   title: string;
   description: string;
+  /** Raw (unclamped) metric value driving the ladder. */
+  value: number;
+  /** Ascending ladder, bronze → mythic. */
+  rungs: AchievementRung[];
+  /** Index of the highest earned rung, -1 when none. */
+  earnedIndex: number;
+  /** Highest earned tier, or the first rung's tier when nothing earned. */
   tier: AchievementTier;
+  /** True once at least the bronze rung is earned. */
   unlocked: boolean;
-  /** Current progress toward `target` (clamped display value). */
+  /** True when every rung is earned. */
+  maxed: boolean;
+  /** Progress within the *current* rung being chased. */
   progress: number;
   target: number;
+  /** Optional formatter for value/target display (durations etc). */
+  unit?: 'count' | 'minutes' | 'score';
   /** Optional human detail, e.g. the pick that earned it. */
   detail?: string;
 }
+
+/** Display helper — formats a metric value for the given unit. */
+export function formatAchievementValue(n: number, unit: Achievement['unit']): string {
+  if (unit === 'minutes') return fmtDuration(n * 60_000);
+  if (unit === 'score') return n.toFixed(1);
+  return String(Math.round(n));
+}
+
 
 export function computeAchievements(userId: string, d: StatsDataset): Achievement[] {
   const agg = computeUserAggregate(userId, d);
