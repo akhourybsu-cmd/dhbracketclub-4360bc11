@@ -3,11 +3,11 @@ import { Medal, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Achievement, AchievementTier } from '@/lib/draft/statsAggregators';
 
-const TIER_STYLE: Record<AchievementTier, { color: string; label: string }> = {
-  mythic: { color: 'hsl(280 70% 65%)', label: 'Mythic' },
-  gold: { color: 'hsl(var(--gold))', label: 'Gold' },
-  silver: { color: 'hsl(210 12% 72%)', label: 'Silver' },
-  bronze: { color: 'hsl(28 45% 58%)', label: 'Bronze' },
+const TIER_STYLE: Record<AchievementTier, { color: string; soft: string; label: string }> = {
+  mythic: { color: 'hsl(280 70% 65%)', soft: 'hsl(280 70% 65% / 0.16)', label: 'Mythic' },
+  gold: { color: 'hsl(var(--gold))', soft: 'hsl(var(--gold) / 0.16)', label: 'Gold' },
+  silver: { color: 'hsl(210 12% 72%)', soft: 'hsl(210 12% 72% / 0.16)', label: 'Silver' },
+  bronze: { color: 'hsl(28 45% 58%)', soft: 'hsl(28 45% 58% / 0.16)', label: 'Bronze' },
 };
 
 function Row({ a }: { a: Achievement }) {
@@ -16,7 +16,7 @@ function Row({ a }: { a: Achievement }) {
   return (
     <div
       className={cn('rounded-xl p-2.5 border transition-colors', a.unlocked ? 'bg-background/40' : 'bg-background/20')}
-      style={{ borderColor: a.unlocked ? `${tier.color.replace(')', ' / 0.4)')}` : 'hsl(var(--border) / 0.3)' }}
+      style={{ borderColor: a.unlocked ? tier.soft.replace('0.16', '0.45') : 'hsl(var(--border) / 0.3)' }}
     >
       <div className="flex items-start gap-2.5">
         <span
@@ -35,7 +35,7 @@ function Row({ a }: { a: Achievement }) {
             </p>
             <span
               className="text-[8px] font-bold uppercase tracking-wider px-1 py-px rounded"
-              style={{ background: `${tier.color.replace(')', ' / 0.14)')}`, color: tier.color }}
+              style={{ background: tier.soft, color: tier.color }}
             >
               {tier.label}
             </span>
