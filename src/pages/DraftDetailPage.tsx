@@ -769,10 +769,6 @@ export default function DraftDetailPage() {
     // re-caps itself at 760px so long-form content stays readable.
     <div className="max-w-md mx-auto lg:max-w-none lg:mx-0">
       <Confetti active={showConfetti} />
-      <Link to="/drafts" className="back-link">
-        <ArrowLeft /> Back to Drafts
-      </Link>
-
       {/* Header — playoff drafts get a premium matchup hero */}
       {isPlayoffDraft && playoffMatch ? (
         (() => {
@@ -874,16 +870,16 @@ export default function DraftDetailPage() {
           );
         })()
       ) : (
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mb-4">
           <div
-            className="rounded-2xl p-4 sm:p-5"
+            className="rounded-2xl p-3.5 sm:p-4"
             style={{
               background: 'linear-gradient(160deg, hsl(var(--card)) 0%, hsl(var(--background)) 100%)',
               border: '1px solid hsl(var(--border) / 0.5)',
             }}
           >
             {/* Eyebrow — status + category, small and quiet */}
-            <div className="flex items-center gap-2 flex-wrap mb-2">
+            <div className="flex items-center gap-2 flex-wrap mb-1.5">
               <span
                 className={cn(
                   isSetup && 'da-status-setup',
@@ -925,12 +921,12 @@ export default function DraftDetailPage() {
               </h1>
             )}
 
-            <p className="text-[11px] text-muted-foreground/60 font-medium mt-1.5">
+            <p className="text-[11px] text-muted-foreground/60 font-medium mt-1">
               by {draft.profiles?.display_name} • {draft.num_rounds} rounds
             </p>
 
             {/* Action bar — nestled under the title, separated by a hairline */}
-            <div className="flex items-center gap-1 mt-3 pt-3 border-t border-border/40">
+            <div className="flex items-center gap-1 mt-2.5 pt-2.5 border-t border-border/40">
               <JudgingScopeButton
                 aiContext={(draft as any).ai_context || null}
                 aiContextOverride={(draft as any).ai_context_override || null}
@@ -981,7 +977,7 @@ export default function DraftDetailPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 mt-3">
+          <div className="flex items-center gap-2 mt-2">
             <div className="stat-card py-2 flex-1">
               <Users className="w-3 h-3" style={{ color: 'hsl(var(--gold))' }} />
               <span className="stat-value text-xs">{participants.length}</span>
