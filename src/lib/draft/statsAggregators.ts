@@ -879,7 +879,7 @@ export function computeAchievements(userId: string, d: StatsDataset): Achievemen
   const tierRank: Record<AchievementTier, number> = { mythic: 0, gold: 1, silver: 2, bronze: 3 };
   return out.sort((a, b) => {
     if (a.unlocked !== b.unlocked) return a.unlocked ? -1 : 1;
-    if (a.unlocked) return tierRank[b.tier] - tierRank[a.tier];
+    if (a.unlocked) return tierRank[a.tier] - tierRank[b.tier];
     const ap = a.progress / a.target, bp = b.progress / b.target;
     if (ap !== bp) return bp - ap;
     return tierRank[a.tier] - tierRank[b.tier];
