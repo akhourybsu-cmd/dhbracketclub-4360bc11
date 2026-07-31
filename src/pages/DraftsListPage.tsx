@@ -208,7 +208,7 @@ function NextDraftCard({ entries, totalDrafts }: { entries: any[]; totalDrafts: 
               <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
                 <Bookmark className="w-4 h-4 flex-shrink-0" style={{ color: 'hsl(var(--gold))' }} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-bold truncate">{latestEntry.drafts?.topic || 'Draft'}</p>
+                  <p className="text-[13px] font-bold leading-snug break-words">{latestEntry.drafts?.topic || 'Draft'}</p>
                   <span className={cn('status-pill text-[9px] mt-1 inline-flex',
                     latestEntry.drafts?.status === 'in_progress' ? 'bg-success/12 text-success' : 'bg-muted text-muted-foreground')}>
                     {latestEntry.drafts?.status === 'in_progress' ? 'In Progress' : latestEntry.drafts?.status || 'Unknown'}
@@ -970,7 +970,7 @@ function SeasonDraftHistory({ entries, totalDrafts }: { entries: any[]; totalDra
                     {isComplete ? <span className="text-[10px]">✓</span> : <span className="text-[10px] font-bold text-muted-foreground">#{e.week_number}</span>}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[12px] font-bold truncate">{e.drafts?.topic || 'Draft'}</p>
+                    <p className="text-[12px] font-bold leading-snug break-words">{e.drafts?.topic || 'Draft'}</p>
                     <div className="flex items-center gap-1.5">
                       <span className="text-[9px] text-muted-foreground/50">#{e.week_number} of {totalDrafts}</span>
                       <span className="text-[9px] text-muted-foreground/30">·</span>
@@ -1075,7 +1075,7 @@ function CommissionerPanel({ season, entries, onUpdate }: { season: any; entries
               <div key={d.id} className="flex items-center gap-2 p-2 rounded-lg bg-muted/30">
                 <Bookmark className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'hsl(var(--gold) / 0.5)' }} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-[11px] font-bold truncate">{d.topic}</p>
+                  <p className="text-[11px] font-bold leading-snug break-words">{d.topic}</p>
                   <span className={cn('text-[9px] font-semibold', d.status === 'complete' ? 'text-primary' : d.status === 'in_progress' ? 'text-success' : 'text-muted-foreground')}>{d.status}</span>
                 </div>
                 <button onClick={() => handleAdd(d.id)} disabled={busy === d.id}
@@ -1095,7 +1095,7 @@ function CommissionerPanel({ season, entries, onUpdate }: { season: any; entries
             {regularEntries.map(e => (
               <div key={e.id} className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/20 transition-colors">
                 <span className="text-[10px] font-bold text-muted-foreground w-5 text-center">#{e.week_number}</span>
-                <p className="text-[11px] font-semibold flex-1 truncate">{e.drafts?.topic || 'Draft'}</p>
+                <p className="text-[11px] font-semibold flex-1 leading-snug break-words">{e.drafts?.topic || 'Draft'}</p>
                 <span className={cn('text-[9px] font-semibold', e.drafts?.status === 'complete' ? 'text-primary' : e.drafts?.status === 'in_progress' ? 'text-success' : 'text-muted-foreground')}>
                   {e.drafts?.status || '?'}
                 </span>
@@ -1405,7 +1405,7 @@ export default function DraftsListPage() {
                 </div>
                 <div className="min-w-0">
                   {isPlayoff && <div className="mb-0.5"><PlayoffBadge round={playoffMatch!.round} matchNumber={playoffMatch!.match_number} size="xs" /></div>}
-                  <h3 className="font-extrabold text-[15px] tracking-tight truncate leading-tight">{d.topic}</h3>
+                  <h3 className="font-extrabold text-[15px] tracking-tight leading-tight break-words">{d.topic}</h3>
                   <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                     {isPlayoff ? (
                       <span className="text-[10px] font-bold tracking-wide" style={{ color: 'hsl(45 93% 52%)' }}>{getPlayoffGameLabel(playoffMatch!.round, playoffMatch!.match_number)}</span>
