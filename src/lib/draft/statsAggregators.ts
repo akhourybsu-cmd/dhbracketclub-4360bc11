@@ -25,7 +25,10 @@ export interface StatsResult {
   total_score: number;
   points_awarded: number;
   pick_ratings: StatsPickRating[];
+  /** When the Draft Report was generated — the de-facto completion date. */
+  created_at?: string | null;
 }
+
 
 export interface StatsDraft {
   id: string;
