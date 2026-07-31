@@ -875,37 +875,62 @@ export default function DraftDetailPage() {
         })()
       ) : (
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              {editing ? (
-                <div className="flex items-center gap-2">
-                  <Input
-                    value={editTopic}
-                    onChange={(e) => setEditTopic(e.target.value)}
-                    className="form-input text-lg font-extrabold"
-                    autoFocus
-                  />
-                  <Button size="sm" onClick={handleSaveEdit} disabled={saving} className="shrink-0">
-                    {saving ? '…' : 'Save'}
-                  </Button>
-                  <button onClick={() => { setEditing(false); setEditTopic(draft.topic); }} className="p-1.5 text-muted-foreground hover:text-foreground">
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              ) : (
-                <h1 className="text-[1.4rem] font-extrabold tracking-tight leading-tight">{draft.topic}</h1>
-              )}
-              <p className="text-[11px] text-muted-foreground/60 font-medium mt-1">
-                by {draft.profiles?.display_name} • {draft.num_rounds} rounds
-                {draft.category && (
-                  <span className="ml-1.5 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider"
-                    style={{ background: 'hsl(var(--primary) / 0.1)', color: 'hsl(var(--primary))' }}>
-                    <Sparkles className="w-2.5 h-2.5" />{draft.category}
-                  </span>
+          <div
+            className="rounded-2xl p-4 sm:p-5"
+            style={{
+              background: 'linear-gradient(160deg, hsl(var(--card)) 0%, hsl(var(--background)) 100%)',
+              border: '1px solid hsl(var(--border) / 0.5)',
+            }}
+          >
+            {/* Eyebrow — status + category, small and quiet */}
+            <div className="flex items-center gap-2 flex-wrap mb-2">
+              <span
+                className={cn(
+                  isSetup && 'da-status-setup',
+                  isInProgress && !isDraftComplete && 'da-status-live',
+                  isDraftComplete && 'da-status-complete',
                 )}
-              </p>
+              >
+                {isSetup ? 'Setup' : isInProgress && !isDraftComplete ? 'In Progress' : 'Complete'}
+              </span>
+              {draft.category && (
+                <span
+                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider"
+                  style={{ background: 'hsl(var(--primary) / 0.1)', color: 'hsl(var(--primary))' }}
+                >
+                  <Sparkles className="w-2.5 h-2.5" />{draft.category}
+                </span>
+              )}
             </div>
-            <div className="flex items-center gap-1 flex-shrink-0">
+
+            {/* Title — full width, its own line */}
+            {editing ? (
+              <div className="flex items-center gap-2">
+                <Input
+                  value={editTopic}
+                  onChange={(e) => setEditTopic(e.target.value)}
+                  className="form-input text-lg font-extrabold"
+                  autoFocus
+                />
+                <Button size="sm" onClick={handleSaveEdit} disabled={saving} className="shrink-0">
+                  {saving ? '…' : 'Save'}
+                </Button>
+                <button onClick={() => { setEditing(false); setEditTopic(draft.topic); }} className="p-1.5 text-muted-foreground hover:text-foreground">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <h1 className="text-[1.5rem] sm:text-[1.75rem] font-extrabold tracking-tight leading-[1.15] text-balance">
+                {draft.topic}
+              </h1>
+            )}
+
+            <p className="text-[11px] text-muted-foreground/60 font-medium mt-1.5">
+              by {draft.profiles?.display_name} • {draft.num_rounds} rounds
+            </p>
+
+            {/* Action bar — nestled under the title, separated by a hairline */}
+            <div className="flex items-center gap-1 mt-3 pt-3 border-t border-border/40">
               <JudgingScopeButton
                 aiContext={(draft as any).ai_context || null}
                 aiContextOverride={(draft as any).ai_context_override || null}
@@ -921,20 +946,11 @@ export default function DraftDetailPage() {
                   <RefreshCw className={cn("w-4 h-4", enriching && "animate-spin")} />
                 </button>
               )}
-              <span
-                className={cn(
-                  "flex-shrink-0",
-                  isSetup && 'da-status-setup',
-                  isInProgress && !isDraftComplete && 'da-status-live',
-                  isDraftComplete && 'da-status-complete',
-                )}
-              >
-                {isSetup ? 'Setup' : isInProgress && !isDraftComplete ? 'In Progress' : 'Complete'}
-              </span>
+              <div className="flex-1" />
               {canManage && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button className="p-1.5 rounded-lg text-muted-foreground/60 hover:text-foreground transition-colors">
+                    <button className="p-2 rounded-lg text-muted-foreground/60 hover:text-foreground transition-colors" aria-label="More actions">
                       <MoreVertical className="w-4 h-4" />
                     </button>
                   </DropdownMenuTrigger>
@@ -982,6 +998,7 @@ export default function DraftDetailPage() {
               <span className="stat-label">Round</span>
             </div>
           </div>
+
 
           {seasonEntry ? (
             <div className="flex items-center gap-2 mt-2 px-3 py-2 rounded-lg" style={{ background: 'hsl(var(--gold) / 0.08)', border: '1px solid hsl(var(--gold) / 0.15)' }}>
