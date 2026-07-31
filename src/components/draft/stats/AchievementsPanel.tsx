@@ -22,7 +22,7 @@ function Row({ a }: { a: Achievement }) {
   return (
     <div
       className={cn('rounded-xl p-2.5 border transition-colors', a.unlocked ? 'bg-background/40' : 'bg-background/20')}
-      style={{ borderColor: a.unlocked ? style.color.replace(')', ' / 0.4)').replace('hsl(', 'hsl(') : 'hsl(var(--border) / 0.3)' }}
+      style={{ borderColor: a.unlocked ? style.soft.replace('0.16', '0.45') : 'hsl(var(--border) / 0.3)' }}
     >
       <div className="flex items-start gap-2.5">
         <span
