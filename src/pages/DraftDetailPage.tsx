@@ -64,6 +64,7 @@ import { PlayoffMatchupHero } from '@/components/draft/PlayoffMatchupHero';
 import { getPlayoffRoundShort, getPlayoffRoundName } from '@/lib/playoffStyle';
 import { DraftAiContextCard } from '@/components/draft/DraftAiContextCard';
 import { JudgingScopeButton } from '@/components/draft/JudgingScopeButton';
+import { DraftChannelInviteButton } from '@/components/draft/DraftChannelInviteButton';
 
 interface Participant {
   id: string;
@@ -813,6 +814,13 @@ export default function DraftDetailPage() {
                     aiContextOverride={(draft as any).ai_context_override || null}
                   />
                   <ShareButton contentType="draft" contentId={draftId!} title={draft.topic} />
+                  <DraftChannelInviteButton
+                    draftId={draftId!}
+                    topic={draft.topic}
+                    rounds={draft.num_rounds}
+                    participantCount={participants.length}
+                    className="h-8 w-8 rounded-md text-muted-foreground/60 hover:text-primary"
+                  />
                 </>
               }
               refreshSlot={
@@ -932,6 +940,13 @@ export default function DraftDetailPage() {
                 aiContextOverride={(draft as any).ai_context_override || null}
               />
               <ShareButton contentType="draft" contentId={draftId!} title={draft.topic} />
+              <DraftChannelInviteButton
+                draftId={draftId!}
+                topic={draft.topic}
+                rounds={draft.num_rounds}
+                participantCount={participants.length}
+                className="h-8 w-8 text-muted-foreground/60 hover:text-primary"
+              />
               {canManage && picks.length > 0 && (
                 <button
                   onClick={handleReEnrich}
