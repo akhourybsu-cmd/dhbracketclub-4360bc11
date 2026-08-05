@@ -33,3 +33,7 @@ export function getDraftIdFromUrl(url: string): string | null {
     return null;
   }
 }
+
+export function isDraftInviteMessage(content: string): boolean {
+  return content.startsWith(DRAFT_INVITE_MARKER) && /https?:\/\/[^\s]+\/drafts\/[0-9a-f-]{36}/i.test(content);
+}

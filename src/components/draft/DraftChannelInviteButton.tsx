@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Check, Hash, Loader2, Megaphone, Send } from 'lucide-react';
+import { Check, Hash, Loader2, Megaphone, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -101,10 +101,10 @@ export function DraftChannelInviteButton({
         size="icon"
         onClick={() => setOpen(true)}
         className={className}
-        title="Post draft invite to chat"
-        aria-label="Post draft invite to chat"
+        title="Share draft to chat"
+        aria-label="Share draft to chat"
       >
-        <Send className="h-4 w-4" />
+        <Share2 className="h-4 w-4" />
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>

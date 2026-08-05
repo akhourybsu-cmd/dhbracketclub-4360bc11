@@ -22,7 +22,6 @@ import { cn } from '@/lib/utils';
 import { useDraftUpdates } from '@/hooks/useRealtimeSubscription';
 import { useItemEnrichments, useEnrichDraftPicks } from '@/hooks/useItemEnrichments';
 import EnrichedItemCard, { EnrichedItemSkeleton } from '@/components/EnrichedItemCard';
-import ShareButton from '@/components/ShareButton';
 import ImagePickerDialog from '@/components/draft/ImagePickerDialog';
 import { useDraftResults } from '@/hooks/useDraftResults';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -813,7 +812,6 @@ export default function DraftDetailPage() {
                     aiContext={(draft as any).ai_context || null}
                     aiContextOverride={(draft as any).ai_context_override || null}
                   />
-                  <ShareButton contentType="draft" contentId={draftId!} title={draft.topic} />
                   <DraftChannelInviteButton
                     draftId={draftId!}
                     topic={draft.topic}
@@ -939,7 +937,6 @@ export default function DraftDetailPage() {
                 aiContext={(draft as any).ai_context || null}
                 aiContextOverride={(draft as any).ai_context_override || null}
               />
-              <ShareButton contentType="draft" contentId={draftId!} title={draft.topic} />
               <DraftChannelInviteButton
                 draftId={draftId!}
                 topic={draft.topic}
