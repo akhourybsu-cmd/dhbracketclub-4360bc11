@@ -42,10 +42,11 @@ export function DraftChannelInviteButton({
 
   const chatAvailable = isInstalled('chat');
   const visibleChannels = useMemo(() => channels.filter(channel => {
+    if (channel.club_id !== club?.id || channel.archived_at) return false;
     if (channel.channel_type === 'admin_only' && !isClubAdmin) return false;
     if (channel.post_permission === 'admins' && !isClubAdmin) return false;
     return true;
-  }), [channels, isClubAdmin]);
+  }), [channels, club?.id, isClubAdmin]);
 
   useEffect(() => {
     if (!open || !club?.id) return;
@@ -55,6 +56,7 @@ export function DraftChannelInviteButton({
       .from('channels')
       .select('*')
       .eq('club_id', club.id)
+      .is('archived_at', null)
       .order('position')
       .then(({ data, error }) => {
         if (cancelled) return;

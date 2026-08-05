@@ -4,6 +4,7 @@ export type NotificationMode = 'all' | 'mentions' | 'muted';
 
 export type Channel = {
   id: string;
+  club_id?: string;
   name: string;
   description: string | null;
   icon: string | null;
@@ -12,6 +13,7 @@ export type Channel = {
   is_default: boolean;
   channel_type: ChannelType;
   post_permission: PostPermission;
+  archived_at?: string | null;
 };
 
 export type Category = { id: string; name: string; position: number };
