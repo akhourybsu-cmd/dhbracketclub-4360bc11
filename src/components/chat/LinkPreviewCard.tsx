@@ -4,6 +4,8 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import type { ParsedLink } from '@/lib/linkParser';
 import { isSafeUrl } from '@/lib/linkParser';
+import { getDraftIdFromUrl } from '@/lib/draftInvite';
+import { DraftInviteCard } from './DraftInviteCard';
 
 interface LinkPreviewData {
   title?: string;
@@ -19,6 +21,9 @@ interface LinkPreviewCardProps {
 
 function LinkPreviewCardInner({ link, messageId }: LinkPreviewCardProps) {
   if (!isSafeUrl(link.url)) return null;
+
+  const draftId = getDraftIdFromUrl(link.url);
+  if (draftId) return <DraftInviteCard draftId={draftId} />;
 
   switch (link.contentType) {
     case 'image':
