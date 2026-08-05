@@ -26,6 +26,7 @@ import ImagePickerDialog from '@/components/draft/ImagePickerDialog';
 import { useDraftResults } from '@/hooks/useDraftResults';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getDerivedDraftTurn } from '@/lib/draftTurn';
+import { getSeasonJoinEligibility } from '@/lib/draft/seasonEligibility';
 import { Confetti } from '@/components/Confetti';
 import { OnTheClockTimer } from '@/components/draft/OnTheClockTimer';
 import { PickAnnouncement } from '@/components/draft/PickAnnouncement';
@@ -116,6 +117,8 @@ export default function DraftDetailPage() {
   const pickInputRef = useRef<HTMLInputElement>(null);
   const [announcement, setAnnouncement] = useState<{ displayName: string; pickText: string; round: number; pickNumber: number } | null>(null);
   const [seasonActionBusy, setSeasonActionBusy] = useState(false);
+  const [seasonRosterLocked, setSeasonRosterLocked] = useState(false);
+  const [seasonJoinEligible, setSeasonJoinEligible] = useState(true);
 
   const { season } = useCurrentSeason();
   const { entries: seasonEntries, refetch: refetchSeasonEntries } = useSeasonEntries(season?.id);
@@ -157,10 +160,11 @@ export default function DraftDetailPage() {
   const fetchData = useCallback(async () => {
     if (!draftId || !user) return;
 
-    const [{ data: draftData }, { data: partData }, { data: pickData }] = await Promise.all([
+    const [{ data: draftData }, { data: partData }, { data: pickData }, eligibility] = await Promise.all([
       supabase.from('drafts').select('*, competitions(title, status), profiles:created_by(display_name)').eq('id', draftId).single(),
       supabase.from('draft_participants').select('*, profiles:user_id(display_name)').eq('draft_id', draftId).order('pick_order'),
       supabase.from('draft_picks').select('*, profiles:user_id(display_name)').eq('draft_id', draftId).order('pick_number'),
+      getSeasonJoinEligibility(draftId, user.id).catch(() => ({ isSeasonDraft: false, rosterLocked: false, eligible: true })),
     ]);
 
     if (draftData) {
@@ -169,6 +173,8 @@ export default function DraftDetailPage() {
     }
     if (partData) setParticipants(partData);
     if (pickData) setPicks(pickData);
+    setSeasonRosterLocked(eligibility.rosterLocked);
+    setSeasonJoinEligible(eligibility.eligible);
     setLoading(false);
   }, [draftId, user]);
 
@@ -1103,7 +1109,7 @@ export default function DraftDetailPage() {
             <p className="text-[10px] text-muted-foreground/60 mt-3">Share this draft link to invite others. Order will be randomized when the draft starts.</p>
           </div>
 
-          {!isParticipant && user && !isPlayoffDraft && (
+          {!isParticipant && user && !isPlayoffDraft && seasonJoinEligible && (
             <Button
               onClick={async () => {
                 try {
@@ -1126,6 +1132,13 @@ export default function DraftDetailPage() {
               <Users className="w-4 h-4" />
               Join Draft
             </Button>
+          )}
+
+          {!isParticipant && user && seasonRosterLocked && !seasonJoinEligible && (
+            <div className="mb-3 rounded-xl border border-border/60 bg-muted/30 px-4 py-3 text-center">
+              <p className="text-[12px] font-bold text-foreground">Season roster locked</p>
+              <p className="mt-1 text-[10px] text-muted-foreground">Only players already participating in this season can join this draft.</p>
+            </div>
           )}
 
           {canManage && (

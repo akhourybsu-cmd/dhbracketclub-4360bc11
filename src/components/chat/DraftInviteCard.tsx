@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
+import { getSeasonJoinEligibility } from '@/lib/draft/seasonEligibility';
 
 interface DraftInviteCardProps {
   draftId: string;
@@ -25,21 +26,26 @@ export function DraftInviteCard({ draftId }: DraftInviteCardProps) {
   const [participantCount, setParticipantCount] = useState(0);
   const [isParticipant, setIsParticipant] = useState(false);
   const [isPlayoff, setIsPlayoff] = useState(false);
+  const [seasonRosterLocked, setSeasonRosterLocked] = useState(false);
+  const [seasonEligible, setSeasonEligible] = useState(true);
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
 
   const load = useCallback(async () => {
     if (!user) return;
-    const [draftRes, participantsRes, playoffRes] = await Promise.all([
+    const [draftRes, participantsRes, playoffRes, eligibility] = await Promise.all([
       supabase.from('drafts').select('topic, num_rounds, status, created_by, profiles:created_by(display_name)').eq('id', draftId).maybeSingle(),
       supabase.from('draft_participants').select('user_id, pick_order').eq('draft_id', draftId).order('pick_order', { ascending: false }),
       (supabase as any).from('draft_season_entries').select('is_playoff').eq('draft_id', draftId).eq('is_playoff', true).maybeSingle(),
+      getSeasonJoinEligibility(draftId, user.id).catch(() => ({ isSeasonDraft: false, rosterLocked: false, eligible: true })),
     ]);
     setDraft((draftRes.data as DraftInviteDetails | null) ?? null);
     const participants = participantsRes.data ?? [];
     setParticipantCount(participants.length);
     setIsParticipant(participants.some(participant => participant.user_id === user.id));
     setIsPlayoff(Boolean(playoffRes.data));
+    setSeasonRosterLocked(eligibility.rosterLocked);
+    setSeasonEligible(eligibility.eligible);
     setLoading(false);
   }, [draftId, user]);
 
@@ -85,7 +91,7 @@ export function DraftInviteCard({ draftId }: DraftInviteCardProps) {
   }
   if (!draft) return null;
 
-  const canJoin = draft.status === 'setup' && !isPlayoff && !isParticipant;
+  const canJoin = draft.status === 'setup' && !isPlayoff && !isParticipant && seasonEligible;
 
   return (
     <div className="mt-2 max-w-[320px] overflow-hidden rounded-lg border border-primary/30 bg-background text-foreground shadow-md">
@@ -106,6 +112,10 @@ export function DraftInviteCard({ draftId }: DraftInviteCardProps) {
             {joining ? <Loader2 className="h-4 w-4 animate-spin" /> : <Users className="h-4 w-4" />}
             Join draft
           </Button>
+        ) : seasonRosterLocked && !seasonEligible && !isParticipant ? (
+          <div className="rounded-md border border-border/60 bg-secondary/50 px-3 py-2.5 text-center text-xs font-semibold text-muted-foreground">
+            Season roster locked
+          </div>
         ) : (
           <Button type="button" variant="secondary" onClick={() => navigate(`/drafts/${draftId}`)} className="w-full">
             {isParticipant && <Check className="h-4 w-4 text-primary" />}
