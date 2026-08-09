@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import { JoinClubWithPasswordCard } from '@/components/onboarding/JoinClubWithPasswordCard';
+
 import {
   ScrollText, Clock, Check, X, LogOut, ArrowRight, AlertCircle,
   Sparkles, Pencil, MessageCircle,
