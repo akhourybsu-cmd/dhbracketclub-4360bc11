@@ -348,6 +348,15 @@ export default function RequestClubPage() {
             </form>
           </>
         )}
+        {state !== 'approved' && (
+          <JoinClubWithPasswordCard
+            onJoined={async () => {
+              await refresh();
+              navigate('/dashboard', { replace: true });
+            }}
+          />
+        )}
+
 
         {state === 'no_request' && (
           <form onSubmit={handleSubmitNew} className="glass-card p-5 space-y-4">
