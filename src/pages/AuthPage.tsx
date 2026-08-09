@@ -95,8 +95,8 @@ export default function AuthPage() {
       });
       if (error) throw error;
       toast.success("Account created! Check your email to verify, then we'll set up your club.");
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
       setLoading(false);
     }
@@ -274,8 +274,8 @@ export default function AuthPage() {
                   if (result.redirected) return;
                   const redirect = getAndClearIntendedDestination();
                   navigate(redirect || '/dashboard');
-                } catch (err: any) {
-                  toast.error(err?.message || 'Google sign-in failed');
+                } catch (err) {
+                  toast.error(err instanceof Error ? err.message : 'Google sign-in failed');
                   setLoading(false);
                 }
               }}
@@ -300,8 +300,8 @@ export default function AuthPage() {
                   if (result.redirected) return;
                   const redirect = getAndClearIntendedDestination();
                   navigate(redirect || '/dashboard');
-                } catch (err: any) {
-                  toast.error(err?.message || 'Apple sign-in failed');
+                } catch (err) {
+                  toast.error(err instanceof Error ? err.message : 'Apple sign-in failed');
                   setLoading(false);
                 }
               }}
@@ -332,8 +332,8 @@ export default function AuthPage() {
                   });
                   if (error) throw error;
                   toast.success('Sign-in link sent! Check your email.');
-                } catch (err: any) {
-                  toast.error(err?.message || 'Could not send sign-in link');
+                } catch (err) {
+                  toast.error(err instanceof Error ? err.message : 'Could not send sign-in link');
                 } finally {
                   setLoading(false);
                 }

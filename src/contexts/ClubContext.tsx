@@ -65,18 +65,18 @@ export function ClubProvider({ children }: { children: ReactNode }) {
 
 
       const [{ data: m }, { data: ownerRow }, { data: adminRow }] = await Promise.all([
-        (supabase as any)
+        supabase
           .from('club_members')
           .select('club_id, role, clubs:club_id(id, name, slug, accent_color, logo_url, owner_admin_id, status, password_visible)')
           .eq('user_id', user.id)
           .maybeSingle(),
-        (supabase as any)
+        supabase
           .from('user_roles')
           .select('role')
           .eq('user_id', user.id)
           .eq('role', 'owner')
           .maybeSingle(),
-        (supabase as any)
+        supabase
           .from('user_roles')
           .select('role')
           .eq('user_id', user.id)

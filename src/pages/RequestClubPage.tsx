@@ -89,7 +89,7 @@ export default function RequestClubPage() {
 
   const callUpsert = async (next: { name: string; reason: string; note: string }) => {
     setSubmitting(true);
-    const { error } = await (supabase as any).rpc('upsert_club_request', {
+    const { error } = await supabase.rpc('upsert_club_request', {
       _proposed_name: next.name,
       _reason: next.reason,
       _user_note: next.note,
@@ -130,7 +130,7 @@ export default function RequestClubPage() {
   const handleCancel = async () => {
     if (!confirm('Cancel this request? You can submit a new one anytime.')) return;
     setSubmitting(true);
-    const { error } = await (supabase as any).rpc('cancel_club_request');
+    const { error } = await supabase.rpc('cancel_club_request');
     setSubmitting(false);
     if (error) { toast.error(error.message); return; }
     toast.success('Request cancelled');
