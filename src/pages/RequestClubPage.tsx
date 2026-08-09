@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import { JoinClubWithPasswordCard } from '@/components/onboarding/JoinClubWithPasswordCard';
+
 import {
   ScrollText, Clock, Check, X, LogOut, ArrowRight, AlertCircle,
   Sparkles, Pencil, MessageCircle,
@@ -87,7 +89,7 @@ export default function RequestClubPage() {
 
   const callUpsert = async (next: { name: string; reason: string; note: string }) => {
     setSubmitting(true);
-    const { error } = await (supabase as any).rpc('upsert_club_request', {
+    const { error } = await supabase.rpc('upsert_club_request', {
       _proposed_name: next.name,
       _reason: next.reason,
       _user_note: next.note,
@@ -128,7 +130,7 @@ export default function RequestClubPage() {
   const handleCancel = async () => {
     if (!confirm('Cancel this request? You can submit a new one anytime.')) return;
     setSubmitting(true);
-    const { error } = await (supabase as any).rpc('cancel_club_request');
+    const { error } = await supabase.rpc('cancel_club_request');
     setSubmitting(false);
     if (error) { toast.error(error.message); return; }
     toast.success('Request cancelled');
@@ -348,6 +350,15 @@ export default function RequestClubPage() {
             </form>
           </>
         )}
+        {state !== 'approved' && (
+          <JoinClubWithPasswordCard
+            onJoined={async () => {
+              await refresh();
+              navigate('/dashboard', { replace: true });
+            }}
+          />
+        )}
+
 
         {state === 'no_request' && (
           <form onSubmit={handleSubmitNew} className="glass-card p-5 space-y-4">

@@ -58,26 +58,29 @@ export default function AuthPage() {
           },
         });
         if (error) throw error;
-        const newUserId = signUpData.user?.id;
-        if (!newUserId) {
-          toast.success('Check your email to verify, then sign in to finish joining.');
-          sessionStorage.setItem('pending_club_password', clubPassword.trim());
+
+        // Only enroll when signup returned a real session. The club password is
+        // never persisted to storage — if email confirmation is required, the
+        // user re-enters it on the onboarding screen after signing in.
+        if (signUpData.session) {
+          const { error: joinErr } = await supabase.rpc('join_club_with_password', {
+            _password: clubPassword.trim(),
+          });
+          setClubPassword('');
+          if (joinErr) {
+            toast.error(joinErr.message || 'Could not join that club. Check the password with your admin.');
+          } else {
+            toast.success("You're in!");
+            navigate('/dashboard');
+          }
           return;
         }
-        // Try to enroll now (works when auto-confirm is on / session exists)
-        const { error: joinErr } = await (supabase as any).rpc('join_club_with_password', {
-          _password: clubPassword.trim(),
-          _user_id: newUserId,
-        });
-        if (joinErr) {
-          // If session isn't ready, stash for first sign-in
-          sessionStorage.setItem('pending_club_password', clubPassword.trim());
-          toast.success('Account created. Verify your email and sign in to join your club.');
-        } else {
-          toast.success("You're in. Check your email to verify.");
-        }
+
+        setClubPassword('');
+        toast.success('Account created. Verify your email, sign in, then enter your club password to finish joining.');
         return;
       }
+
 
       // mode === 'request' — pure sign-up. The unified onboarding shell at
       // /club/request collects the club name + reason after sign-in, so there
@@ -92,8 +95,8 @@ export default function AuthPage() {
       });
       if (error) throw error;
       toast.success("Account created! Check your email to verify, then we'll set up your club.");
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
       setLoading(false);
     }
@@ -271,8 +274,8 @@ export default function AuthPage() {
                   if (result.redirected) return;
                   const redirect = getAndClearIntendedDestination();
                   navigate(redirect || '/dashboard');
-                } catch (err: any) {
-                  toast.error(err?.message || 'Google sign-in failed');
+                } catch (err) {
+                  toast.error(err instanceof Error ? err.message : 'Google sign-in failed');
                   setLoading(false);
                 }
               }}
@@ -297,8 +300,8 @@ export default function AuthPage() {
                   if (result.redirected) return;
                   const redirect = getAndClearIntendedDestination();
                   navigate(redirect || '/dashboard');
-                } catch (err: any) {
-                  toast.error(err?.message || 'Apple sign-in failed');
+                } catch (err) {
+                  toast.error(err instanceof Error ? err.message : 'Apple sign-in failed');
                   setLoading(false);
                 }
               }}
@@ -329,8 +332,8 @@ export default function AuthPage() {
                   });
                   if (error) throw error;
                   toast.success('Sign-in link sent! Check your email.');
-                } catch (err: any) {
-                  toast.error(err?.message || 'Could not send sign-in link');
+                } catch (err) {
+                  toast.error(err instanceof Error ? err.message : 'Could not send sign-in link');
                 } finally {
                   setLoading(false);
                 }

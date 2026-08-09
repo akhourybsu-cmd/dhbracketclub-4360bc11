@@ -8225,10 +8225,9 @@ export type Database = {
         Args: { _pool_id: string; _user_id: string }
         Returns: boolean
       }
-      join_club_with_password: {
-        Args: { _password: string; _user_id: string }
-        Returns: string
-      }
+      join_club_with_password:
+        | { Args: { _password: string }; Returns: string }
+        | { Args: { _password: string; _user_id: string }; Returns: string }
       log_admin_action: {
         Args: {
           _action: string
