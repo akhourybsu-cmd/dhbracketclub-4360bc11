@@ -248,7 +248,8 @@ For each pick's explanation, focus only on the pick itself — its category fit,
 Today's real-world date is ${new Date().toISOString().split('T')[0]}. Treat every pick as evaluated on that date.
 - Any "— Verified (...)" annotation next to a pick comes from an external metadata source (TMDB, IGDB, iTunes, Wikipedia, etc.) and is GROUND TRUTH. Trust it over your own training-data memory.
 - If a pick is verified (or is a well-known real entity), DO NOT call it "unreleased", "upcoming", "rumored", "hypothetical", "not yet out", "future product", or "doesn't exist yet" — even if your prior knowledge says otherwise. Your training data is older than today.
-- When uncertain whether something has launched/aired/published, assume it HAS by today's date and score it on merit. Never penalize a pick for being "too new" or "not yet released" unless the topic itself is historical and the pick is genuinely from after the topic's timeframe.
+- When uncertain whether something has launched/aired/published, use the google_search tool to verify its current status before scoring. If search is unavailable or still unclear, assume the pick HAS launched/released by today's date and score it on merit.
+- Never penalize a pick for being "too new" or "not yet released" unless the topic itself is historical and the pick is genuinely from after the topic's timeframe.
 - Examples of failure modes to avoid: dinging a recent game console, film, album, phone, athlete trade, or political event because it post-dates your training cutoff.
 
 Here are all participants and their picks:
