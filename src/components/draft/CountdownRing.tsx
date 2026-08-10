@@ -43,15 +43,34 @@ export function CountdownRing({
   const seconds = Math.max(0, Math.floor(elapsed / 1000));
   const min = Math.floor(seconds / 60);
   const sec = seconds % 60;
+  const hours = Math.floor(min / 60);
+  const days = Math.floor(hours / 24);
+
+  // Async drafts can sit "on the clock" for hours or days. A raw mm:ss
+  // readout turns into things like `1843:35`, which overflows the ring
+  // and reads as noise — so anything past an hour is humanized.
+  const readout =
+    days >= 1
+      ? `${days}d ${hours % 24}h`
+      : hours >= 1
+        ? `${hours}h ${min % 60}m`
+        : `${min}:${sec.toString().padStart(2, '0')}`;
+  // Shrink the glyphs slightly for the wider humanized strings so they
+  // always stay inside the ring.
+  const readoutFontSize = (compact ? 13 : 16) - (readout.length > 5 ? 2 : 0);
 
   const remaining = softLimitSec - seconds;
-  const isUrgent = remaining <= 15;
   const isOvertime = remaining < 0;
+  // Only agitate while the wait is still "live". A draft that has been
+  // stalled for hours shouldn't pulse red forever.
+  const isUrgent = remaining <= 15 && min < 10;
+  const isStale = isOvertime && min >= 10;
   const ringColor = isUrgent || isOvertime ? urgentHsl : calmHsl;
 
   // Wrap progress so overtime keeps sweeping around the ring.
   const rawPct = (seconds / softLimitSec) * 100;
   const pct = Math.min(100, rawPct % 100 || (rawPct >= 100 ? 100 : rawPct));
+
 
   const stroke = 4;
   const r = (size - stroke) / 2;
