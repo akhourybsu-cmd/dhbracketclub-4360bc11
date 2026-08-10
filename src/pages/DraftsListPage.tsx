@@ -1477,40 +1477,43 @@ export default function DraftsListPage() {
             painted dark-on-dark and effectively invisible. The fix:
             force the active state to a solid gold fill so the dark
             text reads as black-on-gold (the intended look). */}
-        <div className="flex items-center justify-between mb-4 gap-3">
-          <TabsList className="flex gap-1 p-1 rounded-xl h-auto" style={{ background: 'hsl(45 95% 55% / 0.08)', border: '1px solid hsl(45 95% 55% / 0.18)' }}>
-            <TabsTrigger value="drafts"
-              className="text-[10px] font-bold px-3 py-1.5 rounded-lg data-[state=active]:bg-[hsl(45_95%_55%)] data-[state=active]:text-[hsl(160_30%_6%)] data-[state=active]:shadow-[0_0_12px_hsl(45_95%_55%/0.45)] data-[state=inactive]:text-white/60"
-              style={{ '--tw-ring-color': 'transparent' } as any}>
-              Drafts
-            </TabsTrigger>
-            <TabsTrigger value="season"
-              className="text-[10px] font-bold px-3 py-1.5 rounded-lg data-[state=active]:bg-[hsl(45_95%_55%)] data-[state=active]:text-[hsl(160_30%_6%)] data-[state=active]:shadow-[0_0_12px_hsl(45_95%_55%/0.45)] data-[state=inactive]:text-white/60">
-              Season
-            </TabsTrigger>
-            <TabsTrigger value="stats"
-              className="text-[10px] font-bold px-3 py-1.5 rounded-lg data-[state=active]:bg-[hsl(45_95%_55%)] data-[state=active]:text-[hsl(160_30%_6%)] data-[state=active]:shadow-[0_0_12px_hsl(45_95%_55%/0.45)] data-[state=inactive]:text-white/60">
-              Stats
-            </TabsTrigger>
-            <TabsTrigger value="misc"
-              className="text-[10px] font-bold px-3 py-1.5 rounded-lg data-[state=active]:bg-[hsl(45_95%_55%)] data-[state=active]:text-[hsl(160_30%_6%)] data-[state=active]:shadow-[0_0_12px_hsl(45_95%_55%/0.45)] data-[state=inactive]:text-white/60">
-              Misc
-            </TabsTrigger>
-            {canSeeCommissioner && (
-              <TabsTrigger value="commissioner"
-                className="text-[10px] font-bold px-3 py-1.5 rounded-lg data-[state=active]:bg-[hsl(45_95%_55%)] data-[state=active]:text-[hsl(160_30%_6%)] data-[state=active]:shadow-[0_0_12px_hsl(45_95%_55%/0.45)] data-[state=inactive]:text-white/60">
-                Commissioner
+        <div className="flex items-center mb-4 gap-2">
+          <div className="flex-1 min-w-0 overflow-x-auto no-scrollbar">
+            <TabsList className="inline-flex w-max gap-1 p-1 rounded-xl h-auto" style={{ background: 'hsl(45 95% 55% / 0.08)', border: '1px solid hsl(45 95% 55% / 0.18)' }}>
+              <TabsTrigger value="drafts"
+                className="flex-shrink-0 text-[10px] font-bold px-3 py-1.5 rounded-lg data-[state=active]:bg-[hsl(45_95%_55%)] data-[state=active]:text-[hsl(160_30%_6%)] data-[state=active]:shadow-[0_0_12px_hsl(45_95%_55%/0.45)] data-[state=inactive]:text-white/60"
+                style={{ '--tw-ring-color': 'transparent' } as any}>
+                Drafts
               </TabsTrigger>
-            )}
-          </TabsList>
+              <TabsTrigger value="season"
+                className="flex-shrink-0 text-[10px] font-bold px-3 py-1.5 rounded-lg data-[state=active]:bg-[hsl(45_95%_55%)] data-[state=active]:text-[hsl(160_30%_6%)] data-[state=active]:shadow-[0_0_12px_hsl(45_95%_55%/0.45)] data-[state=inactive]:text-white/60">
+                Season
+              </TabsTrigger>
+              <TabsTrigger value="stats"
+                className="flex-shrink-0 text-[10px] font-bold px-3 py-1.5 rounded-lg data-[state=active]:bg-[hsl(45_95%_55%)] data-[state=active]:text-[hsl(160_30%_6%)] data-[state=active]:shadow-[0_0_12px_hsl(45_95%_55%/0.45)] data-[state=inactive]:text-white/60">
+                Stats
+              </TabsTrigger>
+              <TabsTrigger value="misc"
+                className="flex-shrink-0 text-[10px] font-bold px-3 py-1.5 rounded-lg data-[state=active]:bg-[hsl(45_95%_55%)] data-[state=active]:text-[hsl(160_30%_6%)] data-[state=active]:shadow-[0_0_12px_hsl(45_95%_55%/0.45)] data-[state=inactive]:text-white/60">
+                Misc
+              </TabsTrigger>
+              {canSeeCommissioner && (
+                <TabsTrigger value="commissioner"
+                  className="flex-shrink-0 text-[10px] font-bold px-3 py-1.5 rounded-lg data-[state=active]:bg-[hsl(45_95%_55%)] data-[state=active]:text-[hsl(160_30%_6%)] data-[state=active]:shadow-[0_0_12px_hsl(45_95%_55%/0.45)] data-[state=inactive]:text-white/60">
+                  Commissioner
+                </TabsTrigger>
+              )}
+            </TabsList>
+          </div>
 
-          {/* Create button always visible */}
-          <Link to="/drafts/create">
-            <Button size="sm" className="gap-1.5 rounded-lg font-bold btn-press da-cta flex-shrink-0">
-              <Plus className="w-4 h-4" /> Create
+          {/* Create button always visible — never squeezed off-screen by the tab row */}
+          <Link to="/drafts/create" className="flex-shrink-0">
+            <Button size="sm" aria-label="Create draft" className="gap-1.5 rounded-lg font-bold btn-press da-cta">
+              <Plus className="w-4 h-4" /> <span className="hidden xs:inline">Create</span>
             </Button>
           </Link>
         </div>
+
 
         {/* ── DRAFTS TAB ── */}
         <TabsContent value="drafts" className="mt-0">
