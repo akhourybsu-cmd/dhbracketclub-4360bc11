@@ -1348,6 +1348,30 @@ export default function DraftsListPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [drafts]);
 
+  // ── Desktop scannability: search + status filters ────────────────
+  // Applies to both the season accordions and the Misc tab so the two
+  // lists never disagree about what's visible.
+  const [draftQuery, setDraftQuery] = useState('');
+  const [draftFilter, setDraftFilter] = useState<'all' | 'mine' | 'live' | 'complete'>('all');
+
+  const visibleDrafts = useMemo(() => {
+    const q = draftQuery.trim().toLowerCase();
+    return sortedDrafts.filter(d => {
+      if (q && !(d.title || '').toLowerCase().includes(q)) return false;
+      if (draftFilter === 'live') return d.status === 'in_progress';
+      if (draftFilter === 'complete') return d.status === 'complete';
+      if (draftFilter === 'mine') return d.status === 'in_progress' && d.current_pick_user_id === user?.id;
+      return true;
+    });
+  }, [sortedDrafts, draftQuery, draftFilter, user?.id]);
+
+  const filterCounts = useMemo(() => ({
+    all: sortedDrafts.length,
+    mine: sortedDrafts.filter(d => d.status === 'in_progress' && d.current_pick_user_id === user?.id).length,
+    live: sortedDrafts.filter(d => d.status === 'in_progress').length,
+    complete: sortedDrafts.filter(d => d.status === 'complete').length,
+  }), [sortedDrafts, user?.id]);
+
   const canSeeCommissioner = isCommissioner || isAppAdmin;
 
   // ── renderDraftRow ────────────────────────────────────────────────
@@ -1546,9 +1570,9 @@ export default function DraftsListPage() {
                 className="absolute inset-x-0 top-0 h-px"
                 style={{ background: 'linear-gradient(90deg, transparent, hsl(var(--gold) / 0.6), transparent)' }}
               />
-              <div className="p-4">
+              <div className="p-4 lg:p-3">
                 {/* Header strip — small label gives the card an anchor */}
-                <div className="flex items-center gap-1.5 mb-3">
+                <div className="flex items-center gap-1.5 mb-3 lg:mb-2">
                   <Sparkles className="w-3 h-3" style={{ color: 'hsl(var(--gold))' }} />
                   <p className="text-[9px] font-extrabold uppercase tracking-[0.22em]" style={{ color: 'hsl(var(--gold) / 0.85)' }}>
                     Your Card
@@ -1570,7 +1594,7 @@ export default function DraftsListPage() {
                       </p>
                     </div>
                     <p
-                      className="text-[34px] font-black leading-none tabular-nums"
+                      className="text-[34px] lg:text-[26px] font-black leading-none tabular-nums"
                       style={{
                         color: 'hsl(var(--gold))',
                         textShadow: '0 0 18px hsl(var(--gold) / 0.4)',
@@ -1585,7 +1609,7 @@ export default function DraftsListPage() {
                       <Crown className="w-3 h-3 text-muted-foreground/60" strokeWidth={2.5} />
                       <p className="text-[8.5px] font-extrabold uppercase tracking-[0.2em] text-muted-foreground/60">Wins</p>
                     </div>
-                    <p className="text-[22px] font-extrabold tabular-nums leading-none">
+                    <p className="text-[22px] lg:text-[18px] font-extrabold tabular-nums leading-none">
                       <CountedNumber value={myDraftStats.wins} />
                     </p>
                   </div>
@@ -1595,13 +1619,13 @@ export default function DraftsListPage() {
                       <Medal className="w-3 h-3 text-muted-foreground/60" strokeWidth={2.5} />
                       <p className="text-[8.5px] font-extrabold uppercase tracking-[0.2em] text-muted-foreground/60">Podiums</p>
                     </div>
-                    <p className="text-[22px] font-extrabold tabular-nums leading-none">
+                    <p className="text-[22px] lg:text-[18px] font-extrabold tabular-nums leading-none">
                       <CountedNumber value={myDraftStats.podiums} />
                     </p>
                   </div>
                 </div>
 
-                <hr className="da-divider my-3" />
+                <hr className="da-divider my-3 lg:my-2" />
 
                 {/* Secondary row — icon-anchored, smaller numbers, finer
                     typography. These three stats read as "context for the
@@ -1635,6 +1659,48 @@ export default function DraftsListPage() {
                     );
                   })}
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* Search + status filters — keeps long season archives scannable */}
+          {!loading && drafts.length > 0 && (
+            <div className="mb-3 flex flex-col sm:flex-row sm:items-center gap-2">
+              <div className="relative flex-1 min-w-0">
+                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/60" />
+                <input
+                  value={draftQuery}
+                  onChange={e => setDraftQuery(e.target.value)}
+                  placeholder="Search drafts"
+                  aria-label="Search drafts"
+                  className="w-full h-9 pl-9 pr-3 rounded-xl bg-card/50 border border-gold/20 text-[12.5px] font-semibold placeholder:text-muted-foreground/50 focus:outline-none focus:border-gold/45"
+                />
+              </div>
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+                {([
+                  { key: 'all', label: 'All' },
+                  { key: 'mine', label: 'Your turn' },
+                  { key: 'live', label: 'In Progress' },
+                  { key: 'complete', label: 'Complete' },
+                ] as const).map(f => {
+                  const active = draftFilter === f.key;
+                  return (
+                    <button
+                      key={f.key}
+                      type="button"
+                      onClick={() => setDraftFilter(f.key)}
+                      className={cn(
+                        'flex-shrink-0 h-9 px-3 rounded-xl text-[11px] font-extrabold border transition-colors',
+                        active
+                          ? 'border-gold/50 text-[hsl(160_30%_6%)] bg-[hsl(45_95%_55%)]'
+                          : 'border-border/40 text-muted-foreground/75 hover:text-foreground',
+                      )}
+                    >
+                      {f.label}
+                      <span className="ml-1 tabular-nums opacity-70">{filterCounts[f.key]}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -1673,7 +1739,7 @@ export default function DraftsListPage() {
             // Iterate the status-sorted list so each season group ends up
             // with active → setup → complete order naturally (push order
             // is preserved).
-            for (const d of sortedDrafts) {
+            for (const d of visibleDrafts) {
               const meta = seasonByDraft.get(d.id);
               if (meta && groupsMap.has(meta.seasonId)) groupsMap.get(meta.seasonId)!.drafts.push(d);
               else miscCount++; // counted for the empty-state hint below
@@ -1937,7 +2003,7 @@ export default function DraftsListPage() {
           ) : (() => {
             // Use the status-sorted list so misc rows respect the same
             // active → setup → complete ordering as the Drafts tab.
-            const miscDrafts = sortedDrafts.filter(d => !seasonByDraft.has(d.id));
+            const miscDrafts = visibleDrafts.filter(d => !seasonByDraft.has(d.id));
             if (miscDrafts.length === 0) {
               return (
                 <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} className="empty-state">
