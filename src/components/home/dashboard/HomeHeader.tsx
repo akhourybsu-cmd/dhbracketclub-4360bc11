@@ -50,10 +50,10 @@ export function HomeHeader({ club, displayName, avatarUrl, notificationCount = 0
     <header className="flex items-center justify-between gap-3 pb-3 mb-1 border-b border-border/30">
       {/* Title block */}
       <div className="min-w-0 flex-1">
-        <h1 className="text-2xl lg:text-[30px] font-extrabold tracking-tight leading-none truncate">
+        <h1 className="text-2xl lg:text-[26px] font-extrabold tracking-tight leading-none truncate">
           {club?.name ?? 'DH Club'}
         </h1>
-        <p className="text-[12.5px] text-muted-foreground/85 mt-1 leading-snug">
+        <p className="text-[12px] text-muted-foreground/80 mt-1 leading-snug truncate">
           {greeting}{firstName ? `, ${firstName}` : ''}
           {club?.name ? ` — here's what's happening in the club.` : ' — welcome.'}
         </p>
