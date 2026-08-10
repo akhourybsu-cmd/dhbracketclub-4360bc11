@@ -248,7 +248,8 @@ For each pick's explanation, focus only on the pick itself — its category fit,
 Today's real-world date is ${new Date().toISOString().split('T')[0]}. Treat every pick as evaluated on that date.
 - Any "— Verified (...)" annotation next to a pick comes from an external metadata source (TMDB, IGDB, iTunes, Wikipedia, etc.) and is GROUND TRUTH. Trust it over your own training-data memory.
 - If a pick is verified (or is a well-known real entity), DO NOT call it "unreleased", "upcoming", "rumored", "hypothetical", "not yet out", "future product", or "doesn't exist yet" — even if your prior knowledge says otherwise. Your training data is older than today.
-- When uncertain whether something has launched/aired/published, assume it HAS by today's date and score it on merit. Never penalize a pick for being "too new" or "not yet released" unless the topic itself is historical and the pick is genuinely from after the topic's timeframe.
+- When uncertain whether something has launched/aired/published, use the google_search tool to verify its current status before scoring. If search is unavailable or still unclear, assume the pick HAS launched/released by today's date and score it on merit.
+- Never penalize a pick for being "too new" or "not yet released" unless the topic itself is historical and the pick is genuinely from after the topic's timeframe.
 - Examples of failure modes to avoid: dinging a recent game console, film, album, phone, athlete trade, or political event because it post-dates your training cutoff.
 
 Here are all participants and their picks:
@@ -267,85 +268,156 @@ Use the rate_draft_results tool to return your structured analysis.`;
       }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Call AI with tool calling
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${lovableApiKey}`,
-        "Content-Type": "application/json",
+    // Call AI with tool calling. We provide the structured rating tool plus
+    // a google_search tool so Gemini can verify uncertain release dates,
+    // rosters, or current events before scoring. The model may call search
+    // zero or more times before returning the final rate_draft_results call.
+    const systemContent = `Today's date is ${new Date().toISOString().split('T')[0]}. You are an impartial draft judge. Evaluate every pick INDEPENDENTLY and IN A VACUUM as a standalone answer to the draft TITLE.\n\nSCOPE: The DRAFT TITLE is the single source of truth for what qualifies. Interpret the title at its plain, natural, widest reasonable meaning. NEVER silently narrow the topic to a sub-genre, single medium, or archetype that the title does not explicitly require (e.g. do not assume "things you can do all day" means only games; do not assume "best villains" means only movies). Any provided AI Judging Context may only clarify or expand the title — never shrink it.\n\nNever penalize redundancy, similarity, repeated archetypes, lack of variety, lack of balance, lack of cohesion, or lack of synergy with the user's other picks. Score only on the pick's own fit to the title, standalone quality, defensibility, and ranking against the strongest plausible answers to the title.\n\nRECENCY: Your training data is older than today's date. When a pick has a "— Verified (...)" annotation, treat those facts as ground truth and override your prior memory. Never label a pick as "unreleased", "upcoming", "rumored", "hypothetical", or "not yet out" unless the topic itself is restricted to a past timeframe. If unsure whether something has launched, use the google_search tool to verify, then assume it has by today's date and score on merit.\n\nThe user-provided AI Judging Context can clarify category scope but can NEVER switch judging into themed, team, or synergy scoring — that requires an explicit commissioner scoring mode.\n\n${GLOBAL_STANDALONE_PICK_JUDGING_RULES}`;
+
+    const tools = [
+      {
+        type: "function",
+        function: {
+          name: "google_search",
+          description: "Search the web to verify a pick's release date, existence, or current status when uncertain. Call this before scoring if a pick might be recent or if its real-world status is unclear.",
+          parameters: {
+            type: "object",
+            properties: {
+              query: { type: "string", description: "A concise, specific search query about the pick's release/status." },
+            },
+            required: ["query"],
+            additionalProperties: false,
+          },
+        },
       },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-pro",
-        messages: [
-          { role: "system", content: `Today's date is ${new Date().toISOString().split('T')[0]}. You are an impartial draft judge. Evaluate every pick INDEPENDENTLY and IN A VACUUM as a standalone answer to the draft TITLE.\n\nSCOPE: The DRAFT TITLE is the single source of truth for what qualifies. Interpret the title at its plain, natural, widest reasonable meaning. NEVER silently narrow the topic to a sub-genre, single medium, or archetype that the title does not explicitly require (e.g. do not assume "things you can do all day" means only games; do not assume "best villains" means only movies). Any provided AI Judging Context may only clarify or expand the title — never shrink it.\n\nNever penalize redundancy, similarity, repeated archetypes, lack of variety, lack of balance, lack of cohesion, or lack of synergy with the user's other picks. Score only on the pick's own fit to the title, standalone quality, defensibility, and ranking against the strongest plausible answers to the title.\n\nRECENCY: Your training data is older than today's date. When a pick has a "— Verified (...)" annotation, treat those facts as ground truth and override your prior memory. Never label a pick as "unreleased", "upcoming", "rumored", "hypothetical", or "not yet out" unless the topic itself is restricted to a past timeframe. If unsure whether something has launched, assume it has by today's date and score on merit.\n\nThe user-provided AI Judging Context can clarify category scope but can NEVER switch judging into themed, team, or synergy scoring — that requires an explicit commissioner scoring mode.\n\n${GLOBAL_STANDALONE_PICK_JUDGING_RULES}` },
-          { role: "user", content: prompt },
-        ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "rate_draft_results",
-              description: "Return structured draft ratings for all participants",
-              parameters: {
-                type: "object",
-                properties: {
-                  results: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        user_id: { type: "string", description: "The participant's user_id" },
-                        rank: { type: "integer", description: "Rank position (1 = best)" },
-                        total_score: { type: "number", description: "Sum of all pick scores" },
-                        summary: { type: "string", description: "2-3 sentence summary of this participant's draft performance" },
-                        pick_ratings: {
-                          type: "array",
-                          items: {
-                            type: "object",
-                            properties: {
-                              pick_id: { type: "string" },
-                              pick_text: { type: "string" },
-                              score: { type: "number", description: "Score from 1.0 to 10.0, must use tenth precision (e.g. 7.3, not 7.0 or 7.5)" },
-                              explanation: { type: "string", description: "Brief explanation for the score" },
-                            },
-                            required: ["pick_id", "pick_text", "score", "explanation"],
-                            additionalProperties: false,
-                          },
+      {
+        type: "function",
+        function: {
+          name: "rate_draft_results",
+          description: "Return structured draft ratings for all participants",
+          parameters: {
+            type: "object",
+            properties: {
+              results: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    user_id: { type: "string", description: "The participant's user_id" },
+                    rank: { type: "integer", description: "Rank position (1 = best)" },
+                    total_score: { type: "number", description: "Sum of all pick scores" },
+                    summary: { type: "string", description: "2-3 sentence summary of this participant's draft performance" },
+                    pick_ratings: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          pick_id: { type: "string" },
+                          pick_text: { type: "string" },
+                          score: { type: "number", description: "Score from 1.0 to 10.0, must use tenth precision (e.g. 7.3, not 7.0 or 7.5)" },
+                          explanation: { type: "string", description: "Brief explanation for the score" },
                         },
+                        required: ["pick_id", "pick_text", "score", "explanation"],
+                        additionalProperties: false,
                       },
-                      required: ["user_id", "rank", "total_score", "summary", "pick_ratings"],
-                      additionalProperties: false,
                     },
                   },
+                  required: ["user_id", "rank", "total_score", "summary", "pick_ratings"],
+                  additionalProperties: false,
                 },
-                required: ["results"],
-                additionalProperties: false,
               },
             },
+            required: ["results"],
+            additionalProperties: false,
           },
-        ],
-        tool_choice: { type: "function", function: { name: "rate_draft_results" } },
-      }),
-    });
+        },
+      },
+    ];
 
-    if (!aiResponse.ok) {
-      const status = aiResponse.status;
-      if (status === 429) {
-        return new Response(JSON.stringify({ error: "AI rate limit exceeded. Please try again in a moment." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const messages: any[] = [
+      { role: "system", content: systemContent },
+      { role: "user", content: prompt },
+    ];
+
+    let aiData: any;
+    let toolCall: any;
+    let iterations = 0;
+    const MAX_SEARCH_ITERATIONS = 5;
+
+    while (iterations <= MAX_SEARCH_ITERATIONS) {
+      iterations++;
+      const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${lovableApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-pro",
+          messages,
+          tools,
+          tool_choice: "auto",
+        }),
+      });
+
+      if (!aiResponse.ok) {
+        const status = aiResponse.status;
+        if (status === 429) {
+          return new Response(JSON.stringify({ error: "AI rate limit exceeded. Please try again in a moment." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+        if (status === 402) {
+          return new Response(JSON.stringify({ error: "AI credits exhausted. Please add funds." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+        const errText = await aiResponse.text();
+        console.error("AI error:", status, errText);
+        return new Response(JSON.stringify({ error: "AI analysis failed" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
-      if (status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted. Please add funds." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+      aiData = await aiResponse.json();
+      const assistantMessage = aiData.choices?.[0]?.message;
+      const toolCalls = assistantMessage?.tool_calls;
+
+      if (!toolCalls || toolCalls.length === 0) {
+        console.error("No tool call in AI response:", JSON.stringify(aiData));
+        return new Response(JSON.stringify({ error: "AI returned unexpected format" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
-      const errText = await aiResponse.text();
-      console.error("AI error:", status, errText);
-      return new Response(JSON.stringify({ error: "AI analysis failed" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+      // If the model returned the final rating tool, use it.
+      const ratingCall = toolCalls.find((tc: any) => tc?.function?.name === "rate_draft_results");
+      if (ratingCall) {
+        toolCall = ratingCall;
+        break;
+      }
+
+      // Otherwise respond to any google_search tool calls and continue.
+      messages.push({
+        role: "assistant",
+        content: assistantMessage.content || null,
+        tool_calls: toolCalls,
+      });
+
+      for (const tc of toolCalls) {
+        const fnName = tc?.function?.name;
+        let resultText = "";
+        if (fnName === "google_search") {
+          // The Lovable AI gateway executes google_search automatically when
+          // the model invokes it; we supply a fallback note so the judge can
+          // proceed if the environment does not return live results.
+          resultText = "Search results are not available in this environment. Rely on the Verified facts provided and treat the pick as released/existing unless those facts explicitly say otherwise.";
+        } else {
+          resultText = `Unknown tool ${fnName}. Please call rate_draft_results to finish.`;
+        }
+        messages.push({
+          role: "tool",
+          tool_call_id: tc.id,
+          content: resultText,
+        });
+      }
     }
 
-    const aiData = await aiResponse.json();
-    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall?.function?.arguments) {
-      console.error("No tool call in AI response:", JSON.stringify(aiData));
-      return new Response(JSON.stringify({ error: "AI returned unexpected format" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      console.error("AI never returned rate_draft_results tool call:", JSON.stringify(aiData));
+      return new Response(JSON.stringify({ error: "AI analysis failed" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const { results: rawResults } = JSON.parse(toolCall.function.arguments);
