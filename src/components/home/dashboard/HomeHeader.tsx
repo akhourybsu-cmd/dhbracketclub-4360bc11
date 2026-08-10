@@ -47,13 +47,13 @@ export function HomeHeader({ club, displayName, avatarUrl, notificationCount = 0
   const accent = club?.accent_color ?? '152 72% 46%';
 
   return (
-    <header className="flex items-start justify-between gap-3 mb-6">
+    <header className="flex items-start justify-between gap-3 mb-4">
       {/* Title block */}
       <div className="min-w-0 flex-1">
-        <h1 className="text-3xl lg:text-[40px] font-extrabold tracking-tight leading-none truncate">
+        <h1 className="text-2xl lg:text-[30px] font-extrabold tracking-tight leading-none truncate">
           {club?.name ?? 'DH Club'}
         </h1>
-        <p className="text-[13px] text-muted-foreground/85 mt-1.5 leading-snug">
+        <p className="text-[12.5px] text-muted-foreground/85 mt-1 leading-snug">
           {greeting}{firstName ? `, ${firstName}` : ''}
           {club?.name ? ` — here's what's happening in the club.` : ' — welcome.'}
         </p>

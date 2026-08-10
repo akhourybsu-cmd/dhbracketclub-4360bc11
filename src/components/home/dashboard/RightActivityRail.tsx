@@ -266,7 +266,7 @@ function ClubStatsCard({ stats, accent }: { stats: ClubStats; accent: string }) 
     { label: 'Competitions', value: stats.competitions, icon: Trophy   },
   ];
   return (
-    <RailCard title="Club Stats">
+    <RailCard title="Club Snapshot">
       <div className="grid grid-cols-3 gap-1.5 px-1.5 py-1">
         {cells.map(c => {
           const Icon = c.icon;

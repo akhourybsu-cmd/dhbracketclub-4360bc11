@@ -314,6 +314,7 @@ export function HomeDashboard({
             upcoming={upcomingItems}
             stats={stats}
             loading={loading}
+            currentUserId={user?.id ?? null}
           />
         </div>
       </div>
