@@ -254,7 +254,7 @@ function AppLayoutInner({ children }: { children: ReactNode }) {
       </main>
 
       {/* Desktop Sidebar — hidden inside game shells (Rune Delve, Nexus, etc.) */}
-      {!isGameShell && (() => {
+      {!isImmersiveShell && (() => {
         // Build sections including conditional admin section, filtered by installed assets
         const sections: SidebarSection[] = STATIC_SECTIONS.map(sec => ({
           ...sec,
