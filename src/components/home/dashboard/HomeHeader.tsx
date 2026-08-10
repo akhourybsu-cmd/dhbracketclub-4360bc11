@@ -47,7 +47,7 @@ export function HomeHeader({ club, displayName, avatarUrl, notificationCount = 0
   const accent = club?.accent_color ?? '152 72% 46%';
 
   return (
-    <header className="flex items-start justify-between gap-3 mb-4">
+    <header className="flex items-center justify-between gap-3 pb-3 mb-1 border-b border-border/30">
       {/* Title block */}
       <div className="min-w-0 flex-1">
         <h1 className="text-2xl lg:text-[30px] font-extrabold tracking-tight leading-none truncate">
