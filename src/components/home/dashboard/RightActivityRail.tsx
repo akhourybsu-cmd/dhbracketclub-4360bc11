@@ -69,14 +69,17 @@ export function RightActivityRail({
 }: Props) {
   // Empty modules are hidden rather than stacked as a column of
   // "Nothing recent" panels — that made an active club look dead.
+  //
+  // Desktop note: the main column already renders the full "Today in the
+  // Club" feed, so the rail no longer repeats Crew Activity. The rail is
+  // reserved for at-a-glance context (who's around, what's next, club
+  // snapshot) instead of a second copy of the same rows.
   const others = members.filter(m => m.id !== currentUserId);
-  const showCrew = loading || crew.length > 0;
   const showActive = others.length > 0;
   const showUpcoming = loading || upcoming.length > 0;
 
   return (
-    <aside className="space-y-3.5" aria-label="Activity rail">
-      {showCrew && <CrewActivityCard items={crew} loading={loading} />}
+    <aside className="space-y-3" aria-label="Activity rail">
       {showActive && <ActiveNowCard members={others} accent={accent} loading={loading} />}
       {showUpcoming && <UpcomingCard items={upcoming} loading={loading} />}
       <ClubStatsCard stats={stats} accent={accent} />
