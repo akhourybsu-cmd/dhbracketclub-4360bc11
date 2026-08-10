@@ -274,10 +274,11 @@ export function HomeDashboard({
         <div className="min-w-0">
           <ClubPulseCard
             club={club}
-            pendingAction={pendingActions[0] ?? null}
+            actions={pendingActions}
             installedSlugs={installedSlugs}
             activityAnchorId={activityAnchorId}
           />
+
 
           <QuickAccessGrid
             installedSlugs={installedSlugs}
@@ -313,6 +314,7 @@ export function HomeDashboard({
             upcoming={upcomingItems}
             stats={stats}
             loading={loading}
+            currentUserId={user?.id ?? null}
           />
         </div>
       </div>

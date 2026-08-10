@@ -57,22 +57,33 @@ interface Props {
   upcoming: UpcomingItem[];
   stats: ClubStats;
   loading?: boolean;
+  /** Signed-in user — excluded from "Active now" so a solo session
+   *  never reads as club activity. */
+  currentUserId?: string | null;
 }
 
 /* ─── Top-level layout ─────────────────────────────────────────── */
 
 export function RightActivityRail({
-  accent, crew, members, upcoming, stats, loading,
+  accent, crew, members, upcoming, stats, loading, currentUserId,
 }: Props) {
+  // Empty modules are hidden rather than stacked as a column of
+  // "Nothing recent" panels — that made an active club look dead.
+  const others = members.filter(m => m.id !== currentUserId);
+  const showCrew = loading || crew.length > 0;
+  const showActive = others.length > 0;
+  const showUpcoming = loading || upcoming.length > 0;
+
   return (
-    <aside className="space-y-4" aria-label="Activity rail">
-      <CrewActivityCard items={crew} loading={loading} />
-      <ActiveNowCard members={members} accent={accent} loading={loading} />
-      <UpcomingCard items={upcoming} loading={loading} />
+    <aside className="space-y-3.5" aria-label="Activity rail">
+      {showCrew && <CrewActivityCard items={crew} loading={loading} />}
+      {showActive && <ActiveNowCard members={others} accent={accent} loading={loading} />}
+      {showUpcoming && <UpcomingCard items={upcoming} loading={loading} />}
       <ClubStatsCard stats={stats} accent={accent} />
     </aside>
   );
 }
+
 
 /* ─── Card shell ────────────────────────────────────────────────── */
 
@@ -255,7 +266,7 @@ function ClubStatsCard({ stats, accent }: { stats: ClubStats; accent: string }) 
     { label: 'Competitions', value: stats.competitions, icon: Trophy   },
   ];
   return (
-    <RailCard title="Club Stats">
+    <RailCard title="Club Snapshot">
       <div className="grid grid-cols-3 gap-1.5 px-1.5 py-1">
         {cells.map(c => {
           const Icon = c.icon;

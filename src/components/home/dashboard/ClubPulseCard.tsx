@@ -1,25 +1,20 @@
-// DH Club Home — Club Pulse hero card
+// DH Club Home — Club Pulse
 //
-// Replaces the previous "All caught up" empty hero with a richer
-// command-center surface that ALWAYS surfaces 3 quick-action chips
-// the user can act on, regardless of whether there's a pending
-// action. Right-side decorative artwork is the DhShield SVG.
+// Desktop hierarchy rule: space is proportional to how much the user
+// needs to act.
 //
-// Pending-vs-quiet states share the same chrome but differ in copy:
-//   • Quiet (no pendingAction) → "Nothing urgent right now"
-//   • Urgent (pendingAction present) → the action's label as the
-//     headline, with its sub-line as the copy
+//   • ACTIONABLE (>=1 pending action)
+//       → full hero: top action as the headline + primary CTA, with the
+//         remaining pending actions rendered as contextual chips
+//         ("Continue your draft", "Vote in an open poll", …).
 //
-// The three chips are stable and always-actionable:
-//   1. Start a Poll        → /polls   (or asset library if not installed)
-//   2. Open Draft Arena    → /drafts  (or asset library if not installed)
-//   3. Check Activity      → scrolls/anchors to the Today feed below
-//
-// If an action's asset isn't installed, the chip stays visible but
-// dims and links to the asset library so users can install it.
+//   • ALL CLEAR (no pending actions)
+//       → compact single-row confirmation banner. The reclaimed vertical
+//         space goes to live/recent content below instead of being spent
+//         announcing an absence of information.
 
 import { Link } from 'react-router-dom';
-import { MessageCircle, Bookmark, Sparkles, ArrowRight } from 'lucide-react';
+import { MessageCircle, Bookmark, Sparkles, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { LucideIcon } from 'lucide-react';
 import type { Club } from '@/contexts/ClubContext';
@@ -28,12 +23,10 @@ import { DhShield } from './svg/DhShield';
 
 interface Props {
   club: Club | null;
-  /** Highest-priority next action from `rankNextActions`, if any.
-   *  Drives the headline copy when set; quiet state when null. */
-  pendingAction: NextAction | null;
+  /** Ranked pending actions. `[0]` drives the headline; the rest become chips. */
+  actions: NextAction[];
   installedSlugs: Set<string>;
-  /** Anchor id for the activity feed below — Check Activity chip
-   *  scrolls there instead of routing away. */
+  /** Anchor id for the activity feed below. */
   activityAnchorId: string;
 }
 
@@ -41,43 +34,75 @@ interface ChipDef {
   label: string;
   hint: string;
   icon: LucideIcon;
-  /** Slug we gate on; if not installed, chip routes to /club/assets. */
   gateSlug?: string;
   to: string;
-  /** Optional click handler — if set, runs INSTEAD of navigating. */
   onActivate?: () => void;
 }
 
-export function ClubPulseCard({ club, pendingAction, installedSlugs, activityAnchorId }: Props) {
+export function ClubPulseCard({ club, actions, installedSlugs, activityAnchorId }: Props) {
   const accent = club?.accent_color ?? '152 72% 46%';
+  const pendingAction = actions[0] ?? null;
 
-  const headline = pendingAction ? pendingAction.label : 'Nothing urgent right now';
-  const sub = pendingAction
-    ? (pendingAction.sub ?? 'Tap below to handle it now.')
-    : "You're caught up across drafts, polls, and RPG sessions.";
+  const scrollToActivity = () => {
+    const el = document.getElementById(activityAnchorId);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
-  const chips: ChipDef[] = [
-    { label: 'Start a Poll',      hint: 'Get crew input',     icon: MessageCircle, gateSlug: 'polls',       to: '/polls' },
-    { label: 'Open Draft Arena',  hint: 'Make your picks',    icon: Bookmark,      gateSlug: 'draft-arena', to: '/drafts' },
-    {
-      label: 'Check Activity',
-      hint: "See what's new",
-      icon: Sparkles,
-      to: `#${activityAnchorId}`,
-      // Smooth-scroll into view instead of routing away.
-      onActivate: () => {
-        const el = document.getElementById(activityAnchorId);
-        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      },
-    },
+  /* ── ALL CLEAR — compact banner ─────────────────────────────── */
+  if (!pendingAction) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+        className="relative overflow-hidden rounded-xl mb-4 flex items-center gap-3 px-3.5 py-2.5"
+        style={{
+          background: `linear-gradient(90deg, hsl(${accent} / 0.10), hsl(218 40% 5% / 0.6))`,
+          border: `1px solid hsl(${accent} / 0.24)`,
+        }}
+      >
+        <CheckCircle2 className="w-4 h-4 flex-shrink-0" style={{ color: `hsl(${accent})` }} />
+        <p className="text-[12.5px] font-bold leading-tight min-w-0 flex-1 truncate">
+          All clear — nothing needs you right now.
+        </p>
+        <button
+          type="button"
+          onClick={scrollToActivity}
+          className="text-[11.5px] font-extrabold whitespace-nowrap hover:opacity-80 transition-opacity"
+          style={{ color: `hsl(${accent})` }}
+        >
+          Recent activity →
+        </button>
+      </motion.div>
+    );
+  }
+
+  /* ── ACTIONABLE — hero ──────────────────────────────────────── */
+
+  // Contextual chips: the remaining pending actions first, then a small
+  // set of stable fallbacks so the row never renders half-empty.
+  const contextual: ChipDef[] = actions.slice(1, 4).map(a => ({
+    label: a.label,
+    hint: a.sub ?? a.tag ?? 'Jump in',
+    icon: a.icon,
+    to: a.to,
+  }));
+
+  const fallbacks: ChipDef[] = [
+    { label: 'Open Draft Arena', hint: 'Make your picks', icon: Bookmark, gateSlug: 'draft-arena', to: '/drafts' },
+    { label: 'Start a Poll', hint: 'Get crew input', icon: MessageCircle, gateSlug: 'polls', to: '/polls' },
+    { label: 'Check Activity', hint: "See what's new", icon: Sparkles, to: `#${activityAnchorId}`, onActivate: scrollToActivity },
   ];
+
+  const chips = [...contextual, ...fallbacks].slice(0, 3);
+  const HeadIcon = pendingAction.icon;
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-      className="relative overflow-hidden rounded-2xl mb-6"
+      className="relative overflow-hidden rounded-2xl mb-5"
       style={{
         background: `
           radial-gradient(ellipse 80% 60% at 0% 50%, hsl(${accent} / 0.10), transparent 60%),
@@ -87,12 +112,9 @@ export function ClubPulseCard({ club, pendingAction, installedSlugs, activityAnc
         boxShadow: `0 16px 48px -16px hsl(${accent} / 0.35), inset 0 1px 0 hsl(${accent} / 0.18)`,
       }}
     >
-      {/* Right-side shield artwork. Absolute-positioned so the text
-          column can grow to its natural width; the shield clips
-          gracefully on narrow screens via overflow-hidden on parent. */}
       <div
         aria-hidden
-        className="absolute right-0 top-0 bottom-0 w-[280px] hidden md:block pointer-events-none"
+        className="absolute right-0 top-0 bottom-0 w-[240px] hidden md:block pointer-events-none"
         style={{ opacity: 0.85 }}
       >
         <DhShield
@@ -102,29 +124,37 @@ export function ClubPulseCard({ club, pendingAction, installedSlugs, activityAnc
         />
       </div>
 
-      <div className="relative p-5 lg:p-6 md:pr-[260px]">
-        {/* Eyebrow */}
-        <div className="flex items-center gap-1.5 mb-2">
-          <Sparkles className="w-3.5 h-3.5" style={{ color: `hsl(${accent})` }} />
+      {/* Desktop density: padding trimmed ~20% vs the previous hero. */}
+      <div className="relative p-4 lg:p-5 md:pr-[230px]">
+        <div className="flex items-center gap-1.5 mb-1.5">
+          <HeadIcon className="w-3.5 h-3.5" style={{ color: `hsl(${accent})` }} />
           <span
             className="text-[10px] font-extrabold uppercase tracking-[0.22em]"
             style={{ color: `hsl(${accent})` }}
           >
-            Club Pulse
+            {pendingAction.tag ?? 'Needs you'}
           </span>
         </div>
 
-        {/* Headline + copy */}
-        <h2 className="text-[22px] lg:text-[26px] font-extrabold tracking-tight leading-tight">
-          {headline}
+        <h2 className="text-[19px] lg:text-[23px] font-extrabold tracking-tight leading-tight">
+          {pendingAction.label}
         </h2>
-        <p className="text-[12.5px] text-muted-foreground/85 leading-snug mt-1.5 max-w-md">
-          {sub}
+        <p className="text-[12.5px] text-muted-foreground/85 leading-snug mt-1 max-w-md">
+          {pendingAction.sub ?? 'Tap below to handle it now.'}
         </p>
 
-        {/* 3 action chips — stack on mobile, row on sm+. Each chip
-            either navigates (Link) or fires onActivate (button). */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mt-5 max-w-3xl">
+        <Link
+          to={pendingAction.to}
+          className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg mt-3 text-[12.5px] font-extrabold active:scale-95 transition"
+          style={{
+            background: `linear-gradient(135deg, hsl(${accent}), hsl(${accent} / 0.85))`,
+            color: 'hsl(218 50% 6%)',
+          }}
+        >
+          Go now <ArrowRight className="w-3.5 h-3.5" />
+        </Link>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-4 max-w-3xl">
           {chips.map((chip) => {
             const Icon = chip.icon;
             const isInstalled = !chip.gateSlug || installedSlugs.has(chip.gateSlug);
@@ -133,7 +163,7 @@ export function ClubPulseCard({ club, pendingAction, installedSlugs, activityAnc
             const inner = (
               <>
                 <div
-                  className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                  className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
                   style={{
                     background: `hsl(${accent} / 0.15)`,
                     color: `hsl(${accent})`,
@@ -143,10 +173,10 @@ export function ClubPulseCard({ club, pendingAction, installedSlugs, activityAnc
                   <Icon className="w-4 h-4" />
                 </div>
                 <div className="min-w-0 flex-1 text-left">
-                  <p className="text-[12.5px] font-extrabold tracking-tight leading-tight">
+                  <p className="text-[12px] font-extrabold tracking-tight leading-tight truncate">
                     {chip.label}
                   </p>
-                  <p className="text-[10.5px] text-muted-foreground/70 leading-tight mt-0.5">
+                  <p className="text-[10.5px] text-muted-foreground/70 leading-tight mt-0.5 truncate">
                     {isInstalled ? chip.hint : 'Install to unlock'}
                   </p>
                 </div>
@@ -154,7 +184,7 @@ export function ClubPulseCard({ club, pendingAction, installedSlugs, activityAnc
               </>
             );
 
-            const classes = "flex items-center gap-2.5 rounded-xl p-2.5 transition-colors hover:bg-card/80 active:scale-[0.98]";
+            const classes = "flex items-center gap-2.5 rounded-xl p-2 transition-colors hover:bg-card/80 active:scale-[0.98]";
             const style = {
               background: 'hsl(218 30% 6% / 0.5)',
               border: '1px solid hsl(var(--border) / 0.4)',
@@ -163,13 +193,7 @@ export function ClubPulseCard({ club, pendingAction, installedSlugs, activityAnc
 
             if (chip.onActivate && isInstalled) {
               return (
-                <button
-                  key={chip.label}
-                  type="button"
-                  onClick={chip.onActivate}
-                  className={classes}
-                  style={style}
-                >
+                <button key={chip.label} type="button" onClick={chip.onActivate} className={classes} style={style}>
                   {inner}
                 </button>
               );

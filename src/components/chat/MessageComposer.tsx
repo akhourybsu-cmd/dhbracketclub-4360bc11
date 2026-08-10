@@ -398,7 +398,7 @@ export const MessageComposer = forwardRef<MessageComposerHandle, MessageComposer
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         className={cn(
-          "relative flex flex-col bg-background",
+          "relative flex flex-col bg-background w-full lg:max-w-[792px] lg:mx-auto",
           compact ? "px-3 pt-1.5 pb-1.5" : "px-2.5 sm:px-3 pt-1.5"
         )}
         style={{
