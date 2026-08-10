@@ -87,7 +87,7 @@ export function ClubProvider({ children }: { children: ReactNode }) {
       setIsAppAdmin(!!adminRow);
       if (m?.clubs) {
         setClub(m.clubs as Club);
-        setMembership({ club_id: m.club_id, role: m.role });
+        setMembership({ club_id: m.club_id, role: (m.role as ClubMembership['role']) });
       } else {
         setClub(null);
         setMembership(null);
