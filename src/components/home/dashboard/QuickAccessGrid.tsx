@@ -113,11 +113,11 @@ export function QuickAccessGrid({ installedSlugs, status }: Props) {
   if (tiles.length === 0) return null;
 
   return (
-    <section className="mb-6" aria-label="Quick access">
-      <p className="text-[10px] font-extrabold uppercase tracking-[0.22em] text-muted-foreground/60 mb-2.5 px-1">
+    <section className="mb-5" aria-label="Quick access">
+      <p className="text-[10px] font-extrabold uppercase tracking-[0.22em] text-muted-foreground/60 mb-2 px-1">
         Quick Access
       </p>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2.5">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
         {tiles.map((t, i) => {
           const Icon = t.icon;
           return (
@@ -133,17 +133,17 @@ export function QuickAccessGrid({ installedSlugs, status }: Props) {
                 className="group block"
               >
                 <Surface variant="tile" accent={t.tint}>
-                  <div className="p-3.5 flex flex-col gap-2 min-h-[112px]">
+                  <div className="p-3.5 lg:p-2.5 flex flex-col gap-2 lg:gap-1.5 min-h-[112px] lg:min-h-[80px]">
                     <div className="flex items-center justify-between">
                       <div
-                        className="w-9 h-9 rounded-lg flex items-center justify-center"
+                        className="w-9 h-9 lg:w-7 lg:h-7 rounded-lg flex items-center justify-center"
                         style={{
                           background: `hsl(${t.tint} / 0.16)`,
                           border: `1px solid hsl(${t.tint} / 0.32)`,
                           color: `hsl(${t.tint})`,
                         }}
                       >
-                        <Icon className="w-4 h-4" />
+                        <Icon className="w-4 h-4 lg:w-3.5 lg:h-3.5" />
                       </div>
                       <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 group-hover:text-muted-foreground/80 group-hover:translate-x-0.5 transition-all" />
                     </div>

@@ -105,14 +105,14 @@ export function ActivityFeed({ rows, loading = false, anchorId = 'home-activity'
       </div>
 
       {/* Body */}
-      <div className="px-2 py-2 min-h-[140px]">
+      <div className="px-2 py-2 min-h-[140px] lg:min-h-[220px]">
         {loading && rows.length === 0 ? (
           <FeedSkeleton />
         ) : visible.length === 0 ? (
           <FeedEmpty filter={filter} />
         ) : (
           <AnimatePresence initial={false}>
-            {visible.slice(0, 8).map((row, i) => (
+            {visible.slice(0, 12).map((row, i) => (
               <motion.div
                 key={row.id}
                 initial={{ opacity: 0, y: 4 }}
