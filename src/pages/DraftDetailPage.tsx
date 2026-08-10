@@ -29,6 +29,7 @@ import { getDerivedDraftTurn } from '@/lib/draftTurn';
 import { getSeasonJoinEligibility } from '@/lib/draft/seasonEligibility';
 import { Confetti } from '@/components/Confetti';
 import { OnTheClockTimer } from '@/components/draft/OnTheClockTimer';
+import { DraftOrderStrip } from '@/components/draft/DraftOrderStrip';
 import { PickAnnouncement } from '@/components/draft/PickAnnouncement';
 import { DraftStatsCard } from '@/components/draft/DraftStatsCard';
 import { findMvpPick, findScoringStreaks, computePickTimings, formatDuration } from '@/lib/draftStats';
