@@ -150,7 +150,12 @@ function AppLayoutInner({ children }: { children: ReactNode }) {
   const isDrafts = location.pathname.startsWith('/drafts');
   const isPortfolioWars = location.pathname.startsWith('/portfolio-wars');
   const isReadshift = location.pathname.startsWith('/readshift');
+  // Draft Arena keeps its own gold HUD, but on desktop it now lives INSIDE the
+  // shared DH Club frame (global sidebar + notifications) instead of replacing
+  // the whole shell. Mobile behaviour is unchanged: full-bleed game shell.
   const isGameShell = isRuneDelve || isNexus || isPickem || isDrafts || isPortfolioWars || isReadshift;
+  const isImmersiveShell = isGameShell && !isDrafts;
+
 
   const isNavActive = (path: string) => {
     if (path === '/brackets') return location.pathname.startsWith('/brackets') || location.pathname.startsWith('/pools');
