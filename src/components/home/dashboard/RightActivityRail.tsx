@@ -65,7 +65,7 @@ interface Props {
 /* ─── Top-level layout ─────────────────────────────────────────── */
 
 export function RightActivityRail({
-  accent, crew, members, upcoming, stats, loading, currentUserId,
+  accent, members, upcoming, stats, loading, currentUserId,
 }: Props) {
   // Empty modules are hidden rather than stacked as a column of
   // "Nothing recent" panels — that made an active club look dead.
@@ -124,7 +124,7 @@ function RailCard({
 
 /* ─── A. Crew Activity ─────────────────────────────────────────── */
 
-function CrewActivityCard({ items, loading }: { items: CrewActivityItem[]; loading?: boolean }) {
+export function CrewActivityCard({ items, loading }: { items: CrewActivityItem[]; loading?: boolean }) {
   return (
     <RailCard title="Crew Activity" footerHref="/feed" footerLabel="View all">
       {loading && items.length === 0 ? (
