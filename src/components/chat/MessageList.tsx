@@ -242,7 +242,9 @@ export function MessageList({
 
   return (
     <div ref={scrollRef} className="flex-1 overflow-y-auto overflow-x-hidden px-2 sm:px-4 relative" style={{ minHeight: 0, overscrollBehavior: 'contain' }}>
-      <div className="py-2">
+      {/* Desktop reading lane: caps the conversation at a comfortable
+          measure instead of letting bubbles span an ultrawide canvas. */}
+      <div className="py-2 w-full lg:max-w-[760px] lg:mx-auto">
         {loadingMore && (
           <div className="text-center py-2">
             <span className="text-[10px] text-muted-foreground/50 font-medium">Loading older messages…</span>
