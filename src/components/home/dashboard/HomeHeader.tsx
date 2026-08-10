@@ -96,30 +96,25 @@ export function HomeHeader({ club, displayName, avatarUrl, notificationCount = 0
           )}
         </button>
 
-        {/* Compact Create button — same target as Start Something */}
+        {/* Single global Create button — opens the creation menu
+            (Poll, Draft, Event, RPG, …). The old duplicate
+            "Start Something" CTA has been folded into this one so the
+            viewport never shows two competing creation buttons. */}
         <button
           type="button"
           onClick={() => setMenuOpen(true)}
           aria-label="Create"
-          className="hidden sm:inline-flex h-10 px-3 rounded-lg items-center gap-1.5 text-[12px] font-bold border border-border/40 bg-card/60 hover:bg-card hover:border-border/60 active:scale-95 transition"
-        >
-          <Plus className="w-3.5 h-3.5" /> Create
-        </button>
-
-        {/* Primary CTA — Start Something opens the launcher menu */}
-        <button
-          type="button"
-          onClick={() => setMenuOpen(true)}
-          className="h-10 px-3.5 rounded-lg inline-flex items-center gap-1.5 text-[12.5px] font-extrabold active:scale-95 transition"
+          className="h-9 px-3.5 rounded-lg inline-flex items-center gap-1.5 text-[12.5px] font-extrabold active:scale-95 transition"
           style={{
             background: `linear-gradient(135deg, hsl(${accent}), hsl(${accent} / 0.85))`,
             color: 'hsl(218 50% 6%)',
             boxShadow: `0 0 18px -4px hsl(${accent} / 0.55), inset 0 1px 0 hsl(0 0% 100% / 0.2)`,
           }}
         >
-          <Sparkles className="w-3.5 h-3.5" />
-          <span className="whitespace-nowrap">Start Something</span>
+          <Plus className="w-3.5 h-3.5" />
+          <span className="whitespace-nowrap">Create</span>
         </button>
+
 
         {/* Avatar — routes to profile */}
         <Link
