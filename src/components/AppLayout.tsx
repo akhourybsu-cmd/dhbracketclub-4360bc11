@@ -247,7 +247,7 @@ function AppLayoutInner({ children }: { children: ReactNode }) {
           // Long-form reading pages (Lore article detail, etc.) re-apply
           // a narrower cap at the page root via `lg:max-w-[760px]
           // lg:mx-auto` so prose stays readable.
-          <div className="max-w-[640px] lg:max-w-[1280px] mx-auto px-4 sm:px-5 py-5 sm:py-6 lg:py-8 min-w-0">
+          <div className="max-w-[640px] lg:max-w-[1280px] mx-auto px-4 sm:px-5 py-5 sm:py-6 lg:py-6 min-w-0">
             {children}
           </div>
         )}
