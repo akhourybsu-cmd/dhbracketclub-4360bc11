@@ -306,7 +306,7 @@ export function HomeDashboard({
         </div>
 
         {/* RIGHT — activity rail */}
-        <div className="min-w-0 lg:sticky lg:top-3 lg:max-h-[calc(100dvh-1.5rem)] lg:overflow-y-auto lg:pr-0.5 no-scrollbar">
+        <div className="min-w-0 lg:sticky lg:top-3 lg:max-h-[calc(100dvh-1.5rem)] lg:overflow-y-auto lg:pr-0.5 scrollbar-none">
           <RightActivityRail
             accent={accent}
             crew={crewItems}
