@@ -227,9 +227,11 @@ function AppLayoutInner({ children }: { children: ReactNode }) {
       {/* Main Content */}
       <main className={cn(
         "flex-1 overflow-x-hidden min-w-0",
-        isGameShell ? "pb-0" : "lg:pl-64",
+        isGameShell ? "pb-0" : "",
+        !isImmersiveShell && "lg:pl-64",
         isChatRoute && "overflow-hidden"
       )}>
+
         {location.pathname === '/chat' || isGameShell ? (
           children
         ) : (
