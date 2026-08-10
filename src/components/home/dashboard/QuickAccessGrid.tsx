@@ -113,11 +113,11 @@ export function QuickAccessGrid({ installedSlugs, status }: Props) {
   if (tiles.length === 0) return null;
 
   return (
-    <section className="mb-6" aria-label="Quick access">
-      <p className="text-[10px] font-extrabold uppercase tracking-[0.22em] text-muted-foreground/60 mb-2.5 px-1">
+    <section className="mb-5" aria-label="Quick access">
+      <p className="text-[10px] font-extrabold uppercase tracking-[0.22em] text-muted-foreground/60 mb-2 px-1">
         Quick Access
       </p>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2.5">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
         {tiles.map((t, i) => {
           const Icon = t.icon;
           return (
