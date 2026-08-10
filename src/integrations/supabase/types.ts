@@ -8295,6 +8295,7 @@ export type Database = {
         Returns: undefined
       }
       set_displayed_sigil: { Args: { _sigil_code: string }; Returns: undefined }
+      shares_club_with: { Args: { _a: string; _b: string }; Returns: boolean }
       submit_operation_contribution: {
         Args: {
           _boss_damage: number
