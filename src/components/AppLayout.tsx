@@ -150,7 +150,12 @@ function AppLayoutInner({ children }: { children: ReactNode }) {
   const isDrafts = location.pathname.startsWith('/drafts');
   const isPortfolioWars = location.pathname.startsWith('/portfolio-wars');
   const isReadshift = location.pathname.startsWith('/readshift');
+  // Draft Arena keeps its own gold HUD, but on desktop it now lives INSIDE the
+  // shared DH Club frame (global sidebar + notifications) instead of replacing
+  // the whole shell. Mobile behaviour is unchanged: full-bleed game shell.
   const isGameShell = isRuneDelve || isNexus || isPickem || isDrafts || isPortfolioWars || isReadshift;
+  const isImmersiveShell = isGameShell && !isDrafts;
+
 
   const isNavActive = (path: string) => {
     if (path === '/brackets') return location.pathname.startsWith('/brackets') || location.pathname.startsWith('/pools');
@@ -222,9 +227,11 @@ function AppLayoutInner({ children }: { children: ReactNode }) {
       {/* Main Content */}
       <main className={cn(
         "flex-1 overflow-x-hidden min-w-0",
-        isGameShell ? "pb-0" : "lg:pl-64",
+        isGameShell ? "pb-0" : "",
+        !isImmersiveShell && "lg:pl-64",
         isChatRoute && "overflow-hidden"
       )}>
+
         {location.pathname === '/chat' || isGameShell ? (
           children
         ) : (
@@ -240,14 +247,14 @@ function AppLayoutInner({ children }: { children: ReactNode }) {
           // Long-form reading pages (Lore article detail, etc.) re-apply
           // a narrower cap at the page root via `lg:max-w-[760px]
           // lg:mx-auto` so prose stays readable.
-          <div className="max-w-[640px] lg:max-w-[1280px] mx-auto px-4 sm:px-5 py-5 sm:py-6 lg:py-8 min-w-0">
+          <div className="max-w-[640px] lg:max-w-[1280px] mx-auto px-4 sm:px-5 py-5 sm:py-6 lg:py-6 min-w-0">
             {children}
           </div>
         )}
       </main>
 
       {/* Desktop Sidebar — hidden inside game shells (Rune Delve, Nexus, etc.) */}
-      {!isGameShell && (() => {
+      {!isImmersiveShell && (() => {
         // Build sections including conditional admin section, filtered by installed assets
         const sections: SidebarSection[] = STATIC_SECTIONS.map(sec => ({
           ...sec,
