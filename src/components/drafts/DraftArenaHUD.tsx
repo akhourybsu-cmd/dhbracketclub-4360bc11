@@ -49,7 +49,7 @@ export function DraftArenaHUD() {
         className="da-hud sticky top-0 z-40 w-full border-b backdrop-blur-xl"
         style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
       >
-        <div className="flex items-center gap-2 h-12 px-2 max-w-[640px] mx-auto">
+        <div className="flex items-center gap-2 h-12 px-2 max-w-[640px] lg:max-w-[1100px] mx-auto">
           <button
             type="button"
             onClick={handleBack}
