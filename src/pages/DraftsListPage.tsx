@@ -8,7 +8,7 @@ import { StatusPill } from '@/components/ui/status-pill';
 import {
   Bookmark, Plus, ArrowRight, Users, Play, Trophy, Award, Target, Archive,
   Calendar, TrendingUp, Crown, Swords, Shield, ChevronRight, ChevronDown,
-  Medal, Sparkles, X, Loader2, RefreshCw, Flame, BarChart3, ListChecks,
+  Medal, Sparkles, X, Loader2, RefreshCw, Flame, BarChart3, ListChecks, Search,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
