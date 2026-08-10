@@ -269,7 +269,7 @@ export function HomeDashboard({
         installedSlugs={installedSlugs}
       />
 
-      <div className="flex flex-col lg:grid lg:grid-cols-[1fr_320px] lg:gap-6 lg:items-start mt-4">
+      <div className="flex flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_320px] xl:grid-cols-[minmax(0,1fr)_352px] lg:gap-5 xl:gap-6 lg:items-start mt-4">
         {/* LEFT — primary stream */}
         <div className="min-w-0">
           <ClubPulseCard
