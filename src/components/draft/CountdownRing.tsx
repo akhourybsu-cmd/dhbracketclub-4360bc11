@@ -120,23 +120,24 @@ export function CountdownRing({
           }}
         />
         <span
-          className="font-mono font-extrabold tabular-nums tracking-tight"
+          className="font-mono font-extrabold tabular-nums tracking-tight whitespace-nowrap"
           style={{
             color: `hsl(${ringColor})`,
-            fontSize: compact ? 13 : 16,
+            fontSize: readoutFontSize,
             textShadow: isUrgent ? `0 0 10px hsl(${ringColor} / 0.55)` : undefined,
           }}
         >
-          {min}:{sec.toString().padStart(2, '0')}
+          {readout}
         </span>
         {!compact && (
           <span
             className="text-[8px] font-extrabold uppercase tracking-[0.18em] mt-0.5"
             style={{ color: `hsl(${ringColor} / 0.7)` }}
           >
-            {isOvertime ? 'Overtime' : isUrgent ? 'Hurry' : 'On Clock'}
+            {isStale ? 'Waiting' : isOvertime ? 'Overtime' : isUrgent ? 'Hurry' : 'On Clock'}
           </span>
         )}
+
       </div>
     </div>
   );
