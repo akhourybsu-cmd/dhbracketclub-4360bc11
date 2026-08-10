@@ -1351,6 +1351,20 @@ export default function DraftDetailPage() {
             </AnimatePresence>
           )}
 
+          {/* Snake order preview — lets players see where they sit without
+              counting picks by hand. */}
+          {!isPlayoffDraft && (
+            <DraftOrderStrip
+              participants={participants as any}
+              picksMade={picks.length}
+              currentPickNumber={currentPickNumber}
+              numRounds={draft.num_rounds}
+              currentUserId={user?.id}
+            />
+          )}
+
+
+
           {/* Pick input */}
           {isMyTurn && (
             <div className="mb-5">
