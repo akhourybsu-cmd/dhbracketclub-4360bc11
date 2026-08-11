@@ -247,6 +247,47 @@ export function useWorkoutArena(clubId: string | undefined, userId: string | und
     }
   }, [weekActivities, myActivities, userId]);
 
+  /** Delete a single logged activity (own row, or any row for club admins —
+   *  RLS enforces which is allowed). */
+  const deleteActivity = useCallback(async (activityId: string) => {
+    if (activityId.startsWith('opt-')) return;
+    const beforeWeek = weekActivities;
+    const beforeMine = myActivities;
+    setWeekActivities(prev => prev.filter(a => a.id !== activityId));
+    setMyActivities(prev => prev.filter(a => a.id !== activityId));
+    const { error: e } = await sb.from('workout_activities').delete().eq('id', activityId);
+    if (e) {
+      setWeekActivities(beforeWeek);
+      setMyActivities(beforeMine);
+      throw e;
+    }
+  }, [weekActivities, myActivities]);
+
+  /** Wipe a member's entire log for a week — optionally scoped to one
+   *  exercise. Members may only reset themselves; admins may reset anyone
+   *  (enforced by RLS, not the client). */
+  const resetWeek = useCallback(async (
+    weekId: string,
+    targetUserId: string,
+    exerciseId?: string,
+  ) => {
+    const beforeWeek = weekActivities;
+    const beforeMine = myActivities;
+    const match = (a: WorkoutActivity) =>
+      a.week_id === weekId && a.user_id === targetUserId && (!exerciseId || a.exercise_id === exerciseId);
+    setWeekActivities(prev => prev.filter(a => !match(a)));
+    setMyActivities(prev => prev.filter(a => !match(a)));
+    let q = sb.from('workout_activities').delete().eq('week_id', weekId).eq('user_id', targetUserId);
+    if (exerciseId) q = q.eq('exercise_id', exerciseId);
+    const { error: e } = await q;
+    if (e) {
+      setWeekActivities(beforeWeek);
+      setMyActivities(beforeMine);
+      throw e;
+    }
+    await refresh();
+  }, [weekActivities, myActivities, refresh]);
+
   /** Persist an achievement unlock (idempotent via the unique index).
    *  Returns true if this was a genuinely new unlock for the user. */
   const insertUnlock = useCallback(async (key: string): Promise<boolean> => {
@@ -263,10 +304,13 @@ export function useWorkoutArena(clubId: string | undefined, userId: string | und
     return !e;
   }, [clubId, userId, unlocks]);
 
+
   return {
     week, weekExercises, weekActivities, myActivities, members, exercisesById,
     unlocks, pastWeeks, groupGoals,
     loading, error, refresh, logActivity, undoLast, insertUnlock,
+    deleteActivity, resetWeek,
+
     localToday,
   };
 }

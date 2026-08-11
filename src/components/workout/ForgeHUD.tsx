@@ -35,7 +35,7 @@ export function ForgeHUD() {
 
   return (
     <header className="sticky top-0 z-40 w-full border-b backdrop-blur-xl"
-      style={{ background: 'hsl(14 45% 5% / 0.72)', borderColor: 'hsl(22 90% 55% / 0.2)', paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+      style={{ background: 'hsl(222 18% 7% / 0.78)', borderColor: 'hsl(24 40% 60% / 0.14)', paddingTop: 'env(safe-area-inset-top, 0px)' }}>
       <div className="flex items-center gap-2 h-12 px-2 max-w-[640px] lg:max-w-[1100px] mx-auto">
         <button type="button" onClick={() => isHub ? navigate('/compete') : navigate('/workouts')}
           aria-label={isHub ? 'Exit FORGE' : 'Back to FORGE'} className="fg-back">
@@ -44,7 +44,7 @@ export function ForgeHUD() {
 
         <Link to="/workouts" className="flex-1 min-w-0 flex items-center gap-2.5">
           <span className="relative w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-            style={{ background: 'radial-gradient(circle at 40% 30%, hsl(24 100% 55% / 0.4), transparent 70%), linear-gradient(135deg, hsl(18 60% 12%), hsl(12 60% 7%))', border: '1px solid hsl(24 95% 55% / 0.4)' }}>
+            style={{ background: 'radial-gradient(circle at 40% 30%, hsl(24 100% 55% / 0.4), transparent 70%), linear-gradient(135deg, hsl(220 14% 18%), hsl(222 18% 10%))', border: '1px solid hsl(24 95% 55% / 0.4)' }}>
             <Flame className="w-4 h-4" style={{ color: 'hsl(28 100% 66%)' }} />
           </span>
           <div className="flex-1 min-w-0 leading-tight">

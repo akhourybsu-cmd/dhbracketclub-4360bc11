@@ -8550,6 +8550,27 @@ export type Database = {
         }
       }
       current_user_club_id: { Args: never; Returns: string }
+      ensure_forge_week: {
+        Args: {
+          p_club_id: string
+          p_ends_at: string
+          p_exercises: Json
+          p_starts_at: string
+          p_theme: string
+          p_title: string
+        }
+        Returns: string
+      }
+      forge_monday_bounds: { Args: never; Returns: Record<string, unknown> }
+      forge_roll_all: { Args: never; Returns: undefined }
+      forge_roll_club: {
+        Args: { p_club_id: string; p_ends_at: string; p_starts_at: string }
+        Returns: string
+      }
+      forge_week_lock: {
+        Args: { p_club_id: string; p_starts_at: string }
+        Returns: undefined
+      }
       get_boost_for_run: { Args: never; Returns: Json }
       get_bracket_pool_id: { Args: { _bracket_id: string }; Returns: string }
       get_club_password: { Args: { _club_id: string }; Returns: string }
