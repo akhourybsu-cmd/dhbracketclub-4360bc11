@@ -28,7 +28,7 @@ export function useWorkoutAdmin(clubId: string | undefined, userId: string | und
   const refresh = useCallback(async () => {
     if (!clubId) { setLoading(false); return; }
     try {
-      const [{ data: exRows }, { data: weekRows }] = await (withTimeout(Promise.all([
+      const [{ data: exRows }, { data: weekRows }] = await withTimeout(Promise.all([
         withTimeout(sb.from('workout_exercises').select('*').eq('club_id', clubId).order('sort_order').order('created_at'), QUERY_TIMEOUT_MS, 'admin exercises'),
         withTimeout(sb.from('workout_weeks').select('*').eq('club_id', clubId).order('starts_at', { ascending: false }), QUERY_TIMEOUT_MS, 'admin weeks'),
       ]), HYDRATE_TIMEOUT_MS, 'workout admin hydrate');
@@ -36,7 +36,7 @@ export function useWorkoutAdmin(clubId: string | undefined, userId: string | und
       const wks = (weekRows || []) as WorkoutWeek[];
       let joined: WeekWithExercises[] = wks.map(w => ({ ...w, exercises: [] }));
       if (wks.length > 0) {
-        const { data: weRows } = await (withTimeout(
+        const { data: weRows } = await withTimeout(
           sb.from('workout_week_exercises').select('*, exercise:workout_exercises(*)').in('week_id', wks.map(w => w.id)).order('sort_order'),
           QUERY_TIMEOUT_MS, 'admin week exercises',
         );
