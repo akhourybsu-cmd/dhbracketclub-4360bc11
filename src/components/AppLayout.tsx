@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { NotificationBell } from '@/components/NotificationBell';
 import { BottomTabBar } from '@/components/BottomTabBar';
+import { PullToRefresh } from '@/components/PullToRefresh';
 import dhMonogram from '@/assets/dh-monogram.png';
 import { useSoundEffect } from '@/hooks/useSoundEffect';
 import { supabase } from '@/integrations/supabase/client';
@@ -94,6 +95,13 @@ function AppLayoutInner({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const { club, isClubAdmin, isPlatformOwner, isAppAdmin } = useClub();
   const [unreadChatCount, setUnreadChatCount] = useState(0);
+  // Bumping this remounts the current page's content, re-running its data
+  // fetch — the effect of a pull-to-refresh without per-page wiring.
+  const [refreshKey, setRefreshKey] = useState(0);
+  const handleRefresh = useCallback(async () => {
+    setRefreshKey(k => k + 1);
+    await new Promise(res => setTimeout(res, 550));
+  }, []);
   const { open: drawerOpen, setOpen: setDrawerOpen } = useNavDrawer();
   const { filterNavPaths } = useClubAssets();
   const lastFetchAtRef = useRef<number>(0);
@@ -252,9 +260,11 @@ function AppLayoutInner({ children }: { children: ReactNode }) {
           // Long-form reading pages (Lore article detail, etc.) re-apply
           // a narrower cap at the page root via `lg:max-w-[760px]
           // lg:mx-auto` so prose stays readable.
-          <div className="max-w-[640px] lg:max-w-[1280px] mx-auto px-4 sm:px-5 pt-5 sm:pt-6 lg:pt-6 pb-24 lg:pb-6 min-w-0">
-            {children}
-          </div>
+          <PullToRefresh onRefresh={handleRefresh}>
+            <div key={refreshKey} className="max-w-[640px] lg:max-w-[1280px] mx-auto px-4 sm:px-5 pt-5 sm:pt-6 lg:pt-6 pb-24 lg:pb-6 min-w-0">
+              {children}
+            </div>
+          </PullToRefresh>
         )}
       </main>
 
