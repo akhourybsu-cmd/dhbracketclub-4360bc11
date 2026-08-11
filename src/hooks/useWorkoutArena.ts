@@ -114,7 +114,7 @@ export function useWorkoutArena(clubId: string | undefined, userId: string | und
       const [{ data: memberRows }, weekBundle, { data: mine }, { data: unlockRows }, { data: pastRows }] = await withTimeout(
         Promise.all([
           withTimeout(
-            sb.from('club_members').select('user_id, profiles:user_id(id, display_name, avatar_url)').eq('club_id', clubId),
+            sb.from('club_members').select('user_id').eq('club_id', clubId),
             QUERY_TIMEOUT_MS, 'workout members',
           ),
           activeWeek
