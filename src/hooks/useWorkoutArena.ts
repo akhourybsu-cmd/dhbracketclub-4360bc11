@@ -147,12 +147,22 @@ export function useWorkoutArena(clubId: string | undefined, userId: string | und
       setMyActivities((mine || []) as WorkoutActivity[]);
       setUnlocks(((unlockRows || []) as any[]).map(r => r.achievement_key));
       setPastWeeks((pastRows || []) as WorkoutWeek[]);
-      setMembers(
-        (memberRows || [])
-          .map((r: any) => r.profiles)
-          .filter((p: any) => p && p.id && p.display_name)
-          .map((p: any) => ({ id: p.id, display_name: p.display_name, avatar_url: p.avatar_url })),
-      );
+      // Profiles are fetched separately — there's no FK embed from
+      // club_members.user_id to profiles, so the join alias silently yields null.
+      const memberIds = ((memberRows || []) as any[]).map(r => r.user_id).filter(Boolean);
+      if (memberIds.length) {
+        const { data: profRows } = await withTimeout(
+          sb.from('profiles').select('id, display_name, avatar_url').in('id', memberIds),
+          QUERY_TIMEOUT_MS, 'workout member profiles',
+        );
+        setMembers(
+          ((profRows || []) as any[])
+            .filter(p => p && p.id)
+            .map(p => ({ id: p.id, display_name: p.display_name || 'Member', avatar_url: p.avatar_url ?? null })),
+        );
+      } else {
+        setMembers([]);
+      }
       setError(null);
     } catch (e: any) {
       setError(e?.message || 'Failed to load Workout Arena');
