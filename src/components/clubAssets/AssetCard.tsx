@@ -6,7 +6,7 @@ import {
   Bookmark, Sparkles, Shield, Trophy, TrendingUp, Lock,
   MessageSquareText, CalendarDays, ScrollText, Newspaper,
   MessageCircle, BarChart3, FileText, Link2, Star,
-  Brackets, EyeOff, Settings, BookOpen,
+  Brackets, EyeOff, Settings, BookOpen, Dumbbell, VenetianMask,
 } from 'lucide-react';
 import type { PlatformAsset, InstalledAsset } from '@/types/assets';
 import { CATEGORY_META } from '@/types/assets';
@@ -18,7 +18,7 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   Bookmark, Sparkles, Shield, Trophy, TrendingUp, Lock,
   MessageSquareText, CalendarDays, ScrollText, Newspaper,
   MessageCircle, BarChart3, FileText, Link2, Star,
-  Brackets, Settings, BookOpen,
+  Brackets, Settings, BookOpen, Dumbbell, VenetianMask,
 };
 
 const CATEGORY_BG: Record<string, string> = {
