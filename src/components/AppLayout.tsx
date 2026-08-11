@@ -4,6 +4,7 @@ import { LayoutDashboard, MessageSquareText, CalendarDays, Swords, Newspaper, Us
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { NotificationBell } from '@/components/NotificationBell';
+import { BottomTabBar } from '@/components/BottomTabBar';
 import dhMonogram from '@/assets/dh-monogram.png';
 import { useSoundEffect } from '@/hooks/useSoundEffect';
 import { supabase } from '@/integrations/supabase/client';
@@ -224,6 +225,10 @@ function AppLayoutInner({ children }: { children: ReactNode }) {
       {/* Drawer */}
       <AppDrawer open={drawerOpen} onOpenChange={setDrawerOpen} unreadChatCount={unreadChatCount} />
 
+      {/* Persistent mobile bottom tab bar — shown on the same surfaces as the
+          mobile header (not in chat / full-screen game shells). */}
+      {showMobileHeader && <BottomTabBar unreadChatCount={unreadChatCount} />}
+
       {/* Main Content */}
       <main className={cn(
         "flex-1 overflow-x-hidden min-w-0",
@@ -247,7 +252,7 @@ function AppLayoutInner({ children }: { children: ReactNode }) {
           // Long-form reading pages (Lore article detail, etc.) re-apply
           // a narrower cap at the page root via `lg:max-w-[760px]
           // lg:mx-auto` so prose stays readable.
-          <div className="max-w-[640px] lg:max-w-[1280px] mx-auto px-4 sm:px-5 py-5 sm:py-6 lg:py-6 min-w-0">
+          <div className="max-w-[640px] lg:max-w-[1280px] mx-auto px-4 sm:px-5 pt-5 sm:pt-6 lg:pt-6 pb-24 lg:pb-6 min-w-0">
             {children}
           </div>
         )}
