@@ -78,11 +78,15 @@ export function useWorkoutArena(clubId: string | undefined, userId: string | und
         activeWeek = (byWindow && byWindow[0]) || null;
       }
 
-      // No active week for this club → the system drops one automatically
-      // (first-open trigger). Idempotent + race-safe via the RPC.
-      if (!activeWeek && ensureAttemptedRef.current !== clubId) {
-        ensureAttemptedRef.current = clubId;
-        const { start, end } = mondayWeekBounds();
+      // No active week — or the current one has ended — → the system drops
+      // this week's gauntlet automatically (first-open fallback to the cron).
+      // Idempotent + race-safe via the RPC; keyed per (club, Monday) so a new
+      // week rolls the next Monday even within a long-lived session.
+      const { start, end } = mondayWeekBounds();
+      const rollKey = `${clubId}:${start.toISOString()}`;
+      const needsRoll = !activeWeek || new Date(activeWeek.ends_at).getTime() <= Date.now();
+      if (needsRoll && ensureAttemptedRef.current !== rollKey) {
+        ensureAttemptedRef.current = rollKey;
         const idx = weekIndexOf(start);
         const exercises = pickWeeklySet(idx).map((e, i) => ({ ...toExercisePayload(e), goal: e.baseline, sort_order: i }));
         try {

@@ -5,17 +5,20 @@ import { useEffect, useState } from 'react';
 // week row was authored, and drive the live countdown that gives the app its
 // "timed competition" pulse.
 
-/** Local Monday 00:00 that starts the week containing `ref`, + the next
- *  Monday 00:00 that ends it. */
+/**
+ * UTC Monday 00:00 that starts the week containing `ref`, + the next UTC
+ * Monday that ends it. The boundary is UTC (not local) so the server cron
+ * and the on-open client agree on the exact `starts_at` instant — that
+ * shared key is what keeps week creation idempotent across both paths.
+ */
 export function mondayWeekBounds(ref: Date = new Date()): { start: Date; end: Date } {
-  const d = new Date(ref);
-  d.setHours(0, 0, 0, 0);
-  const dow = d.getDay();            // 0 Sun … 6 Sat
+  const d = new Date(Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth(), ref.getUTCDate()));
+  const dow = d.getUTCDay();         // 0 Sun … 6 Sat
   const backToMon = (dow + 6) % 7;   // days since Monday
   const start = new Date(d);
-  start.setDate(d.getDate() - backToMon);
+  start.setUTCDate(d.getUTCDate() - backToMon);
   const end = new Date(start);
-  end.setDate(start.getDate() + 7);
+  end.setUTCDate(start.getUTCDate() + 7);
   return { start, end };
 }
 
