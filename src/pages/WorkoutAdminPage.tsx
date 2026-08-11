@@ -8,6 +8,7 @@ import { useClub } from '@/contexts/ClubContext';
 import { useClubAssets } from '@/hooks/useClubAssets';
 import { useWorkoutAdmin, type WeekExerciseInput } from '@/hooks/useWorkoutAdmin';
 import { ExerciseForm } from '@/components/workout/ExerciseForm';
+import { nextMondayBounds } from '@/lib/workout/week';
 import { MEASUREMENT_META, categoryLabel } from '@/lib/workout/measurement';
 import type { WorkoutExercise, WeekStatus } from '@/lib/workout/types';
 
@@ -42,20 +43,21 @@ export default function WorkoutAdminPage() {
   const activeExercises = useMemo(() => admin.exercises.filter(e => e.active), [admin.exercises]);
 
   return (
-    <div className="pb-6">
-      <div className="flex items-center gap-2 mb-4">
-        <Link to="/workouts" className="w-9 h-9 rounded-xl bg-muted/50 flex items-center justify-center btn-press flex-shrink-0"><ChevronLeft className="w-5 h-5" /></Link>
-        <div className="page-header mb-0">
-          <div className="page-header-icon"><Dumbbell className="w-5 h-5" style={{ color: 'hsl(var(--primary))' }} /></div>
-          <div><h1 className="page-header-title">Manage Arena</h1><p className="page-header-subtitle">Workouts & competition weeks</p></div>
-        </div>
+    <div className="pb-6 pt-1">
+      <div className="mb-4">
+        <p className="fg-pill mb-2">🛠 Commissioner</p>
+        <h1 className="text-[20px] font-black tracking-tight" style={{ color: 'hsl(30 40% 96%)' }}>Build the gauntlet</h1>
+        <p className="text-[12px]" style={{ color: 'hsl(30 15% 62%)' }}>Workouts &amp; competition weeks</p>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 p-1 rounded-xl bg-muted/30 mb-4 w-fit">
+      <div className="flex gap-1 p-1 rounded-xl mb-4 w-fit" style={{ background: 'hsl(18 45% 9% / 0.7)', border: '1px solid hsl(24 90% 55% / 0.15)' }}>
         {(['exercises', 'weeks'] as Tab[]).map(t => (
           <button key={t} onClick={() => { setTab(t); setExForm({ open: false }); setWeekFormOpen(false); }}
-            className={cn('px-4 h-8 rounded-lg text-[12px] font-bold capitalize transition-colors', tab === t ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground/70')}>
+            className="px-4 h-8 rounded-lg text-[12px] font-bold capitalize transition-colors"
+            style={tab === t
+              ? { background: 'linear-gradient(135deg, hsl(24 100% 58%), hsl(38 96% 50%))', color: 'hsl(16 40% 8%)' }
+              : { color: 'hsl(28 30% 62%)' }}>
             {t}
           </button>
         ))}
@@ -190,8 +192,9 @@ function WeekForm({
 }) {
   const [title, setTitle] = useState('');
   const [theme, setTheme] = useState('');
-  const [start, setStart] = useState(() => toLocalInput(new Date()));
-  const [end, setEnd] = useState(() => toLocalInput(new Date(Date.now() + 7 * 86400000)));
+  // FORGE runs Monday → Monday: default to this week's Monday bounds.
+  const [start, setStart] = useState(() => toLocalInput(nextMondayBounds().start));
+  const [end, setEnd] = useState(() => toLocalInput(nextMondayBounds().end));
   const [saving, setSaving] = useState(false);
   const [picked, setPicked] = useState<Record<string, { on: boolean; goal: string }>>({});
   // Optional collaborative group goal.
@@ -241,6 +244,16 @@ function WeekForm({
       <h3 className="text-[16px] font-black mb-1">New competition week</h3>
       <div><label className="block text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground/60 mb-1.5">Title</label><input className={inputCls} value={title} onChange={e => setTitle(e.target.value)} placeholder="Full Body Blitz" /></div>
       <div><label className="block text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground/60 mb-1.5">Theme (optional)</label><input className={inputCls} value={theme} onChange={e => setTheme(e.target.value)} placeholder="Week 1" /></div>
+      <div className="flex gap-1.5">
+        {[{ label: 'This Monday', ref: new Date() }, { label: 'Next Monday', ref: new Date(Date.now() + 7 * 86400000) }].map(opt => (
+          <button key={opt.label} type="button"
+            onClick={() => { const b = nextMondayBounds(opt.ref); setStart(toLocalInput(b.start)); setEnd(toLocalInput(b.end)); }}
+            className="h-8 px-3 rounded-lg text-[11px] font-bold" style={{ background: 'hsl(24 95% 55% / 0.12)', border: '1px solid hsl(24 95% 55% / 0.26)', color: 'hsl(28 100% 68%)' }}>
+            {opt.label}
+          </button>
+        ))}
+      </div>
+      <p className="text-[11px] -mt-1" style={{ color: 'hsl(30 15% 60%)' }}>FORGE runs Monday → Monday. Adjust below only for a special event week.</p>
       <div className="grid grid-cols-2 gap-2.5">
         <div><label className="block text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground/60 mb-1.5">Starts</label><input type="datetime-local" className={inputCls} value={start} onChange={e => setStart(e.target.value)} /></div>
         <div><label className="block text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground/60 mb-1.5">Ends</label><input type="datetime-local" className={inputCls} value={end} onChange={e => setEnd(e.target.value)} /></div>

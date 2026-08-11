@@ -46,10 +46,10 @@
 insert into public.platform_assets
   (name, slug, category, short_description, full_description, icon_name, placement_area, requires_configuration, is_premium, sort_order)
 values
-  ('Workout Arena', 'workout-competition', 'games',
-   'A weekly, at-home fitness competition your club plays by exercising.',
-   'Workout Arena turns exercise into a competitive social game. Admins build weekly competitions from a library of configurable workouts — reps, timed holds, distances, circuits and more — each with its own goal and scoring. Members log activity in seconds with a logger purpose-built for that workout (a counter for push-ups, a timer for planks, a round tracker for circuits) and watch their score, records and leaderboard position move in real time.',
-   'Dumbbell', 'games', true, false, 175)
+  ('FORGE', 'workout-competition', 'games',
+   'A weekly at-home fitness gauntlet your club plays by exercising.',
+   'FORGE turns exercise into a competitive social game. Every Monday a fresh gauntlet drops — admins build it from a library of configurable workouts (reps, timed holds, distances, circuits and more), each with its own goal and scoring. Members log activity in seconds with a logger purpose-built for that workout (a counter for push-ups, a timer for planks, a round tracker for circuits) and watch their score, streaks, records and leaderboard position move in real time.',
+   'Flame', 'games', true, false, 175)
 on conflict (slug) do update set
   name                   = excluded.name,
   short_description      = excluded.short_description,

@@ -4253,3 +4253,113 @@
 .light .pw-mode [class*="bg-black/"] { background-color: hsl(220 30% 96% / 0.88) !important; }
 .light .pw-mode .bg-white\/10,
 .light .pw-mode .bg-white\/20 { background-color: hsl(220 40% 14% / 0.06) !important; }
+
+/* ══════════════════════════════════════════════════════════
+   FORGE (.fg-mode) — standalone shell skin
+   Molten ember identity: charcoal base, orange→amber heat.
+   Distinct from Draft Arena (gold+charcoal) and Nexus (cyan).
+   Used by /workouts/* via ForgeLayout.
+   ══════════════════════════════════════════════════════════ */
+.fg-shell {
+  background:
+    radial-gradient(ellipse 120% 55% at 50% 0%, hsl(18 95% 52% / 0.16), transparent 60%),
+    radial-gradient(ellipse 95% 55% at 50% 108%, hsl(36 95% 50% / 0.10), transparent 70%),
+    linear-gradient(180deg, hsl(18 45% 5%), hsl(10 55% 3%));
+  color: hsl(30 30% 96%);
+}
+/* Rising heat haze lines */
+.fg-shell::before {
+  content: '';
+  position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background-image:
+    repeating-linear-gradient(90deg, transparent 0, transparent 60px, hsl(24 95% 55% / 0.04) 60px, hsl(24 95% 55% / 0.04) 61px);
+  mask-image: linear-gradient(180deg, transparent 0%, black 16%, black 84%, transparent 100%);
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, black 16%, black 84%, transparent 100%);
+}
+
+/* Floating ember motes (decorative) */
+.fg-ember {
+  position: fixed; width: 5px; height: 5px; border-radius: 9999px; pointer-events: none; z-index: 1;
+  background: radial-gradient(circle, hsl(28 100% 66% / 0.95), transparent 70%);
+  filter: blur(0.5px);
+  animation: fgEmberRise 7s ease-in-out infinite;
+}
+.fg-ember-2 { animation-duration: 10s; animation-delay: -2.5s; opacity: 0.75; width: 4px; height: 4px; }
+.fg-ember-3 { animation-duration: 8.5s; animation-delay: -5s; opacity: 0.6; }
+@keyframes fgEmberRise {
+  0%   { transform: translateY(10px) translateX(0); opacity: 0; }
+  20%  { opacity: 1; }
+  80%  { opacity: 0.9; }
+  100% { transform: translateY(-26px) translateX(6px); opacity: 0; }
+}
+
+/* Card surfaces (glass-card replacement inside .fg-mode) */
+.fg-mode .fg-glass {
+  background: linear-gradient(180deg, hsl(16 40% 8% / 0.9), hsl(12 50% 4% / 0.94));
+  border: 1px solid hsl(22 90% 55% / 0.18);
+  border-radius: 16px;
+  box-shadow: 0 1px 0 hsl(30 100% 65% / 0.08) inset, 0 10px 30px -16px hsl(18 95% 40% / 0.5);
+  position: relative;
+}
+.fg-mode .fg-subcard {
+  background: hsl(16 35% 9% / 0.55);
+  border: 1px solid hsl(22 90% 55% / 0.1);
+  border-radius: 12px;
+}
+
+/* Back / icon button */
+.fg-mode .fg-back {
+  width: 2.25rem; height: 2.25rem; border-radius: 0.75rem;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: hsl(16 35% 10% / 0.72);
+  border: 1px solid hsl(22 90% 55% / 0.2);
+  color: hsl(28 95% 68%);
+  transition: background 150ms ease, border-color 150ms ease, transform 80ms ease;
+}
+.fg-mode .fg-back:hover { background: hsl(16 35% 14% / 0.9); border-color: hsl(22 90% 55% / 0.36); }
+.fg-mode .fg-back:active { transform: scale(0.94); }
+
+/* Pills + primary CTA */
+.fg-pill {
+  display: inline-flex; align-items: center; gap: 0.35rem; height: 1.55rem; padding: 0 0.6rem;
+  border-radius: 0.5rem; font-size: 10px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase;
+  background: hsl(22 95% 55% / 0.14); border: 1px solid hsl(22 95% 55% / 0.3); color: hsl(28 100% 68%);
+}
+.fg-cta {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
+  font-weight: 900; letter-spacing: 0.04em; color: hsl(16 40% 8%);
+  background: linear-gradient(135deg, hsl(24 100% 60%), hsl(38 96% 50%));
+  box-shadow: 0 6px 20px -4px hsl(20 95% 45% / 0.6), inset 0 1px 0 hsl(40 100% 85% / 0.6);
+  transition: transform 80ms ease, filter 150ms ease;
+}
+.fg-cta:active { transform: scale(0.97); }
+.fg-cta:hover { filter: brightness(1.06); }
+
+/* Heat glow used on the hero score + primary emblems */
+@keyframes fgHeatPulse {
+  0%,100% { opacity: 0.5; transform: scale(1); }
+  50%     { opacity: 0.85; transform: scale(1.06); }
+}
+.fg-heat-glow { animation: fgHeatPulse 2.6s ease-in-out infinite; }
+
+/* Progress bar shimmer */
+@keyframes fgShimmer { 0% { transform: translateX(-120%); } 100% { transform: translateX(320%); } }
+.fg-shimmer::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(90deg, transparent, hsl(40 100% 80% / 0.45), transparent);
+  width: 40%; animation: fgShimmer 2.4s ease-in-out infinite;
+}
+
+/* Boot overlay */
+.fg-boot {
+  background:
+    radial-gradient(ellipse 100% 60% at 50% 40%, hsl(20 90% 22% / 0.5), transparent 70%),
+    linear-gradient(180deg, hsl(18 45% 5%), hsl(10 55% 3%));
+  color: hsl(30 30% 96%);
+}
+.fg-boot-emblem-glow { background: radial-gradient(circle, hsl(24 100% 55% / 0.6), transparent 68%); }
+.fg-boot-ring { border-color: hsl(28 95% 60% / 0.4); }
+.fg-boot-eyebrow { color: hsl(28 95% 66%); }
+.fg-boot-title { color: hsl(30 40% 97%); text-shadow: 0 0 22px hsl(24 100% 55% / 0.45); }
+.fg-boot-bar-track { background: hsl(20 40% 14% / 0.8); border: 1px solid hsl(22 90% 55% / 0.18); }
+.fg-boot-bar-fill { background: linear-gradient(90deg, hsl(24 100% 60%), hsl(40 96% 55%)); box-shadow: 0 0 14px hsl(24 100% 55% / 0.7); }

@@ -1,6 +1,6 @@
 import { ReactNode, useEffect, useState, useCallback, useRef } from 'react';
 import { useLocation, Link } from 'react-router-dom';
-import { LayoutDashboard, MessageSquareText, CalendarDays, Swords, Newspaper, User, Trophy, BarChart3, MessageCircle, Bookmark, Link2, ScrollText, Lock, FileText, Sparkles, Shield, Menu, Brackets as BracketsIcon, TrendingUp, Settings, Cake, BookOpen, BookMarked, Dumbbell } from 'lucide-react';
+import { LayoutDashboard, MessageSquareText, CalendarDays, Swords, Newspaper, User, Trophy, BarChart3, MessageCircle, Bookmark, Link2, ScrollText, Lock, FileText, Sparkles, Shield, Menu, Brackets as BracketsIcon, TrendingUp, Settings, Cake, BookOpen, BookMarked, Dumbbell, Flame } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { NotificationBell } from '@/components/NotificationBell';
@@ -42,7 +42,7 @@ const STATIC_SECTIONS: SidebarSection[] = [
       { path: '/portfolio-wars', label: 'Portfolio Wars', icon: TrendingUp },
       { path: '/lockbox', label: 'Lockbox', icon: Lock },
       { path: '/readshift', label: 'READSHIFT', icon: BookMarked },
-      { path: '/workouts', label: 'Workout Arena', icon: Dumbbell },
+      { path: '/workouts', label: 'FORGE', icon: Flame },
     ],
   },
   {
@@ -160,11 +160,13 @@ function AppLayoutInner({ children }: { children: ReactNode }) {
   const isDrafts = location.pathname.startsWith('/drafts');
   const isPortfolioWars = location.pathname.startsWith('/portfolio-wars');
   const isReadshift = location.pathname.startsWith('/readshift');
+  const isForge = location.pathname.startsWith('/workouts');
   // Draft Arena keeps its own gold HUD, but on desktop it now lives INSIDE the
   // shared DH Club frame (global sidebar + notifications) instead of replacing
   // the whole shell. Mobile behaviour is unchanged: full-bleed game shell.
-  const isGameShell = isRuneDelve || isNexus || isPickem || isDrafts || isPortfolioWars || isReadshift;
-  const isImmersiveShell = isGameShell && !isDrafts;
+  // FORGE behaves like Draft Arena: own HUD, keeps the desktop DH frame.
+  const isGameShell = isRuneDelve || isNexus || isPickem || isDrafts || isPortfolioWars || isReadshift || isForge;
+  const isImmersiveShell = isGameShell && !isDrafts && !isForge;
 
 
   const isNavActive = (path: string) => {

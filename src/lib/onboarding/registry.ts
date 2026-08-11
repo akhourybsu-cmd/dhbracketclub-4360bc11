@@ -415,21 +415,21 @@ const REGISTRY: Record<string, FeatureOnboarding> = {
 
   'workout-competition': {
     featureKey: 'workout-competition',
-    displayName: 'Workout Arena',
-    shortDescription: 'A weekly at-home fitness competition you play by exercising.',
+    displayName: 'FORGE',
+    shortDescription: 'A weekly at-home fitness gauntlet you play by exercising.',
     featureType: 'game',
     importance: 'important',
     version: 1,
-    iconKey: 'Dumbbell',
+    iconKey: 'Flame',
     tags: ['Fitness', 'Weekly', 'Competition', 'Leaderboard'],
-    onboardingTitle: 'Workout Arena is live',
-    onboardingSummary: 'Log push-ups, planks, runs and more in seconds. Every workout has its own logger, and your reps climb the weekly leaderboard.',
+    onboardingTitle: 'FORGE is live',
+    onboardingSummary: 'Every Monday a fresh gauntlet drops. Log push-ups, planks and runs in seconds, climb the leaderboard, and forge streaks, records and badges that never reset.',
     onboardingSteps: [
-      { title: 'Log in seconds', body: 'Each workout gives you the right tool — a tap counter for push-ups, a persistent timer for planks, a round tracker for circuits. No forms.', iconKey: 'Timer' },
-      { title: 'Chase the weekly goal', body: 'Every week is a fresh competition with its own workouts and goals. Your activity earns competition points toward the leaderboard.', iconKey: 'Trophy' },
-      { title: 'Level up for good', body: 'Competition score resets each week, but XP, records and milestones keep building the whole time you play.', iconKey: 'TrendingUp' },
+      { title: 'Log in seconds', body: 'Each workout hands you the right tool — a tap counter for push-ups, a persistent timer for planks, a round tracker for circuits. No forms.', iconKey: 'Timer' },
+      { title: 'A new gauntlet every Monday', body: 'Competitions run Monday to Monday. Your activity earns points toward the weekly leaderboard before the clock runs out.', iconKey: 'Flame' },
+      { title: 'Forge lasting progress', body: 'Weekly score resets, but XP, records, streaks and badges keep building the whole time you play.', iconKey: 'TrendingUp' },
     ],
-    primaryCta: { label: 'Open Workout Arena', route: '/workouts' },
+    primaryCta: { label: 'Enter FORGE', route: '/workouts' },
   },
 };
 

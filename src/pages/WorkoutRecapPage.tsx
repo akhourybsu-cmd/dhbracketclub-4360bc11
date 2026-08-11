@@ -63,12 +63,9 @@ export default function WorkoutRecapPage() {
   if (!assetsLoading && !installed) return <Navigate to="/dashboard" replace />;
 
   const header = (
-    <div className="flex items-center gap-2 mb-4">
-      <Link to="/workouts" className="w-9 h-9 rounded-xl bg-muted/50 flex items-center justify-center btn-press flex-shrink-0"><ChevronLeft className="w-5 h-5" /></Link>
-      <div className="page-header mb-0">
-        <div className="page-header-icon"><Trophy className="w-5 h-5" style={{ color: 'hsl(var(--primary))' }} /></div>
-        <div><h1 className="page-header-title">Week Recap</h1><p className="page-header-subtitle">{week?.title ?? 'Competition results'}</p></div>
-      </div>
+    <div className="mb-4 pt-1">
+      <p className="fg-pill mb-2">🏆 Final Results</p>
+      <h1 className="text-[20px] font-black tracking-tight" style={{ color: 'hsl(30 40% 96%)' }}>{week?.title ?? 'Week Recap'}</h1>
     </div>
   );
 

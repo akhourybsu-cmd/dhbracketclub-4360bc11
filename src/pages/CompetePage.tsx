@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Trophy, BarChart3, MessageCircle, Bookmark, ChevronRight, Lock, Shield,
-  Swords, TrendingUp, VenetianMask, Dumbbell,
+  Swords, TrendingUp, VenetianMask, Flame,
 } from 'lucide-react';
 import { useClub } from '@/contexts/ClubContext';
 import * as readshiftApi from '@/lib/readshift/api';
@@ -21,7 +21,7 @@ import nexusEmblem from '@/assets/nexus-emblem.png';
 import pickemEmblem from '@/assets/pickem-emblem.png';
 import draftEmblem from '@/assets/draft-emblem.png';
 
-/* ── Workout Arena card ── */
+/* ── FORGE card ── */
 function WorkoutArenaCompeteCard() {
   const { club } = useClub();
   const [week, setWeek] = useState<{ title: string; ends_at: string } | null>(null);
@@ -51,12 +51,12 @@ function WorkoutArenaCompeteCard() {
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg, hsl(var(--primary) / 0.2), hsl(var(--primary) / 0.05))' }}>
-              <Dumbbell className="w-5 h-5" style={{ color: 'hsl(var(--primary))' }} />
+              style={{ background: 'radial-gradient(circle at 40% 30%, hsl(24 100% 55% / 0.35), transparent 70%), linear-gradient(135deg, hsl(18 60% 14%), hsl(12 60% 8%))', border: '1px solid hsl(24 95% 55% / 0.35)' }}>
+              <Flame className="w-5 h-5" style={{ color: 'hsl(28 100% 66%)' }} />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <h2 className="font-bold text-[15px] tracking-tight">Workout Arena</h2>
+                <h2 className="font-black text-[15px] tracking-[0.14em]">FORGE</h2>
                 <StatusPill variant={week ? 'live' : 'neutral'} size="xs" dot={!!week} pulse={!!week}>{week ? 'Live' : 'Weekly'}</StatusPill>
               </div>
               <p className="text-[11px] text-muted-foreground/70 truncate">{context}</p>
