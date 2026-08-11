@@ -8,6 +8,14 @@ import { AssetCard } from './AssetCard';
 import { InstallAssetSheet } from './InstallAssetSheet';
 import type { PlatformAsset, InstalledAsset } from '@/types/assets';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
+
+/** Assets whose install sheet's "Configure now" should deep-link somewhere real. */
+const CONFIG_ROUTES: Record<string, string> = {
+  'workout-competition': '/workouts/admin',
+  'nfl-pickem': '/pickem/admin',
+  'draft-arena': '/drafts',
+};
 
 type FilterTab = 'all' | 'installed' | 'games' | 'social' | 'events' | 'admin-tools' | 'experimental';
 
@@ -31,6 +39,7 @@ function errMessage(err: unknown): string {
 }
 
 export function ClubAssetLibrary() {
+  const navigate = useNavigate();
   const {
     allAssets, installedAssets, loading,
     pendingInstall, pendingUninstall, pendingToggle,

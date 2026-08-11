@@ -62,7 +62,6 @@ const ASSET_META: Record<string, TileMeta> = {
   'rankings':       { to: '/rankings',        icon: BarChart3,        tint: '195 80% 60%' },
   'posts':          { to: '/posts',           icon: FileText,         tint: '195 80% 65%' },
   'workout-competition': { to: '/workouts', icon: Dumbbell, tint: '15 90% 58%' },
-  'readshift':      { to: '/readshift',      icon: VenetianMask,    tint: '285 82% 66%' },
   'shared-media':   { to: '/shared',          icon: Link2,            tint: '195 80% 65%' },
 };
 
