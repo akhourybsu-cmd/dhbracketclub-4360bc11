@@ -101,7 +101,7 @@ export function useWorkoutArena(clubId: string | undefined, userId: string | und
           ),
         ]),
         HYDRATE_TIMEOUT_MS, 'workout arena hydrate',
-      ) as any;
+      );
 
       const [{ data: weRows }, { data: actRows }, { data: ggRows }] = weekBundle as any;
       setWeekExercises((weRows || []).filter((r: any) => r.exercise) as WeekExerciseWithDef[]);

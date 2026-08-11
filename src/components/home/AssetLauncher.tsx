@@ -19,7 +19,7 @@ import { StatusPill, type StatusPillVariant } from '@/components/ui/status-pill'
 import {
   Bookmark, TrendingUp, Lock, Trophy, MessageSquareText,
   CalendarDays, ScrollText, Newspaper, MessageCircle, BarChart3, FileText, Link2,
-  BookMarked, Plus,
+  BookMarked, Plus, Dumbbell, VenetianMask,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { InstalledAsset } from '@/types/assets';
@@ -61,6 +61,7 @@ const ASSET_META: Record<string, TileMeta> = {
   'polls':          { to: '/polls',           icon: MessageCircle,    tint: '38 95% 60%' },
   'rankings':       { to: '/rankings',        icon: BarChart3,        tint: '195 80% 60%' },
   'posts':          { to: '/posts',           icon: FileText,         tint: '195 80% 65%' },
+  'workout-competition': { to: '/workouts', icon: Dumbbell, tint: '15 90% 58%' },
   'shared-media':   { to: '/shared',          icon: Link2,            tint: '195 80% 65%' },
 };
 

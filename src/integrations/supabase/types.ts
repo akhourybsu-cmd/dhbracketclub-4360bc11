@@ -8036,6 +8036,353 @@ export type Database = {
         }
         Relationships: []
       }
+      workout_achievement_unlocks: {
+        Row: {
+          achievement_key: string
+          club_id: string
+          id: string
+          metadata: Json
+          unlocked_at: string
+          user_id: string
+        }
+        Insert: {
+          achievement_key: string
+          club_id: string
+          id?: string
+          metadata?: Json
+          unlocked_at?: string
+          user_id: string
+        }
+        Update: {
+          achievement_key?: string
+          club_id?: string
+          id?: string
+          metadata?: Json
+          unlocked_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workout_achievement_unlocks_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workout_activities: {
+        Row: {
+          activity_local_date: string
+          club_id: string
+          competition_points: number | null
+          created_at: string
+          ended_at: string | null
+          exercise_id: string
+          id: string
+          logged_at: string
+          measurement_type: string
+          metadata: Json
+          raw_value: number
+          source_activity_id: string | null
+          source_type: string
+          started_at: string | null
+          status: string
+          unit: string
+          user_id: string
+          week_id: string | null
+          xp_awarded: number | null
+        }
+        Insert: {
+          activity_local_date: string
+          club_id: string
+          competition_points?: number | null
+          created_at?: string
+          ended_at?: string | null
+          exercise_id: string
+          id?: string
+          logged_at?: string
+          measurement_type: string
+          metadata?: Json
+          raw_value: number
+          source_activity_id?: string | null
+          source_type?: string
+          started_at?: string | null
+          status?: string
+          unit: string
+          user_id: string
+          week_id?: string | null
+          xp_awarded?: number | null
+        }
+        Update: {
+          activity_local_date?: string
+          club_id?: string
+          competition_points?: number | null
+          created_at?: string
+          ended_at?: string | null
+          exercise_id?: string
+          id?: string
+          logged_at?: string
+          measurement_type?: string
+          metadata?: Json
+          raw_value?: number
+          source_activity_id?: string | null
+          source_type?: string
+          started_at?: string | null
+          status?: string
+          unit?: string
+          user_id?: string
+          week_id?: string | null
+          xp_awarded?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workout_activities_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workout_activities_exercise_id_fkey"
+            columns: ["exercise_id"]
+            isOneToOne: false
+            referencedRelation: "workout_exercises"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workout_activities_week_id_fkey"
+            columns: ["week_id"]
+            isOneToOne: false
+            referencedRelation: "workout_weeks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workout_exercises: {
+        Row: {
+          active: boolean
+          category: string
+          club_id: string
+          created_at: string
+          created_by: string | null
+          default_weekly_goal: number | null
+          icon_name: string | null
+          id: string
+          instructions: string | null
+          logging_config: Json
+          measurement_type: string
+          milestone_config: Json
+          name: string
+          scoring_config: Json
+          short_description: string | null
+          sort_order: number
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          category?: string
+          club_id: string
+          created_at?: string
+          created_by?: string | null
+          default_weekly_goal?: number | null
+          icon_name?: string | null
+          id?: string
+          instructions?: string | null
+          logging_config?: Json
+          measurement_type: string
+          milestone_config?: Json
+          name: string
+          scoring_config?: Json
+          short_description?: string | null
+          sort_order?: number
+          unit?: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          category?: string
+          club_id?: string
+          created_at?: string
+          created_by?: string | null
+          default_weekly_goal?: number | null
+          icon_name?: string | null
+          id?: string
+          instructions?: string | null
+          logging_config?: Json
+          measurement_type?: string
+          milestone_config?: Json
+          name?: string
+          scoring_config?: Json
+          short_description?: string | null
+          sort_order?: number
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workout_exercises_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workout_group_goals: {
+        Row: {
+          club_id: string
+          created_at: string
+          created_by: string | null
+          exercise_id: string
+          id: string
+          target: number
+          title: string
+          updated_at: string
+          week_id: string
+        }
+        Insert: {
+          club_id: string
+          created_at?: string
+          created_by?: string | null
+          exercise_id: string
+          id?: string
+          target: number
+          title: string
+          updated_at?: string
+          week_id: string
+        }
+        Update: {
+          club_id?: string
+          created_at?: string
+          created_by?: string | null
+          exercise_id?: string
+          id?: string
+          target?: number
+          title?: string
+          updated_at?: string
+          week_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workout_group_goals_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workout_group_goals_exercise_id_fkey"
+            columns: ["exercise_id"]
+            isOneToOne: false
+            referencedRelation: "workout_exercises"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workout_group_goals_week_id_fkey"
+            columns: ["week_id"]
+            isOneToOne: false
+            referencedRelation: "workout_weeks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workout_week_exercises: {
+        Row: {
+          created_at: string
+          exercise_id: string
+          goal: number | null
+          id: string
+          scoring_config: Json
+          sort_order: number
+          week_id: string
+        }
+        Insert: {
+          created_at?: string
+          exercise_id: string
+          goal?: number | null
+          id?: string
+          scoring_config?: Json
+          sort_order?: number
+          week_id: string
+        }
+        Update: {
+          created_at?: string
+          exercise_id?: string
+          goal?: number | null
+          id?: string
+          scoring_config?: Json
+          sort_order?: number
+          week_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workout_week_exercises_exercise_id_fkey"
+            columns: ["exercise_id"]
+            isOneToOne: false
+            referencedRelation: "workout_exercises"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workout_week_exercises_week_id_fkey"
+            columns: ["week_id"]
+            isOneToOne: false
+            referencedRelation: "workout_weeks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workout_weeks: {
+        Row: {
+          club_id: string
+          created_at: string
+          created_by: string | null
+          ends_at: string
+          id: string
+          scoring_config: Json
+          starts_at: string
+          status: string
+          theme: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          club_id: string
+          created_at?: string
+          created_by?: string | null
+          ends_at: string
+          id?: string
+          scoring_config?: Json
+          starts_at: string
+          status?: string
+          theme?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          club_id?: string
+          created_at?: string
+          created_by?: string | null
+          ends_at?: string
+          id?: string
+          scoring_config?: Json
+          starts_at?: string
+          status?: string
+          theme?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workout_weeks_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       nfl_team_records: {
