@@ -38,7 +38,12 @@
  *
  *  Use this on every external async dependency in a loading hook so a
  *  hung query can never strand the UI on a skeleton. */
-export function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+export function withTimeout<T>(p: PromiseLike<T>, ms: number, label: string): Promise<T>;
+// Supabase query builders are thenables typed loosely (`any` when accessed via
+// the `sb as any` escape hatch) — this overload keeps them usable without
+// collapsing the result type to `{}`.
+export function withTimeout<T = any>(p: any, ms: number, label: string): Promise<T>;
+export function withTimeout<T>(p: PromiseLike<T>, ms: number, label: string): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const t = setTimeout(() => {
       reject(new Error(`${label} timed out after ${ms}ms`));
