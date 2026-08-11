@@ -6,6 +6,8 @@ import type {
   WorkoutWeek, WorkoutExercise, WorkoutActivity, WeekExerciseWithDef,
   LogActivityInput, GroupGoalWithDef,
 } from '@/lib/workout/types';
+import { mondayWeekBounds } from '@/lib/workout/week';
+import { pickWeeklySet, weekIndexOf, weekTitleFor, toExercisePayload } from '@/lib/workout/library';
 
 // Untyped table access — workout_* tables aren't in the generated types yet.
 const sb = supabase as any;
@@ -40,6 +42,9 @@ export function useWorkoutArena(clubId: string | undefined, userId: string | und
   const [groupGoals, setGroupGoals] = useState<GroupGoalWithDef[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Only attempt auto-creation once per (club) per mount, so a failed RPC
+  // (e.g. migration not deployed yet) can't spin.
+  const ensureAttemptedRef = useRef<string | null>(null);
 
   const exercisesById = useMemo(() => {
     const m = new Map<string, WorkoutExercise>();
@@ -72,6 +77,34 @@ export function useWorkoutArena(clubId: string | undefined, userId: string | und
         );
         activeWeek = (byWindow && byWindow[0]) || null;
       }
+
+      // No active week for this club → the system drops one automatically
+      // (first-open trigger). Idempotent + race-safe via the RPC.
+      if (!activeWeek && ensureAttemptedRef.current !== clubId) {
+        ensureAttemptedRef.current = clubId;
+        const { start, end } = mondayWeekBounds();
+        const idx = weekIndexOf(start);
+        const exercises = pickWeeklySet(idx).map((e, i) => ({ ...toExercisePayload(e), goal: e.baseline, sort_order: i }));
+        try {
+          await withTimeout(
+            sb.rpc('ensure_forge_week', {
+              p_club_id: clubId,
+              p_starts_at: start.toISOString(),
+              p_ends_at: end.toISOString(),
+              p_title: weekTitleFor(idx),
+              p_theme: 'Weekly Gauntlet',
+              p_exercises: exercises,
+            }),
+            HYDRATE_TIMEOUT_MS, 'ensure forge week',
+          );
+          const { data: fresh } = await withTimeout(
+            sb.from('workout_weeks').select('*').eq('club_id', clubId).in('status', ['active']).order('starts_at', { ascending: false }).limit(1),
+            QUERY_TIMEOUT_MS, 'forge week refetch',
+          );
+          activeWeek = (fresh && fresh[0]) || null;
+        } catch { /* migration may not be deployed yet — fall back to cold state */ }
+      }
+
       setWeek(activeWeek);
 
       const [{ data: memberRows }, weekBundle, { data: mine }, { data: unlockRows }, { data: pastRows }] = await withTimeout(

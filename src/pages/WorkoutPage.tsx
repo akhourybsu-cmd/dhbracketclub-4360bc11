@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Dumbbell, Trophy, ChevronRight, Flame, Timer, Play, Medal, Users, Settings } from 'lucide-react';
+import { Dumbbell, Trophy, ChevronRight, Flame, Timer, Play, Medal, Users, Settings, HelpCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,11 +9,13 @@ import { useClub } from '@/contexts/ClubContext';
 import { useClubAssets } from '@/hooks/useClubAssets';
 import { useWorkoutArena } from '@/hooks/useWorkoutArena';
 import { WorkoutLoggerSheet } from '@/components/workout/WorkoutLoggerSheet';
+import { TutorialSheet } from '@/components/workout/TutorialSheet';
 import {
   buildLeaderboard, computeExerciseProgress, userWeekScore,
-  lifetimeXp, levelFromXp, computeStreak, computeRecords, computeMilestones,
+  lifetimeXp, levelFromXp, computeStreak, computeRecords, computeMilestones, personalGoal,
 } from '@/lib/workout/scoring';
-import { useCountdown } from '@/lib/workout/week';
+import { useCountdown, mondayWeekBounds } from '@/lib/workout/week';
+import { LIBRARY_BY_KEY } from '@/lib/workout/library';
 import { formatValue, formatValueShort, goalUnitLabel, MEASUREMENT_META } from '@/lib/workout/measurement';
 import {
   evaluateAchievements, ACHIEVEMENTS_BY_KEY, ACHIEVEMENTS,
@@ -109,7 +111,13 @@ export default function WorkoutPage() {
   } = useWorkoutArena(club?.id, user?.id);
 
   const [selected, setSelected] = useState<WeekExerciseWithDef | null>(null);
+  const [tutorialKey, setTutorialKey] = useState<string | null>(null);
   const [poppedGoal, setPoppedGoal] = useState<string | null>(null);
+
+  const currentMondayKey = useMemo(() => {
+    const d = mondayWeekBounds().start;
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }, []);
 
   const nameById = useMemo(() => {
     const m = new Map<string, string>();
@@ -172,13 +180,24 @@ export default function WorkoutPage() {
     return next != null ? formatValue(ex.measurement_type, next) : null;
   };
 
+  const libKeyOf = (we: WeekExerciseWithDef): string | null =>
+    (we.exercise.logging_config as any)?.lib_key ?? null;
+  const personalGoalFor = (we: WeekExerciseWithDef): number => {
+    const lib = LIBRARY_BY_KEY[libKeyOf(we) ?? ''];
+    const baseline = lib?.baseline ?? we.goal ?? we.exercise.default_weekly_goal ?? 0;
+    const isTime = MEASUREMENT_META[we.exercise.measurement_type].isTime;
+    const acts = myActivities.filter(a => a.exercise_id === we.exercise_id);
+    return personalGoal(baseline, isTime, acts, currentMondayKey);
+  };
+
   const quickLog = async (we: WeekExerciseWithDef, amount: number) => {
-    const before = computeExerciseProgress(we, myWeekActivities).goalPct;
+    const pg = personalGoalFor(we);
+    const before = computeExerciseProgress(we, myWeekActivities, pg).goalPct;
     try {
       await logActivity({ exercise: we.exercise, weekId: week?.id ?? null, rawValue: amount });
       try { navigator.vibrate?.(8); } catch { /* ignore */ }
-      // Celebrate the moment a weekly goal is crossed.
-      const after = computeExerciseProgress(we, [...myWeekActivities, { raw_value: amount } as any]).goalPct;
+      // Celebrate the moment a personal goal is crossed.
+      const after = computeExerciseProgress(we, [...myWeekActivities, { raw_value: amount } as any], pg).goalPct;
       if (before < 1 && after >= 1) {
         setPoppedGoal(we.id);
         setTimeout(() => setPoppedGoal(cur => (cur === we.id ? null : cur)), 1400);
@@ -285,15 +304,42 @@ export default function WorkoutPage() {
         );
       })}
 
+      {/* Auto club goal (scaled to club size) — shown when no admin goal exists */}
+      {groupGoals.length === 0 && members.length > 0 && (() => {
+        const headline = weekExercises.find(w => MEASUREMENT_META[w.exercise.measurement_type].logger === 'rep') ?? weekExercises[0];
+        if (!headline) return null;
+        const lib = LIBRARY_BY_KEY[libKeyOf(headline) ?? ''];
+        const base = lib?.baseline ?? headline.goal ?? headline.exercise.default_weekly_goal ?? 100;
+        const target = Math.round(members.length * base);
+        const combined = weekActivities.filter(a => a.exercise_id === headline.exercise_id).reduce((t, a) => t + Number(a.raw_value), 0);
+        const pct = target > 0 ? Math.min(1, combined / target) : 0;
+        return (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="fg-glass p-4 mb-4" style={{ borderColor: 'hsl(24 95% 55% / 0.32)' }}>
+            <div className="flex items-center gap-2 mb-2">
+              <Users className="w-4 h-4" style={{ color: 'hsl(28 100% 66%)' }} />
+              <h3 className="text-[12px] font-black uppercase tracking-[0.14em]" style={{ color: 'hsl(28 90% 66%)' }}>Club Goal</h3>
+              {pct >= 1 && <span className="ml-auto text-[11px] font-black" style={{ color: 'hsl(38 100% 62%)' }}>Cleared 🎉</span>}
+            </div>
+            <p className="text-[14px] font-bold mb-2" style={{ color: 'hsl(30 30% 92%)' }}>{target.toLocaleString()} {headline.exercise.name.toLowerCase()} together this week</p>
+            <div className="flex items-baseline justify-between mb-1.5">
+              <span className="text-[19px] font-black tabular-nums" style={{ color: 'hsl(30 45% 96%)' }}>{formatValueShort(headline.exercise.measurement_type, combined)}</span>
+              <span className="text-[12px] font-bold tabular-nums" style={{ color: 'hsl(28 30% 60%)' }}>/ {formatValueShort(headline.exercise.measurement_type, target)}</span>
+            </div>
+            <EmberBar pct={pct} height="h-2.5" />
+          </motion.div>
+        );
+      })()}
+
       {/* Workouts */}
       <h3 className="text-[11px] font-black uppercase tracking-[0.16em] mb-2.5 px-1" style={{ color: 'hsl(28 45% 62%)' }}>This week’s workouts</h3>
       <div className="space-y-2.5 mb-6">
         {weekExercises.map((we, i) => {
-          const prog = computeExerciseProgress(we, myWeekActivities);
+          const prog = computeExerciseProgress(we, myWeekActivities, personalGoalFor(we));
           const meta = MEASUREMENT_META[we.exercise.measurement_type];
           const isRepLike = meta.logger === 'rep' || meta.logger === 'round';
           const quick = we.exercise.logging_config.quick_add?.slice(0, 3) ?? [1, 5, 10];
           const cleared = prog.goalPct >= 1;
+          const hasTutorial = !!libKeyOf(we);
           return (
             <motion.div key={we.id} custom={i} variants={tileVariants} initial="hidden" animate="show" className="fg-glass p-3.5 relative overflow-hidden">
               <AnimatePresence>
@@ -328,6 +374,13 @@ export default function WorkoutPage() {
               </button>
 
               <div className="flex gap-2 mt-3">
+                {hasTutorial && (
+                  <button onClick={() => setTutorialKey(libKeyOf(we))} aria-label={`How to do ${we.exercise.name}`}
+                    className="h-11 w-11 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ background: 'hsl(18 50% 11% / 0.8)', border: '1px solid hsl(24 90% 55% / 0.22)', color: 'hsl(28 90% 66%)' }}>
+                    <HelpCircle className="w-5 h-5" />
+                  </button>
+                )}
                 {isRepLike ? (
                   meta.logger === 'round' ? (
                     <button onClick={() => quickLog(we, 1)} className="fg-cta flex-1 h-11 rounded-xl text-[14px]">Complete round</button>
@@ -427,6 +480,8 @@ export default function WorkoutPage() {
         }}
         onUndo={selected ? async () => { try { await undoLast(selected.exercise.id); } catch { toast.error('Undo failed'); } } : undefined}
       />
+
+      <TutorialSheet libKey={tutorialKey} onClose={() => setTutorialKey(null)} />
     </div>
   );
 }

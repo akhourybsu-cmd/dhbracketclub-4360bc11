@@ -67,10 +67,14 @@ export interface ExerciseProgress {
 export function computeExerciseProgress(
   we: WeekExerciseWithDef,
   userActivities: WorkoutActivity[],
+  /** Personal target override (from history). Affects the displayed goal +
+   *  goalPct only — competition points always use the shared scoring config
+   *  so the leaderboard stays consistent for every viewer. */
+  goalOverride?: number | null,
 ): ExerciseProgress {
   const acts = userActivities.filter(a => a.exercise_id === we.exercise_id && active(a));
   const totalRaw = sumRaw(acts);
-  const goal = we.goal ?? we.exercise.default_weekly_goal ?? null;
+  const goal = goalOverride ?? we.goal ?? we.exercise.default_weekly_goal ?? null;
   const scoring = mergeScoring(we.exercise.scoring_config, we.scoring_config);
   return {
     exerciseId: we.exercise_id,
@@ -81,6 +85,49 @@ export function computeExerciseProgress(
     maxPoints: scoring.max_weekly_points ?? null,
     sessionCount: acts.length,
   };
+}
+
+// ─── Personal goals (per-member, from their own history) ────────────
+
+/** Monday (local) key for an activity's local date — groups activity by week. */
+function mondayKey(localDate: string): string {
+  const [y, m, d] = localDate.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  const backToMon = (dt.getUTCDay() + 6) % 7;
+  dt.setUTCDate(dt.getUTCDate() - backToMon);
+  return dt.toISOString().slice(0, 10);
+}
+
+/** Round a target to a clean value for its measurement type. */
+function roundGoal(value: number, isTime: boolean): number {
+  if (isTime) return Math.max(30, Math.round(value / 30) * 30);        // 30s steps
+  if (value >= 100) return Math.round(value / 10) * 10;                // nearest 10
+  if (value >= 20) return Math.round(value / 5) * 5;                   // nearest 5
+  return Math.max(1, Math.round(value));
+}
+
+/**
+ * A reasonable personal weekly target for one exercise, from the member's
+ * own history: progressive overload (+10%) over their best of the last few
+ * weeks, floored so it never collapses; the library baseline for newcomers.
+ */
+export function personalGoal(
+  baseline: number,
+  isTime: boolean,
+  priorActivities: WorkoutActivity[],
+  currentMondayKey: string,
+): number {
+  const byWeek = new Map<string, number>();
+  for (const a of priorActivities) {
+    if (a.status !== 'active') continue;
+    const k = mondayKey(a.activity_local_date);
+    if (k === currentMondayKey) continue; // exclude the in-progress week
+    byWeek.set(k, (byWeek.get(k) ?? 0) + Number(a.raw_value));
+  }
+  const weeks = [...byWeek.entries()].sort((a, b) => (a[0] < b[0] ? 1 : -1)).slice(0, 4).map(e => e[1]);
+  if (weeks.length === 0) return roundGoal(baseline, isTime);
+  const recentBest = Math.max(...weeks);
+  return roundGoal(Math.max(baseline * 0.6, recentBest * 1.1), isTime);
 }
 
 // ─── Leaderboard ────────────────────────────────────────────────────
