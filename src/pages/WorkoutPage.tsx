@@ -10,6 +10,7 @@ import { useClubAssets } from '@/hooks/useClubAssets';
 import { useWorkoutArena } from '@/hooks/useWorkoutArena';
 import { WorkoutLoggerSheet } from '@/components/workout/WorkoutLoggerSheet';
 import { TutorialSheet } from '@/components/workout/TutorialSheet';
+import { ClubFlame } from '@/components/workout/ClubFlame';
 import {
   buildLeaderboard, computeExerciseProgress, userWeekScore,
   lifetimeXp, levelFromXp, computeStreak, computeRecords, computeMilestones, personalGoal,
@@ -126,9 +127,23 @@ export default function WorkoutPage() {
   }, [members]);
 
   const myWeekActivities = useMemo(() => weekActivities.filter(a => a.user_id === user?.id), [weekActivities, user?.id]);
-  const leaderboard = useMemo(() => buildLeaderboard(weekExercises, weekActivities, user?.id ? [user.id] : []), [weekExercises, weekActivities, user?.id]);
+  // Seed EVERY club member as a row so the roster shows all players.
+  const rosterSeed = useMemo(() => {
+    const ids = members.map(m => m.id);
+    if (user?.id && !ids.includes(user.id)) ids.push(user.id);
+    return ids;
+  }, [members, user?.id]);
+  const leaderboard = useMemo(() => buildLeaderboard(weekExercises, weekActivities, rosterSeed), [weekExercises, weekActivities, rosterSeed]);
   const myScore = useMemo(() => userWeekScore(weekExercises, myWeekActivities), [weekExercises, myWeekActivities]);
   const myRank = leaderboard.find(r => r.userId === user?.id)?.rank ?? null;
+
+  // Club collective "stoke" — how hard the whole club has fed the flame this
+  // week. Full blaze ≈ every member maxing every workout.
+  const clubPoints = useMemo(() => leaderboard.reduce((t, r) => t + r.score, 0), [leaderboard]);
+  const clubTarget = Math.max(1, members.length || 1) * Math.max(1, weekExercises.length) * 1000;
+  const clubStoke = clubTarget > 0 ? clubPoints / clubTarget : 0;
+  const participants = useMemo(() => leaderboard.filter(r => r.score > 0).length, [leaderboard]);
+  const rosterSize = Math.max(members.length, leaderboard.length);
 
   const exercisesById = useMemo(() => {
     const m = new Map<string, WorkoutExercise>();
@@ -245,40 +260,44 @@ export default function WorkoutPage() {
 
   return (
     <div className="pb-8 pt-1">
-      {/* Hero */}
+      {/* ── The Club Flame — collective, front & center ── */}
       <motion.div
         initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ type: 'spring', stiffness: 320, damping: 30 }}
-        className="fg-glass p-5 relative overflow-hidden mb-4"
+        className="fg-glass px-5 pt-4 pb-5 relative overflow-hidden mb-4"
       >
-        <div aria-hidden className="fg-heat-glow absolute -top-16 left-1/2 -translate-x-1/2 w-56 h-32 rounded-full pointer-events-none"
-          style={{ background: 'radial-gradient(circle, hsl(24 100% 55% / 0.35), transparent 70%)', filter: 'blur(14px)' }} />
-        <div className="relative z-[1]">
-          <div className="flex items-start justify-between gap-3 mb-4">
-            <div className="min-w-0">
-              <p className="fg-pill mb-1.5">🔥 {week.theme || 'Weekly Gauntlet'}</p>
-              <h2 className="text-[22px] font-black tracking-tight truncate" style={{ color: 'hsl(30 40% 97%)' }}>{week.title}</h2>
-            </div>
-            <div className="flex-shrink-0"><CountdownSegments endsAt={week.ends_at} /></div>
+        <div className="flex items-start justify-between gap-3 relative z-[2]">
+          <div className="min-w-0">
+            <p className="fg-pill mb-1.5">🔥 {week.theme || 'Weekly Gauntlet'}</p>
+            <h2 className="text-[19px] font-black tracking-tight truncate" style={{ color: 'hsl(30 40% 97%)' }}>{week.title}</h2>
           </div>
+          <div className="flex-shrink-0"><CountdownSegments endsAt={week.ends_at} /></div>
+        </div>
 
-          <div className="flex items-end justify-between">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.16em]" style={{ color: 'hsl(28 40% 60%)' }}>Your score</p>
-              <CountUp value={myScore} className="text-[46px] leading-none font-black tabular-nums" />
-            </div>
-            <div className="flex items-center gap-2.5 pb-1">
-              {[
-                { l: 'Rank', v: myRank ? ordinal(myRank) : '—' },
-                { l: 'Level', v: level.level },
-                ...(streak > 0 ? [{ l: 'Streak', v: `🔥${streak}` }] : []),
-              ].map((chip) => (
-                <div key={chip.l} className="text-center px-2.5 py-1.5 rounded-xl" style={{ background: 'hsl(18 50% 10% / 0.7)', border: '1px solid hsl(24 90% 55% / 0.18)' }}>
-                  <p className="text-[15px] font-black tabular-nums leading-none" style={{ color: 'hsl(30 45% 95%)' }}>{chip.v}</p>
-                  <p className="text-[8px] font-bold uppercase tracking-[0.12em] mt-1" style={{ color: 'hsl(28 35% 58%)' }}>{chip.l}</p>
-                </div>
-              ))}
-            </div>
+        <div className="flex flex-col items-center -mt-1">
+          <ClubFlame intensity={clubStoke} />
+          <div className="text-center -mt-4 relative z-[2]">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em]" style={{ color: 'hsl(28 60% 64%)' }}>The club has forged</p>
+            <CountUp value={clubPoints} className="text-[44px] leading-none font-black tabular-nums" />
+            <p className="text-[11px] font-bold mt-1" style={{ color: 'hsl(30 20% 66%)' }}>
+              {clubStoke >= 1 ? 'FULL BLAZE 🔥' : `${Math.round(clubStoke * 100)}% to full blaze`}
+              {' · '}{participants}/{rosterSize} fired up
+            </p>
           </div>
+        </div>
+
+        {/* Your personal strip */}
+        <div className="flex items-center justify-center gap-2 mt-3 relative z-[2]">
+          {[
+            { l: 'You', v: myScore.toLocaleString() },
+            { l: 'Rank', v: myRank ? ordinal(myRank) : '—' },
+            { l: 'Level', v: level.level },
+            ...(streak > 0 ? [{ l: 'Streak', v: `🔥${streak}` }] : []),
+          ].map((chip) => (
+            <div key={chip.l} className="text-center px-3 py-1.5 rounded-xl" style={{ background: 'hsl(18 50% 10% / 0.7)', border: '1px solid hsl(24 90% 55% / 0.18)' }}>
+              <p className="text-[15px] font-black tabular-nums leading-none" style={{ color: 'hsl(30 45% 95%)' }}>{chip.v}</p>
+              <p className="text-[8px] font-bold uppercase tracking-[0.12em] mt-1" style={{ color: 'hsl(28 35% 58%)' }}>{chip.l}</p>
+            </div>
+          ))}
         </div>
       </motion.div>
 
@@ -407,23 +426,33 @@ export default function WorkoutPage() {
         )}
       </div>
 
-      {/* Leaderboard */}
-      <h3 className="text-[11px] font-black uppercase tracking-[0.16em] mb-2.5 px-1" style={{ color: 'hsl(28 45% 62%)' }}>Leaderboard</h3>
+      {/* Club Roster — every player's individual contribution to the flame */}
+      <div className="flex items-center justify-between mb-2.5 px-1">
+        <h3 className="text-[11px] font-black uppercase tracking-[0.16em]" style={{ color: 'hsl(28 45% 62%)' }}>Club Roster</h3>
+        <span className="text-[11px] font-bold tabular-nums" style={{ color: 'hsl(28 30% 55%)' }}>{participants}/{rosterSize} fired up</span>
+      </div>
       <div className="fg-glass overflow-hidden mb-6">
-        {leaderboard.slice(0, 5).map((row, i) => {
+        {leaderboard.map((row, i) => {
           const isMe = row.userId === user?.id;
           const medal = row.rank === 1 ? '🥇' : row.rank === 2 ? '🥈' : row.rank === 3 ? '🥉' : null;
+          const spark = clubPoints > 0 ? row.score / clubPoints : 0; // share of the club flame
           return (
-            <motion.div key={row.userId} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.03 * i }}
+            <motion.div key={row.userId} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.02 * Math.min(i, 12) }}
               className="flex items-center gap-3 px-3.5 py-2.5" style={{ background: isMe ? 'hsl(24 95% 55% / 0.1)' : 'transparent', borderTop: i ? '1px solid hsl(24 60% 40% / 0.12)' : 'none' }}>
-              <span className="w-6 text-center text-[14px] font-black tabular-nums">{medal || <span style={{ color: 'hsl(28 30% 52%)' }}>{row.rank}</span>}</span>
-              <span className="flex-1 min-w-0 truncate text-[13px] font-bold" style={{ color: isMe ? 'hsl(28 100% 70%)' : 'hsl(30 30% 90%)' }}>{isMe ? 'You' : (nameById.get(row.userId) || 'Member')}</span>
-              <span className="text-[11px] tabular-nums" style={{ color: 'hsl(28 25% 55%)' }}>{Math.round(row.completionPct * 100)}%</span>
-              <span className="text-[13px] font-black tabular-nums w-16 text-right" style={{ color: 'hsl(30 40% 94%)' }}>{row.score.toLocaleString()}</span>
+              <span className="w-6 text-center text-[14px] font-black tabular-nums flex-shrink-0">{medal || <span style={{ color: 'hsl(28 30% 52%)' }}>{row.rank}</span>}</span>
+              <div className="flex-1 min-w-0">
+                <p className="truncate text-[13px] font-bold" style={{ color: isMe ? 'hsl(28 100% 70%)' : 'hsl(30 30% 90%)' }}>{isMe ? 'You' : (nameById.get(row.userId) || 'Member')}</p>
+                {/* individual contribution spark */}
+                <div className="h-1 rounded-full mt-1 overflow-hidden" style={{ background: 'hsl(20 30% 14% / 0.8)' }}>
+                  <div className="h-full rounded-full" style={{ width: `${Math.round(Math.min(1, spark * 2) * 100)}%`, background: 'linear-gradient(90deg, hsl(20 100% 55%), hsl(38 100% 58%))' }} />
+                </div>
+              </div>
+              <span className="text-[11px] tabular-nums flex-shrink-0" style={{ color: 'hsl(28 25% 55%)' }}>{Math.round(row.completionPct * 100)}%</span>
+              <span className="text-[13px] font-black tabular-nums w-16 text-right flex-shrink-0" style={{ color: 'hsl(30 40% 94%)' }}>{row.score.toLocaleString()}</span>
             </motion.div>
           );
         })}
-        {leaderboard.length === 0 && <div className="px-3.5 py-6 text-center text-[12px]" style={{ color: 'hsl(30 15% 60%)' }}>Be the first to log a workout.</div>}
+        {leaderboard.length === 0 && <div className="px-3.5 py-6 text-center text-[12px]" style={{ color: 'hsl(30 15% 60%)' }}>Be the first to stoke the flame.</div>}
       </div>
 
       {/* Badges */}
