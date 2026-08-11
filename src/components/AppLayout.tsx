@@ -1,6 +1,6 @@
 import { ReactNode, useEffect, useState, useCallback, useRef } from 'react';
 import { useLocation, Link } from 'react-router-dom';
-import { LayoutDashboard, MessageSquareText, CalendarDays, Swords, Newspaper, User, Trophy, BarChart3, MessageCircle, Bookmark, Link2, ScrollText, Lock, FileText, Sparkles, Shield, Menu, Brackets as BracketsIcon, TrendingUp, Settings, Cake, BookOpen, BookMarked } from 'lucide-react';
+import { LayoutDashboard, MessageSquareText, CalendarDays, Swords, Newspaper, User, Trophy, BarChart3, MessageCircle, Bookmark, Link2, ScrollText, Lock, FileText, Sparkles, Shield, Menu, Brackets as BracketsIcon, TrendingUp, Settings, Cake, BookOpen, BookMarked, Dumbbell } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { NotificationBell } from '@/components/NotificationBell';
@@ -42,6 +42,7 @@ const STATIC_SECTIONS: SidebarSection[] = [
       { path: '/portfolio-wars', label: 'Portfolio Wars', icon: TrendingUp },
       { path: '/lockbox', label: 'Lockbox', icon: Lock },
       { path: '/readshift', label: 'READSHIFT', icon: BookMarked },
+      { path: '/workouts', label: 'Workout Arena', icon: Dumbbell },
     ],
   },
   {
