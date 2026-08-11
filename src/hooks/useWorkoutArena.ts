@@ -114,7 +114,7 @@ export function useWorkoutArena(clubId: string | undefined, userId: string | und
       const [{ data: memberRows }, weekBundle, { data: mine }, { data: unlockRows }, { data: pastRows }] = await withTimeout(
         Promise.all([
           withTimeout(
-            sb.from('club_members').select('user_id, profiles:user_id(id, display_name, avatar_url)').eq('club_id', clubId),
+            sb.from('club_members').select('user_id').eq('club_id', clubId),
             QUERY_TIMEOUT_MS, 'workout members',
           ),
           activeWeek
@@ -147,12 +147,22 @@ export function useWorkoutArena(clubId: string | undefined, userId: string | und
       setMyActivities((mine || []) as WorkoutActivity[]);
       setUnlocks(((unlockRows || []) as any[]).map(r => r.achievement_key));
       setPastWeeks((pastRows || []) as WorkoutWeek[]);
-      setMembers(
-        (memberRows || [])
-          .map((r: any) => r.profiles)
-          .filter((p: any) => p && p.id && p.display_name)
-          .map((p: any) => ({ id: p.id, display_name: p.display_name, avatar_url: p.avatar_url })),
-      );
+      // Profiles are fetched separately — there's no FK embed from
+      // club_members.user_id to profiles, so the join alias silently yields null.
+      const memberIds = ((memberRows || []) as any[]).map(r => r.user_id).filter(Boolean);
+      if (memberIds.length) {
+        const { data: profRows } = await withTimeout(
+          sb.from('profiles').select('id, display_name, avatar_url').in('id', memberIds),
+          QUERY_TIMEOUT_MS, 'workout member profiles',
+        );
+        setMembers(
+          ((profRows || []) as any[])
+            .filter(p => p && p.id)
+            .map(p => ({ id: p.id, display_name: p.display_name || 'Member', avatar_url: p.avatar_url ?? null })),
+        );
+      } else {
+        setMembers([]);
+      }
       setError(null);
     } catch (e: any) {
       setError(e?.message || 'Failed to load Workout Arena');
@@ -247,6 +257,47 @@ export function useWorkoutArena(clubId: string | undefined, userId: string | und
     }
   }, [weekActivities, myActivities, userId]);
 
+  /** Delete a single logged activity (own row, or any row for club admins —
+   *  RLS enforces which is allowed). */
+  const deleteActivity = useCallback(async (activityId: string) => {
+    if (activityId.startsWith('opt-')) return;
+    const beforeWeek = weekActivities;
+    const beforeMine = myActivities;
+    setWeekActivities(prev => prev.filter(a => a.id !== activityId));
+    setMyActivities(prev => prev.filter(a => a.id !== activityId));
+    const { error: e } = await sb.from('workout_activities').delete().eq('id', activityId);
+    if (e) {
+      setWeekActivities(beforeWeek);
+      setMyActivities(beforeMine);
+      throw e;
+    }
+  }, [weekActivities, myActivities]);
+
+  /** Wipe a member's entire log for a week — optionally scoped to one
+   *  exercise. Members may only reset themselves; admins may reset anyone
+   *  (enforced by RLS, not the client). */
+  const resetWeek = useCallback(async (
+    weekId: string,
+    targetUserId: string,
+    exerciseId?: string,
+  ) => {
+    const beforeWeek = weekActivities;
+    const beforeMine = myActivities;
+    const match = (a: WorkoutActivity) =>
+      a.week_id === weekId && a.user_id === targetUserId && (!exerciseId || a.exercise_id === exerciseId);
+    setWeekActivities(prev => prev.filter(a => !match(a)));
+    setMyActivities(prev => prev.filter(a => !match(a)));
+    let q = sb.from('workout_activities').delete().eq('week_id', weekId).eq('user_id', targetUserId);
+    if (exerciseId) q = q.eq('exercise_id', exerciseId);
+    const { error: e } = await q;
+    if (e) {
+      setWeekActivities(beforeWeek);
+      setMyActivities(beforeMine);
+      throw e;
+    }
+    await refresh();
+  }, [weekActivities, myActivities, refresh]);
+
   /** Persist an achievement unlock (idempotent via the unique index).
    *  Returns true if this was a genuinely new unlock for the user. */
   const insertUnlock = useCallback(async (key: string): Promise<boolean> => {
@@ -263,10 +314,13 @@ export function useWorkoutArena(clubId: string | undefined, userId: string | und
     return !e;
   }, [clubId, userId, unlocks]);
 
+
   return {
     week, weekExercises, weekActivities, myActivities, members, exercisesById,
     unlocks, pastWeeks, groupGoals,
     loading, error, refresh, logActivity, undoLast, insertUnlock,
+    deleteActivity, resetWeek,
+
     localToday,
   };
 }

@@ -4262,20 +4262,21 @@
    ══════════════════════════════════════════════════════════ */
 .fg-shell {
   background:
-    radial-gradient(ellipse 120% 55% at 50% 0%, hsl(18 95% 52% / 0.16), transparent 60%),
-    radial-gradient(ellipse 95% 55% at 50% 108%, hsl(36 95% 50% / 0.10), transparent 70%),
-    linear-gradient(180deg, hsl(18 45% 5%), hsl(10 55% 3%));
-  color: hsl(30 30% 96%);
+    radial-gradient(ellipse 110% 45% at 50% 0%, hsl(20 80% 45% / 0.10), transparent 62%),
+    radial-gradient(ellipse 90% 45% at 50% 110%, hsl(34 80% 45% / 0.05), transparent 72%),
+    linear-gradient(180deg, hsl(220 14% 9%), hsl(222 18% 5%));
+  color: hsl(30 12% 95%);
 }
 /* Rising heat haze lines */
 .fg-shell::before {
   content: '';
   position: fixed; inset: 0; pointer-events: none; z-index: 0;
   background-image:
-    repeating-linear-gradient(90deg, transparent 0, transparent 60px, hsl(24 95% 55% / 0.04) 60px, hsl(24 95% 55% / 0.04) 61px);
+    repeating-linear-gradient(90deg, transparent 0, transparent 60px, hsl(24 60% 60% / 0.025) 60px, hsl(24 60% 60% / 0.025) 61px);
   mask-image: linear-gradient(180deg, transparent 0%, black 16%, black 84%, transparent 100%);
   -webkit-mask-image: linear-gradient(180deg, transparent 0%, black 16%, black 84%, transparent 100%);
 }
+
 
 /* Floating ember motes (decorative) */
 .fg-ember {
@@ -4293,17 +4294,18 @@
   100% { transform: translateY(-26px) translateX(6px); opacity: 0; }
 }
 
-/* Card surfaces (glass-card replacement inside .fg-mode) */
+/* Card surfaces (glass-card replacement inside .fg-mode) — cool forged steel,
+   heat is an accent only. */
 .fg-mode .fg-glass {
-  background: linear-gradient(180deg, hsl(16 40% 8% / 0.9), hsl(12 50% 4% / 0.94));
-  border: 1px solid hsl(22 90% 55% / 0.18);
+  background: linear-gradient(180deg, hsl(220 14% 12% / 0.92), hsl(222 18% 8% / 0.95));
+  border: 1px solid hsl(24 30% 60% / 0.12);
   border-radius: 16px;
-  box-shadow: 0 1px 0 hsl(30 100% 65% / 0.08) inset, 0 10px 30px -16px hsl(18 95% 40% / 0.5);
+  box-shadow: 0 1px 0 hsl(30 60% 80% / 0.05) inset, 0 12px 28px -18px hsl(222 40% 2% / 0.9);
   position: relative;
 }
 .fg-mode .fg-subcard {
-  background: hsl(16 35% 9% / 0.55);
-  border: 1px solid hsl(22 90% 55% / 0.1);
+  background: hsl(220 14% 16% / 0.5);
+  border: 1px solid hsl(24 20% 65% / 0.08);
   border-radius: 12px;
 }
 
@@ -4311,29 +4313,65 @@
 .fg-mode .fg-back {
   width: 2.25rem; height: 2.25rem; border-radius: 0.75rem;
   display: inline-flex; align-items: center; justify-content: center;
-  background: hsl(16 35% 10% / 0.72);
-  border: 1px solid hsl(22 90% 55% / 0.2);
-  color: hsl(28 95% 68%);
+  background: hsl(220 14% 15% / 0.8);
+  border: 1px solid hsl(24 30% 60% / 0.16);
+  color: hsl(28 90% 66%);
   transition: background 150ms ease, border-color 150ms ease, transform 80ms ease;
 }
-.fg-mode .fg-back:hover { background: hsl(16 35% 14% / 0.9); border-color: hsl(22 90% 55% / 0.36); }
+.fg-mode .fg-back:hover { background: hsl(220 14% 19% / 0.95); border-color: hsl(24 90% 58% / 0.34); }
 .fg-mode .fg-back:active { transform: scale(0.94); }
 
 /* Pills + primary CTA */
 .fg-pill {
   display: inline-flex; align-items: center; gap: 0.35rem; height: 1.55rem; padding: 0 0.6rem;
   border-radius: 0.5rem; font-size: 10px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase;
-  background: hsl(22 95% 55% / 0.14); border: 1px solid hsl(22 95% 55% / 0.3); color: hsl(28 100% 68%);
+  background: hsl(22 95% 55% / 0.12); border: 1px solid hsl(22 95% 55% / 0.26); color: hsl(28 95% 68%);
 }
+
+/* ── Tactile press system ──────────────────────────────────────
+   Buttons sit on a raised bevel and physically sink on press. */
 .fg-cta {
+  position: relative;
   display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
-  font-weight: 900; letter-spacing: 0.04em; color: hsl(16 40% 8%);
-  background: linear-gradient(135deg, hsl(24 100% 60%), hsl(38 96% 50%));
-  box-shadow: 0 6px 20px -4px hsl(20 95% 45% / 0.6), inset 0 1px 0 hsl(40 100% 85% / 0.6);
-  transition: transform 80ms ease, filter 150ms ease;
+  font-weight: 900; letter-spacing: 0.04em; color: hsl(20 45% 8%);
+  background: linear-gradient(180deg, hsl(30 100% 62%), hsl(20 95% 50%));
+  box-shadow:
+    inset 0 1px 0 hsl(45 100% 88% / 0.65),
+    inset 0 -2px 0 hsl(14 80% 34% / 0.75),
+    0 4px 0 hsl(14 70% 26%),
+    0 10px 22px -8px hsl(18 95% 45% / 0.55);
+  transition: transform 90ms cubic-bezier(.2,.8,.3,1), box-shadow 90ms ease, filter 150ms ease;
 }
-.fg-cta:active { transform: scale(0.97); }
-.fg-cta:hover { filter: brightness(1.06); }
+.fg-cta:hover { filter: brightness(1.05); }
+.fg-cta:active {
+  transform: translateY(3px);
+  box-shadow:
+    inset 0 2px 6px hsl(14 80% 26% / 0.7),
+    inset 0 -1px 0 hsl(45 100% 85% / 0.25),
+    0 1px 0 hsl(14 70% 26%);
+  filter: brightness(0.98);
+}
+
+/* Secondary / quick-add button — steel keycap with an ember rim */
+.fg-mode .fg-key {
+  position: relative;
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem;
+  font-weight: 800; color: hsl(28 95% 70%);
+  background: linear-gradient(180deg, hsl(220 14% 19%), hsl(220 16% 13%));
+  border: 1px solid hsl(24 70% 55% / 0.24);
+  box-shadow:
+    inset 0 1px 0 hsl(30 40% 80% / 0.1),
+    0 3px 0 hsl(222 20% 7%),
+    0 8px 16px -10px hsl(222 40% 2% / 0.9);
+  transition: transform 90ms cubic-bezier(.2,.8,.3,1), box-shadow 90ms ease, border-color 150ms ease, background 150ms ease;
+}
+.fg-mode .fg-key:hover { border-color: hsl(24 90% 58% / 0.42); background: linear-gradient(180deg, hsl(220 14% 22%), hsl(220 16% 15%)); }
+.fg-mode .fg-key:active {
+  transform: translateY(2.5px);
+  box-shadow: inset 0 2px 6px hsl(222 40% 2% / 0.8), 0 0.5px 0 hsl(222 20% 7%);
+}
+.fg-mode .fg-key:disabled { opacity: 0.45; box-shadow: none; transform: none; }
+
 
 /* Heat glow used on the hero score + primary emblems */
 @keyframes fgHeatPulse {

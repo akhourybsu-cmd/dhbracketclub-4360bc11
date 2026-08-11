@@ -186,6 +186,8 @@ export const LIBRARY: LibraryExercise[] = [
   {
     key: 'mobility-flow', name: 'Mobility Flow', category: 'mobility', measurement_type: 'duration', unit: 'seconds',
     icon: 'StretchHorizontal', difficulty: 1, baseline: 1200, logging_config: { timer_mode: 'stopwatch', allow_pause: true, allow_manual: true },
+    milestone_config: { lifetime: [1800, 7200, 21600, 54000] },
+
     tutorial: {
       summary: 'Gentle stretching / mobility — log the minutes you move.',
       steps: ['Pick a few areas: hips, hamstrings, shoulders, back.', 'Move slowly through each stretch, breathing deeply.', 'Start the timer (or log minutes) while you flow.'],

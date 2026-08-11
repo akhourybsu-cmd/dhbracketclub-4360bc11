@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Dumbbell, Trophy, ChevronRight, Flame, Timer, Play, Medal, Users, Settings, HelpCircle } from 'lucide-react';
+import { Dumbbell, Trophy, ChevronRight, Flame, Timer, Play, Medal, Users, Settings, HelpCircle, Undo2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -10,6 +10,7 @@ import { useClubAssets } from '@/hooks/useClubAssets';
 import { useWorkoutArena } from '@/hooks/useWorkoutArena';
 import { WorkoutLoggerSheet } from '@/components/workout/WorkoutLoggerSheet';
 import { TutorialSheet } from '@/components/workout/TutorialSheet';
+import { ManageLogSheet } from '@/components/workout/ManageLogSheet';
 import { ClubFlame } from '@/components/workout/ClubFlame';
 import {
   buildLeaderboard, computeExerciseProgress, userWeekScore,
@@ -81,7 +82,7 @@ function CountdownSegments({ endsAt }: { endsAt: string }) {
 function EmberBar({ pct, delay = 0, height = 'h-2' }: { pct: number; delay?: number; height?: string }) {
   const full = pct >= 1;
   return (
-    <div className={cn('relative rounded-full overflow-hidden', height)} style={{ background: 'hsl(20 30% 14% / 0.8)' }}>
+    <div className={cn('relative rounded-full overflow-hidden', height)} style={{ background: 'hsl(220 14% 20% / 0.75)' }}>
       <motion.div
         className={cn('h-full rounded-full relative', full && 'fg-shimmer')}
         style={{ background: full
@@ -97,8 +98,9 @@ function EmberBar({ pct, delay = 0, height = 'h-2' }: { pct: number; delay?: num
 
 const tileVariants = {
   hidden: { opacity: 0, y: 14 },
-  show: (i: number) => ({ opacity: 1, y: 0, transition: { type: 'spring', stiffness: 420, damping: 32, delay: 0.04 * i } }),
+  show: (i: number) => ({ opacity: 1, y: 0, transition: { type: 'spring' as const, stiffness: 420, damping: 32, delay: 0.04 * i } }),
 };
+
 
 export default function WorkoutPage() {
   const { user } = useAuth();
@@ -108,12 +110,13 @@ export default function WorkoutPage() {
 
   const {
     week, weekExercises, weekActivities, myActivities, members, unlocks, pastWeeks, groupGoals, loading, error,
-    logActivity, undoLast, insertUnlock,
+    logActivity, undoLast, insertUnlock, deleteActivity, resetWeek,
   } = useWorkoutArena(club?.id, user?.id);
 
   const [selected, setSelected] = useState<WeekExerciseWithDef | null>(null);
   const [tutorialKey, setTutorialKey] = useState<string | null>(null);
   const [poppedGoal, setPoppedGoal] = useState<string | null>(null);
+  const [manageOpen, setManageOpen] = useState(false);
 
   const currentMondayKey = useMemo(() => {
     const d = mondayWeekBounds().start;
@@ -238,7 +241,7 @@ export default function WorkoutPage() {
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="fg-glass p-8 text-center">
           <motion.div
             className="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center"
-            style={{ background: 'radial-gradient(circle at 40% 30%, hsl(24 100% 55% / 0.4), transparent 70%), linear-gradient(135deg, hsl(18 60% 14%), hsl(12 60% 8%))', border: '1px solid hsl(24 95% 55% / 0.4)' }}
+            style={{ background: 'radial-gradient(circle at 40% 30%, hsl(24 100% 55% / 0.4), transparent 70%), linear-gradient(135deg, hsl(220 14% 18%), hsl(222 18% 10%))', border: '1px solid hsl(24 95% 55% / 0.4)' }}
             animate={{ scale: [1, 1.06, 1] }} transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
           >
             <Flame className="w-8 h-8" style={{ color: 'hsl(28 100% 66%)' }} />
@@ -376,7 +379,7 @@ export default function WorkoutPage() {
 
               <button onClick={() => setSelected(we)} className="w-full flex items-center gap-3 text-left">
                 <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ background: cleared ? 'linear-gradient(135deg, hsl(38 90% 30%), hsl(20 90% 22%))' : 'radial-gradient(circle at 40% 30%, hsl(24 100% 55% / 0.25), transparent 70%), hsl(18 50% 11% / 0.8)', border: '1px solid hsl(24 95% 55% / 0.3)' }}>
+                  style={{ background: cleared ? 'linear-gradient(135deg, hsl(38 90% 30%), hsl(20 90% 22%))' : 'radial-gradient(circle at 40% 30%, hsl(24 100% 55% / 0.18), transparent 70%), hsl(220 14% 16% / 0.9)', border: '1px solid hsl(24 95% 55% / 0.3)' }}>
                   <Dumbbell className="w-5 h-5" style={{ color: 'hsl(28 100% 68%)' }} />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -395,8 +398,7 @@ export default function WorkoutPage() {
               <div className="flex gap-2 mt-3">
                 {hasTutorial && (
                   <button onClick={() => setTutorialKey(libKeyOf(we))} aria-label={`How to do ${we.exercise.name}`}
-                    className="h-11 w-11 rounded-xl flex items-center justify-center flex-shrink-0"
-                    style={{ background: 'hsl(18 50% 11% / 0.8)', border: '1px solid hsl(24 90% 55% / 0.22)', color: 'hsl(28 90% 66%)' }}>
+                    className="fg-key h-11 w-11 rounded-xl flex-shrink-0">
                     <HelpCircle className="w-5 h-5" />
                   </button>
                 )}
@@ -406,8 +408,7 @@ export default function WorkoutPage() {
                   ) : (
                     quick.map(n => (
                       <motion.button key={n} whileTap={{ scale: 0.9 }} onClick={() => quickLog(we, n)}
-                        className="flex-1 h-11 rounded-xl font-black text-[16px] tabular-nums"
-                        style={{ background: 'hsl(24 95% 55% / 0.14)', border: '1px solid hsl(24 95% 55% / 0.28)', color: 'hsl(28 100% 68%)' }}>
+                        className="fg-key flex-1 h-11 rounded-xl font-black text-[16px] tabular-nums">
                         +{n}
                       </motion.button>
                     ))
@@ -426,6 +427,15 @@ export default function WorkoutPage() {
         )}
       </div>
 
+      {/* Log housekeeping — fix mis-taps / double-counted reps */}
+      <button
+        onClick={() => setManageOpen(true)}
+        className="fg-key w-full h-11 rounded-xl text-[13px] mb-6"
+      >
+        <Undo2 className="w-4 h-4" /> Manage my log{isClubAdmin ? ' · reset a member' : ''}
+      </button>
+
+
       {/* Club Roster — every player's individual contribution to the flame */}
       <div className="flex items-center justify-between mb-2.5 px-1">
         <h3 className="text-[11px] font-black uppercase tracking-[0.16em]" style={{ color: 'hsl(28 45% 62%)' }}>Club Roster</h3>
@@ -438,12 +448,12 @@ export default function WorkoutPage() {
           const spark = clubPoints > 0 ? row.score / clubPoints : 0; // share of the club flame
           return (
             <motion.div key={row.userId} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.02 * Math.min(i, 12) }}
-              className="flex items-center gap-3 px-3.5 py-2.5" style={{ background: isMe ? 'hsl(24 95% 55% / 0.1)' : 'transparent', borderTop: i ? '1px solid hsl(24 60% 40% / 0.12)' : 'none' }}>
+              className="flex items-center gap-3 px-3.5 py-2.5" style={{ background: isMe ? 'hsl(24 95% 55% / 0.08)' : 'transparent', borderTop: i ? '1px solid hsl(220 14% 60% / 0.1)' : 'none' }}>
               <span className="w-6 text-center text-[14px] font-black tabular-nums flex-shrink-0">{medal || <span style={{ color: 'hsl(28 30% 52%)' }}>{row.rank}</span>}</span>
               <div className="flex-1 min-w-0">
                 <p className="truncate text-[13px] font-bold" style={{ color: isMe ? 'hsl(28 100% 70%)' : 'hsl(30 30% 90%)' }}>{isMe ? 'You' : (nameById.get(row.userId) || 'Member')}</p>
                 {/* individual contribution spark */}
-                <div className="h-1 rounded-full mt-1 overflow-hidden" style={{ background: 'hsl(20 30% 14% / 0.8)' }}>
+                <div className="h-1 rounded-full mt-1 overflow-hidden" style={{ background: 'hsl(220 14% 20% / 0.75)' }}>
                   <div className="h-full rounded-full" style={{ width: `${Math.round(Math.min(1, spark * 2) * 100)}%`, background: 'linear-gradient(90deg, hsl(20 100% 55%), hsl(38 100% 58%))' }} />
                 </div>
               </div>
@@ -480,8 +490,8 @@ export default function WorkoutPage() {
           <h3 className="text-[11px] font-black uppercase tracking-[0.16em] mb-2.5 px-1" style={{ color: 'hsl(28 45% 62%)' }}>Past gauntlets</h3>
           <div className="fg-glass overflow-hidden">
             {pastWeeks.map((w, i) => (
-              <Link key={w.id} to={`/workouts/recap/${w.id}`} className="flex items-center gap-3 px-3.5 py-3" style={{ borderTop: i ? '1px solid hsl(24 60% 40% / 0.12)' : 'none' }}>
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'hsl(18 50% 11% / 0.8)', border: '1px solid hsl(24 90% 55% / 0.2)' }}><Trophy className="w-4 h-4" style={{ color: 'hsl(28 80% 60%)' }} /></div>
+              <Link key={w.id} to={`/workouts/recap/${w.id}`} className="flex items-center gap-3 px-3.5 py-3" style={{ borderTop: i ? '1px solid hsl(220 14% 60% / 0.1)' : 'none' }}>
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'hsl(220 14% 16% / 0.9)', border: '1px solid hsl(24 60% 60% / 0.16)' }}><Trophy className="w-4 h-4" style={{ color: 'hsl(28 80% 60%)' }} /></div>
                 <div className="min-w-0 flex-1">
                   <p className="text-[13px] font-bold truncate" style={{ color: 'hsl(30 30% 90%)' }}>{w.title}</p>
                   <p className="text-[10px]" style={{ color: 'hsl(28 25% 55%)' }}>{new Date(w.ends_at).toLocaleDateString()}</p>
@@ -511,6 +521,26 @@ export default function WorkoutPage() {
       />
 
       <TutorialSheet libKey={tutorialKey} onClose={() => setTutorialKey(null)} />
+
+      <ManageLogSheet
+        open={manageOpen}
+        onClose={() => setManageOpen(false)}
+        weekId={week?.id ?? null}
+        weekTitle={week?.title ?? 'This week'}
+        viewerId={user?.id}
+        isAdmin={!!isClubAdmin}
+        members={members}
+        weekExercises={weekExercises}
+        weekActivities={weekActivities}
+        onDeleteActivity={async (id) => {
+          try { await deleteActivity(id); toast.success('Entry removed'); }
+          catch { toast.error('Could not remove that entry'); }
+        }}
+        onResetWeek={async (weekId, uid, exerciseId) => {
+          try { await resetWeek(weekId, uid, exerciseId); toast.success(exerciseId ? 'Exercise cleared' : 'Week reset'); }
+          catch { toast.error('Reset failed — you may not have permission'); }
+        }}
+      />
     </div>
   );
 }
