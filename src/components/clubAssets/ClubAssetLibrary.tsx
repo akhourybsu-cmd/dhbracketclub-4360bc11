@@ -290,7 +290,11 @@ export function ClubAssetLibrary() {
         installing={sheetInstalling}
         onClose={() => setSheetAsset(null)}
         onInstall={handleSheetInstall}
-        onConfigureNow={a => toast.info(`Configure ${a.name} — coming soon`)}
+        onConfigureNow={a => {
+          const route = CONFIG_ROUTES[a.slug];
+          if (route) navigate(route);
+          else toast.info(`Configure ${a.name} — coming soon`);
+        }}
       />
     </div>
   );
