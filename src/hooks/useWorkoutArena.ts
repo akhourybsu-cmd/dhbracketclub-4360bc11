@@ -53,7 +53,7 @@ export function useWorkoutArena(clubId: string | undefined, userId: string | und
       // Active week: prefer an explicitly-active row; fall back to one whose
       // window contains now (belt-and-suspenders if status wasn't flipped).
       const nowIso = new Date().toISOString();
-      const { data: weeks } = await withTimeout(
+      const { data: weeks } = await (withTimeout(
         sb.from('workout_weeks').select('*')
           .eq('club_id', clubId)
           .in('status', ['active'])
@@ -63,7 +63,7 @@ export function useWorkoutArena(clubId: string | undefined, userId: string | und
       );
       let activeWeek: WorkoutWeek | null = (weeks && weeks[0]) || null;
       if (!activeWeek) {
-        const { data: byWindow } = await withTimeout(
+        const { data: byWindow } = await (withTimeout(
           sb.from('workout_weeks').select('*')
             .eq('club_id', clubId)
             .lte('starts_at', nowIso).gte('ends_at', nowIso)
@@ -74,7 +74,7 @@ export function useWorkoutArena(clubId: string | undefined, userId: string | und
       }
       setWeek(activeWeek);
 
-      const [{ data: memberRows }, weekBundle, { data: mine }, { data: unlockRows }, { data: pastRows }] = await withTimeout(
+      const [{ data: memberRows }, weekBundle, { data: mine }, { data: unlockRows }, { data: pastRows }] = await (withTimeout(
         Promise.all([
           withTimeout(
             sb.from('club_members').select('user_id, profiles:user_id(id, display_name, avatar_url)').eq('club_id', clubId),
@@ -101,7 +101,7 @@ export function useWorkoutArena(clubId: string | undefined, userId: string | und
           ),
         ]),
         HYDRATE_TIMEOUT_MS, 'workout arena hydrate',
-      ) as any;
+      );
 
       const [{ data: weRows }, { data: actRows }, { data: ggRows }] = weekBundle as any;
       setWeekExercises((weRows || []).filter((r: any) => r.exercise) as WeekExerciseWithDef[]);

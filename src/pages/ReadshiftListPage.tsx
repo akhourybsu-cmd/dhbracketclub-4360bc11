@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { Stagger, StaggerItem } from '@/components/motion/Stagger';
 import { VenetianMask, Plus, ChevronRight, Users, Fingerprint, Waves } from 'lucide-react';
 import { useClub } from '@/contexts/ClubContext';
 import { useReadshiftGames } from '@/hooks/useReadshift';
