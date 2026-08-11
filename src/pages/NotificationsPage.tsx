@@ -6,6 +6,8 @@ import { formatDistanceToNowStrict, isToday, isYesterday } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useNotifications, type AppNotification } from '@/hooks/useNotifications';
 import { notifIcon } from '@/components/notifications/meta';
+import { Stagger, StaggerItem } from '@/components/motion/Stagger';
+import { LoadingSwap } from '@/components/motion/LoadingSwap';
 
 type Tab = 'all' | 'unread';
 
@@ -85,11 +87,15 @@ export default function NotificationsPage() {
           ))}
         </div>
 
-        {loading ? (
-          <div className="space-y-2">
-            {[1, 2, 3, 4, 5].map(i => <div key={i} className="glass-card h-16" />)}
-          </div>
-        ) : items.length === 0 ? (
+        <LoadingSwap
+          loading={loading}
+          skeleton={
+            <div className="space-y-2">
+              {[1, 2, 3, 4, 5].map(i => <div key={i} className="glass-card h-16 skeleton-shimmer" />)}
+            </div>
+          }
+        >
+          {items.length === 0 ? (
           <div className="glass-card p-12 text-center">
             <div className="w-14 h-14 rounded-2xl mx-auto mb-3 flex items-center justify-center bg-primary/10">
               <Bell className="w-7 h-7 text-primary/60" />
@@ -102,11 +108,11 @@ export default function NotificationsPage() {
             {groups.map(([label, group]) => (
               <div key={label}>
                 <h2 className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-muted-foreground/55 mb-2">{label}</h2>
-                <div className="glass-card overflow-hidden divide-y divide-border/10">
+                <Stagger className="glass-card overflow-hidden divide-y divide-border/10">
                   {group.map(n => {
                     const { icon: Icon, color } = notifIcon(n.type);
                     return (
-                      <div
+                      <StaggerItem
                         key={n.id}
                         className={cn('group flex items-start gap-3 px-3.5 py-3 transition-colors hover:bg-muted/20', !n.read_at && 'bg-primary/[0.05]')}
                       >
@@ -133,10 +139,10 @@ export default function NotificationsPage() {
                             <X className="w-3.5 h-3.5" />
                           </button>
                         </div>
-                      </div>
+                      </StaggerItem>
                     );
                   })}
-                </div>
+                </Stagger>
               </div>
             ))}
 
@@ -145,6 +151,7 @@ export default function NotificationsPage() {
             </div>
           </div>
         )}
+        </LoadingSwap>
       </motion.div>
     </div>
   );

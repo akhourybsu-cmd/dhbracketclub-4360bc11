@@ -103,7 +103,7 @@ export default function ReadshiftListPage() {
       ) : (
         <div className="space-y-4">
           {active.length > 0 && (
-            <div className="space-y-2.5">{active.map((g) => <GameRow key={g.id} g={g} />)}</div>
+            <Stagger className="space-y-2.5">{active.map((g) => <StaggerItem key={g.id}><GameRow g={g} /></StaggerItem>)}</Stagger>
           )}
           {past.length > 0 && (
             <div>
@@ -111,7 +111,7 @@ export default function ReadshiftListPage() {
                 <span className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-muted-foreground/55">The Archive</span>
                 <div className="rs-divider flex-1" />
               </div>
-              <div className="space-y-2.5">{past.map((g) => <GameRow key={g.id} g={g} />)}</div>
+              <Stagger className="space-y-2.5">{past.map((g) => <StaggerItem key={g.id}><GameRow g={g} /></StaggerItem>)}</Stagger>
             </div>
           )}
         </div>
