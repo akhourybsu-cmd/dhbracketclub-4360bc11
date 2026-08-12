@@ -277,6 +277,7 @@ export function useWorkoutArena(clubId: string | undefined, userId: string | und
     if (!last) return;
     const beforeWeek = weekActivities;
     const beforeMine = myActivities;
+    forgetRecent(new Set([last.id]));
     setWeekActivities(prev => prev.filter(a => a.id !== last.id));
     setMyActivities(prev => prev.filter(a => a.id !== last.id));
     const { error: delErr } = await sb.from('workout_activities').delete().eq('id', last.id);
