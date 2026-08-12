@@ -10115,6 +10115,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      journey_validate_campaign: {
+        Args: { _campaign_id: string }
+        Returns: Json
+      }
       journey_world_content: {
         Args: { _campaign_id: string; _version: number }
         Returns: Json
