@@ -134,8 +134,23 @@ export function useJourneyStudio() {
     return true;
   }, [refresh]);
 
-  return { campaigns, loading, error, refresh, importPackage, setStatus, bumpVersion, deleteCampaign };
+  return {
+    campaigns, loading, error, refresh, importPackage, setStatus, bumpVersion,
+    deleteCampaign, validateCampaign,
+  };
 }
+
+/**
+ * Server-side structural check: broken destinations, dead ends, missing start.
+ * The same routine gates publishing, so the Studio shows exactly what would
+ * block a release.
+ */
+export async function validateCampaign(campaignId: string): Promise<{ ok: boolean; problems: string[] }> {
+  const { data, error } = await (supabase as any).rpc('journey_validate_campaign', { _campaign_id: campaignId });
+  if (error) return { ok: false, problems: [error.message] };
+  return { ok: Boolean(data?.ok), problems: (data?.problems ?? []) as string[] };
+}
+
 
 /** Test-mode: jump a run to a scene and/or patch its state. Authors only. */
 export async function patchTestRun(runId: string, sceneKey: string | null, statePatch: Partial<RunState>) {
