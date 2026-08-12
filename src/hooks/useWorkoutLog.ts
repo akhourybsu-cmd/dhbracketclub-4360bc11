@@ -67,7 +67,7 @@ export function useWorkoutLog(clubId: string | undefined, userId: string | undef
           // Club-wide completed sessions this week — for the flame fuel meter.
           withTimeout(
             sb.from('workout_log_sessions')
-              .select('id, entries:workout_log_entries(points)')
+              .select('id, user_id, entries:workout_log_entries(points)')
               .eq('club_id', clubId).eq('status', 'completed')
               .gte('completed_at', weekBounds.startIso).lt('completed_at', weekBounds.endIso)
               .limit(500),
