@@ -30,9 +30,14 @@ export default function NexusCodexPage() {
         {ENEMY_LIST.map(e => (
           <Card key={e.kind} glyph={e.glyph} title={e.name}
                 desc={e.kind === 'drone' ? 'Fast and fragile. Comes in waves.' :
-                      e.kind === 'walker' ? 'Heavy armor, slow speed.' :
-                      e.kind === 'shielded' ? 'Energy shield absorbs first damage.' :
+                      e.kind === 'walker' ? 'Heavy armor, slow speed. Bring armor-pierce.' :
+                      e.kind === 'shielded' ? 'Energy shield absorbs first damage. Burst it or EMP it.' :
                       e.kind === 'stealth' ? 'Only Rail Battery can target it.' :
+                      e.kind === 'runner' ? 'Extremely fast, low HP. Slow fields + splash catch it.' :
+                      e.kind === 'brute' ? 'Enormous HP wall. Sustained fire + snipers.' :
+                      e.kind === 'flyer' ? 'Airborne — only Flak and Rail can hit it.' :
+                      e.kind === 'healer' ? 'Heals nearby enemies. Kill it first.' :
+                      e.kind === 'splitter' ? 'Bursts into fast runners on death.' :
                       'Boss. Massive HP and shield. Bring everything.'}
                 accent="rose"
                 stats={[`HP ${e.hp}`, `SPD ${e.speed}`, e.armor ? `ARM ${e.armor}` : '', e.shield ? `SHD ${e.shield}` : ''].filter(Boolean) as string[]} />

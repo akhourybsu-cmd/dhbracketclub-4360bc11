@@ -17,6 +17,23 @@ export const ABILITIES: Record<AbilityKind, AbilityDef> = {
     glyph: 'E',
     color: 'cyan',
   },
+  overclock: {
+    kind: 'overclock',
+    name: 'Overclock',
+    tagline: 'All towers fire faster and hit harder for 6s.',
+    cooldownMs: 28_000,
+    glyph: '⚡',
+    color: 'amber',
+  },
+  repair: {
+    kind: 'repair',
+    name: 'Nanite Repair',
+    tagline: 'Restores a chunk of Nexus integrity. Your panic button.',
+    cooldownMs: 45_000,
+    glyph: '✚',
+    color: 'emerald',
+  },
 };
 
 export const ABILITY_LIST = Object.values(ABILITIES);
+export const ABILITY_KINDS = Object.keys(ABILITIES) as AbilityKind[];

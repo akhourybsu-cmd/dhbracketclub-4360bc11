@@ -1,8 +1,8 @@
-import { Fragment, useMemo } from 'react';
+import { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ABILITIES } from '@/lib/nexus/abilities';
 import { ENEMIES } from '@/lib/nexus/enemies';
-import { TOWERS, towerDamageAt, towerRangeAt, towerSellValue, towerUpgradeCost } from '@/lib/nexus/towers';
+import { TOWERS, TOWER_LIST, towerDamageAt, towerRangeAt, towerSellValue, towerUpgradeCost } from '@/lib/nexus/towers';
 import { GRID_COLS, GRID_ROWS, getGridLayout } from '@/lib/nexus/grid';
 import { BattleEvent, BattleState, TargetMode, TowerKind } from '@/lib/nexus/types';
 import { cn } from '@/lib/utils';
@@ -17,6 +17,13 @@ const TOWER_HSL: Record<TowerKind, { c: string; cDim: string; bg: string; text: 
   arc:   { c: 'hsl(265 80% 70%)', cDim: 'hsl(265 80% 70% / 0.18)', bg: 'hsl(265 80% 70% / 0.14)', text: 'hsl(265 80% 84%)' },
   cryo:  { c: 'hsl(200 95% 70%)', cDim: 'hsl(200 95% 70% / 0.18)', bg: 'hsl(200 95% 70% / 0.14)', text: 'hsl(200 95% 84%)' },
   rail:  { c: 'hsl(38 95% 60%)',  cDim: 'hsl(38 95% 60% / 0.18)',  bg: 'hsl(38 95% 60% / 0.14)',  text: 'hsl(38 95% 78%)' },
+  flak:  { c: 'hsl(150 80% 55%)', cDim: 'hsl(150 80% 55% / 0.18)', bg: 'hsl(150 80% 55% / 0.14)', text: 'hsl(150 80% 78%)' },
+  mortar:{ c: 'hsl(350 85% 62%)', cDim: 'hsl(350 85% 62% / 0.18)', bg: 'hsl(350 85% 62% / 0.14)', text: 'hsl(350 85% 80%)' },
+  amp:   { c: 'hsl(300 85% 68%)', cDim: 'hsl(300 85% 68% / 0.18)', bg: 'hsl(300 85% 68% / 0.14)', text: 'hsl(300 85% 84%)' },
+};
+
+const TOWER_SHORT: Record<TowerKind, string> = {
+  pulse: 'PULSE', arc: 'ARC', cryo: 'CRYO', rail: 'RAIL', flak: 'FLAK', mortar: 'MORTAR', amp: 'AMP',
 };
 
 interface Props {
@@ -133,6 +140,52 @@ function ShotEffect({ ev }: { ev: Extract<BattleEvent, { type: 'shot' }> }) {
           style={{ left: `${tx}%`, top: `${ty}%`, width: 18, height: 18, transform: 'translate(-50%,-50%)',
             background: 'radial-gradient(circle, hsl(38 100% 80%), hsl(30 95% 60% / 0.5) 50%, transparent 75%)',
             boxShadow: '0 0 14px hsl(38 95% 60% / 0.8)' }} />
+      </>
+    );
+  }
+
+  if (ev.tower === 'flak') {
+    // Airburst puff + shrapnel — reads as an anti-air flak cloud.
+    return (
+      <>
+        <motion.span aria-hidden className="absolute rounded-full"
+          initial={{ opacity: 0.9, scale: 0.3 }} animate={{ opacity: 0, scale: 1.7 }} exit={{ opacity: 0 }}
+          transition={{ duration: 0.35, ease: 'easeOut' }}
+          style={{ left: `${tx}%`, top: `${ty}%`, width: 16, height: 16, transform: 'translate(-50%,-50%)',
+            background: 'radial-gradient(circle, hsl(150 90% 80% / 0.9), hsl(150 80% 55% / 0.4) 55%, transparent 75%)',
+            boxShadow: '0 0 12px hsl(150 80% 55% / 0.7)' }} />
+        {[0, 1, 2, 3, 4].map((k) => {
+          const ang = (k / 5) * Math.PI * 2;
+          return (
+            <motion.span key={k} aria-hidden className="absolute rounded-full"
+              initial={{ left: `${tx}%`, top: `${ty}%`, opacity: 1 }}
+              animate={{ left: `${tx + Math.cos(ang) * 3.5}%`, top: `${ty + Math.sin(ang) * 3.5}%`, opacity: 0 }}
+              transition={{ duration: 0.3, ease: 'easeOut' }}
+              style={{ width: 2.5, height: 2.5, transform: 'translate(-50%,-50%)', background: '#6ee7b7', boxShadow: '0 0 5px #34d399' }} />
+          );
+        })}
+      </>
+    );
+  }
+
+  if (ev.tower === 'mortar') {
+    // Lobbed shell → heavy explosion + debris ring.
+    return (
+      <>
+        <motion.span aria-hidden className="absolute rounded-full"
+          initial={{ left: `${sx}%`, top: `${sy}%`, opacity: 1 }} animate={{ left: `${tx}%`, top: `${ty}%`, opacity: 1 }}
+          transition={{ duration: 0.22, ease: 'easeIn' }}
+          style={{ width: 5, height: 5, transform: 'translate(-50%,-50%)', background: '#fb7185', boxShadow: '0 0 8px #f43f5e' }} />
+        <motion.span aria-hidden className="absolute rounded-full"
+          initial={{ opacity: 0, scale: 0.2 }} animate={{ opacity: [0, 0.95, 0], scale: 2.2 }} exit={{ opacity: 0 }}
+          transition={{ duration: 0.5, delay: 0.22, ease: 'easeOut' }}
+          style={{ left: `${tx}%`, top: `${ty}%`, width: 26, height: 26, transform: 'translate(-50%,-50%)',
+            background: 'radial-gradient(circle, hsl(40 100% 82% / 0.95), hsl(350 90% 60% / 0.5) 50%, transparent 75%)',
+            boxShadow: '0 0 20px hsl(350 90% 60% / 0.8)' }} />
+        <motion.span aria-hidden className="absolute rounded-full"
+          initial={{ opacity: 0.8, scale: 0.3 }} animate={{ opacity: 0, scale: 1.9 }} exit={{ opacity: 0 }}
+          transition={{ duration: 0.45, delay: 0.22, ease: 'easeOut' }}
+          style={{ left: `${tx}%`, top: `${ty}%`, width: 22, height: 22, transform: 'translate(-50%,-50%)', border: '1.5px solid hsl(350 90% 70% / 0.8)', borderRadius: '50%' }} />
       </>
     );
   }
@@ -485,9 +538,9 @@ export function NexusBattleScreen({
               const pos = pathToXY(e.pathIndex, e.progress);
               const left = ((pos.x + 0.5) / GRID_COLS) * 100;
               const top = ((pos.y + 0.5) / GRID_ROWS) * 100;
-              const hpPct = Math.max(0, e.hp / def.hp);
-              const size = e.kind === 'boss' ? 30 : e.kind === 'walker' ? 22 : 17;
-              const barW = e.kind === 'boss' ? 22 : 14;
+              const hpPct = Math.max(0, e.hp / (e.maxHp || def.hp));
+              const size = e.kind === 'boss' ? 30 : e.kind === 'brute' ? 26 : e.kind === 'walker' ? 22 : e.kind === 'runner' ? 13 : 17;
+              const barW = e.kind === 'boss' || e.kind === 'brute' ? 22 : 14;
               return (
                 <div
                   key={e.id}
@@ -536,9 +589,16 @@ export function NexusBattleScreen({
                     />
                   )}
 
+                  {/* Airborne shadow — reads flyers as hovering above the lane */}
+                  {def.flying && (
+                    <span aria-hidden className="absolute left-1/2 -translate-x-1/2 rounded-full"
+                      style={{ top: size * 0.6, width: size * 0.75, height: size * 0.24,
+                        background: 'radial-gradient(ellipse, hsl(0 0% 0% / 0.55), transparent 70%)', filter: 'blur(1px)' }} />
+                  )}
+
                   <div
                     className={cn('relative flex items-center justify-center', def.stealth && 'opacity-75')}
-                    style={{ width: size, height: size }}
+                    style={{ width: size, height: size, transform: def.flying ? 'translateY(-3px)' : undefined }}
                   >
                     <EnemyMarker kind={e.kind} size={size} />
                   </div>
@@ -797,12 +857,12 @@ export function NexusBattleScreen({
       >
         {/* Tower cards — distinct framed slots with letter badge + icon */}
         <div className="grid grid-cols-4 gap-1.5 mb-2">
-          {(['pulse','arc','cryo','rail'] as TowerKind[]).map((kind) => {
-            const def = TOWERS[kind];
+          {TOWER_LIST.map((def) => {
+            const kind = def.kind;
             const selected = selectedTowerKind === kind;
             const affordable = state.energy >= def.cost;
-            const shortName = kind === 'pulse' ? 'PULSE' : kind === 'arc' ? 'ARC' : kind === 'cryo' ? 'CRYO' : 'RAIL';
-            const letter = kind === 'pulse' ? 'P' : kind === 'arc' ? 'A' : kind === 'cryo' ? 'C' : 'R';
+            const shortName = TOWER_SHORT[kind];
+            const letter = def.glyph;
             const c = TOWER_HSL[kind];
             return (
               <button
@@ -876,114 +936,41 @@ export function NexusBattleScreen({
           })}
         </div>
 
-        {/* Ability footer: dial · emblem · dial */}
-        <div
-          className="relative nx-clip-sm flex items-stretch"
-          style={{
-            background: 'linear-gradient(180deg, hsl(218 50% 9%), hsl(218 55% 5%))',
-            border: '1px solid hsl(var(--nx-cyan) / 0.3)',
-            boxShadow: 'inset 0 1px 0 hsl(0 0% 100% / 0.05), 0 0 12px -4px hsl(var(--nx-cyan) / 0.35)',
-            minHeight: 52,
-          }}
-        >
-          {state.abilities.map((a, idx) => {
+        {/* Ability bar — compact dials, scales to any number of abilities */}
+        <div className="grid grid-cols-2 gap-1.5">
+          {state.abilities.map((a) => {
             const def = ABILITIES[a.kind];
             const ready = a.cooldownMs <= 0;
             const pct = ready ? 1 : 1 - (a.cooldownMs / def.cooldownMs);
             const remainSec = Math.ceil(a.cooldownMs / 1000);
-            const shortKey = a.kind === 'orbital' ? 'O' : 'E';
             const tone = ready ? 'hsl(var(--nx-amber))' : 'hsl(var(--nx-cyan))';
-            // Render center divider after the first ability
             return (
-              <Fragment key={a.kind}>
-                {idx === 1 && (
-                  <div
-                    key="divider"
-                    className="relative flex items-center justify-center px-2"
-                    style={{
-                      borderLeft: '1px solid hsl(var(--nx-cyan) / 0.25)',
-                      borderRight: '1px solid hsl(var(--nx-cyan) / 0.25)',
-                    }}
-                  >
-                    <span
-                      aria-hidden
-                      className="w-6 h-6 flex items-center justify-center rounded-sm"
-                      style={{
-                        background: 'hsl(218 60% 6%)',
-                        border: '1px solid hsl(var(--nx-cyan) / 0.5)',
-                        color: 'hsl(var(--nx-cyan))',
-                        boxShadow: '0 0 6px hsl(var(--nx-cyan) / 0.4)',
-                      }}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                        <path d="M12 2 L20 7 V17 L12 22 L4 17 V7 Z" stroke="currentColor" strokeWidth="1.6" />
-                      </svg>
-                    </span>
-                  </div>
-                )}
-                <button
-                  key={a.kind}
-                  onClick={() => ready && onCastAbility(a.kind)}
-                  disabled={!ready}
-                  className="relative flex-1 flex items-center justify-between px-3 py-2 active:scale-[0.97] transition nx-title"
-                  style={{ color: ready ? 'hsl(0 0% 98%)' : 'hsl(0 0% 100% / 0.45)' }}
-                >
-                  {/* Left circular dial: key + glow */}
-                  <span className="relative flex items-center justify-center" style={{ width: 30, height: 30 }}>
-                    <svg width="30" height="30" viewBox="0 0 30 30" className="absolute inset-0">
-                      <circle cx="15" cy="15" r="12" fill="none" stroke="hsl(var(--nx-cyan) / 0.2)" strokeWidth="1.5" />
-                      <circle
-                        cx="15" cy="15" r="12" fill="none"
-                        stroke={tone}
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeDasharray={`${pct * 75.4} 75.4`}
-                        strokeDashoffset="0"
-                        transform="rotate(-90 15 15)"
-                        style={{ filter: ready ? `drop-shadow(0 0 4px ${tone})` : undefined }}
-                      />
-                    </svg>
-                    <span
-                      className="text-[11px] font-black"
-                      style={{ color: ready ? 'hsl(var(--nx-amber))' : 'hsl(0 0% 100% / 0.55)' }}
-                    >
-                      {shortKey}
-                    </span>
-                  </span>
-
-                  <span
-                    className="text-[10px] font-black flex-1 text-center"
-                    style={{
-                      letterSpacing: '0.18em',
-                      color: ready ? 'hsl(0 0% 98%)' : 'hsl(0 0% 100% / 0.5)',
-                    }}
-                  >
-                    {def.name.toUpperCase()}
-                  </span>
-
-                  {/* Right circular dial: countdown / ready */}
-                  <span className="relative flex items-center justify-center" style={{ width: 32, height: 32 }}>
-                    <svg width="32" height="32" viewBox="0 0 32 32" className="absolute inset-0">
-                      <circle cx="16" cy="16" r="13" fill="none" stroke="hsl(var(--nx-cyan) / 0.2)" strokeWidth="1.5" />
-                      <circle
-                        cx="16" cy="16" r="13" fill="none"
-                        stroke={tone}
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeDasharray={`${pct * 81.7} 81.7`}
-                        transform="rotate(-90 16 16)"
-                        style={{ filter: ready ? `drop-shadow(0 0 5px ${tone})` : undefined }}
-                      />
-                    </svg>
-                    <span
-                      className="text-[10px] font-black tabular-nums"
-                      style={{ color: ready ? 'hsl(var(--nx-amber))' : 'hsl(var(--nx-cyan))' }}
-                    >
-                      {ready ? `${Math.round(def.cooldownMs / 1000)}s` : `${remainSec}s`}
-                    </span>
-                  </span>
-                </button>
-              </Fragment>
+              <button
+                key={a.kind}
+                onClick={() => ready && onCastAbility(a.kind)}
+                disabled={!ready}
+                className="relative nx-clip-sm flex items-center gap-2 px-2 py-1.5 active:scale-[0.97] transition"
+                style={{
+                  background: 'linear-gradient(180deg, hsl(218 50% 9%), hsl(218 55% 5%))',
+                  border: `1px solid ${ready ? 'hsl(var(--nx-amber) / 0.55)' : 'hsl(var(--nx-cyan) / 0.28)'}`,
+                  boxShadow: ready ? '0 0 10px -3px hsl(var(--nx-amber) / 0.5), inset 0 1px 0 hsl(0 0% 100% / 0.05)' : 'inset 0 1px 0 hsl(0 0% 100% / 0.04)',
+                  opacity: ready ? 1 : 0.85,
+                }}
+              >
+                <span className="relative flex items-center justify-center shrink-0" style={{ width: 30, height: 30 }}>
+                  <svg width="30" height="30" viewBox="0 0 30 30" className="absolute inset-0">
+                    <circle cx="15" cy="15" r="12" fill="none" stroke="hsl(var(--nx-cyan) / 0.2)" strokeWidth="1.5" />
+                    <circle cx="15" cy="15" r="12" fill="none" stroke={tone} strokeWidth="1.5" strokeLinecap="round"
+                      strokeDasharray={`${pct * 75.4} 75.4`} transform="rotate(-90 15 15)"
+                      style={{ filter: ready ? `drop-shadow(0 0 4px ${tone})` : undefined }} />
+                  </svg>
+                  <span className="text-[12px] font-black" style={{ color: ready ? 'hsl(var(--nx-amber))' : 'hsl(0 0% 100% / 0.55)' }}>{def.glyph}</span>
+                </span>
+                <span className="flex-1 min-w-0 text-left">
+                  <span className="block nx-title text-[9px] truncate" style={{ letterSpacing: '0.1em', color: ready ? 'hsl(0 0% 98%)' : 'hsl(0 0% 100% / 0.55)' }}>{def.name.toUpperCase()}</span>
+                  <span className="block text-[9px] font-black tabular-nums leading-tight" style={{ color: ready ? 'hsl(150 80% 65%)' : 'hsl(var(--nx-cyan))' }}>{ready ? 'READY' : `${remainSec}s`}</span>
+                </span>
+              </button>
             );
           })}
         </div>

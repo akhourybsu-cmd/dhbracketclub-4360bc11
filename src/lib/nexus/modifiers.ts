@@ -227,9 +227,11 @@ export function resolveModifiers(ids: string[] | undefined): ModifierDef[] {
 
 /* ---------- Aggregation helpers (engine consumes these) ---------- */
 
-const ENEMY_KINDS: EnemyKind[] = ['drone', 'walker', 'shielded', 'stealth', 'boss'];
-const TOWER_KINDS: TowerKind[] = ['pulse', 'arc', 'cryo', 'rail'];
-const ABILITY_KINDS: AbilityKind[] = ['orbital', 'emp'];
+// Sourced from the definition maps so new towers/enemies/abilities are
+// automatically covered by global (non-per-kind) modifier multipliers.
+import { ENEMY_KINDS } from './enemies';
+import { TOWER_KINDS } from './towers';
+import { ABILITY_KINDS } from './abilities';
 
 export interface AggregatedModifierEffects {
   enemyHpMult: Record<EnemyKind, number>;

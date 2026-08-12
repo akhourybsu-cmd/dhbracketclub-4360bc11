@@ -3,6 +3,8 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { castAbility, initBattle, placeTower, sellTower, setTowerPriority, startWave, tick, TICK_MS, upgradeTower } from '@/lib/nexus/engine';
 import { AbilityKind, BattleState, TargetMode, TowerKind } from '@/lib/nexus/types';
+import { ABILITY_KINDS } from '@/lib/nexus/abilities';
+import { TOWER_KINDS } from '@/lib/nexus/towers';
 import { NexusBattleScreen } from '@/components/nexus/NexusBattleScreen';
 import { useAuth } from '@/contexts/AuthContext';
 import { recordNexusRun, useNexusProgress } from '@/hooks/useNexusProgress';
@@ -35,7 +37,7 @@ export default function NexusBattlePage() {
 
   const abilities = useMemo<AbilityKind[]>(() => {
     const raw = params.get('abilities');
-    if (!raw) return ['orbital', 'emp'];
+    if (!raw) return ['orbital', 'emp', 'overclock', 'repair'];
     return raw.split(',').filter(Boolean) as AbilityKind[];
   }, [params]);
 
@@ -96,7 +98,9 @@ export default function NexusBattlePage() {
   const [shakeKey, setShakeKey] = useState(0);
   const prevWaveIndexRef = useRef(-1);
   const prevStatusRef = useRef<BattleState['status']>('pre');
-  const prevAbilityCdRef = useRef<Record<AbilityKind, number>>({ orbital: -1, emp: -1 });
+  const prevAbilityCdRef = useRef<Record<AbilityKind, number>>(
+    Object.fromEntries(ABILITY_KINDS.map(k => [k, -1])) as Record<AbilityKind, number>,
+  );
   const lastSaveAtRef = useRef(0);
   // Once a run is abandoned (or otherwise terminally cleared), suppress all
   // further checkpoint writes so the unmount/blur flush can't resurrect the
@@ -231,7 +235,7 @@ export default function NexusBattlePage() {
             wavesCleared,
             baseHpRemaining: state.baseHp,
             durationSeconds,
-            loadout: { towers: ['pulse','arc','cryo','rail'], abilities, modifierIds: state.modifierIds, boostCode: state.boostCode ?? null },
+            loadout: { towers: TOWER_KINDS, abilities, modifierIds: state.modifierIds, boostCode: state.boostCode ?? null },
             failedWave: won ? null : state.waveIndex + 1,
             towerUsage: state.towerBuilds,
             towerUpgrades: state.towerUpgrades,

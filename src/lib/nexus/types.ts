@@ -1,8 +1,8 @@
 // Nexus Defense — shared type definitions
 
-export type TowerKind = 'pulse' | 'arc' | 'cryo' | 'rail';
-export type AbilityKind = 'orbital' | 'emp';
-export type EnemyKind = 'drone' | 'walker' | 'shielded' | 'stealth' | 'boss';
+export type TowerKind = 'pulse' | 'arc' | 'cryo' | 'rail' | 'flak' | 'mortar' | 'amp';
+export type AbilityKind = 'orbital' | 'emp' | 'overclock' | 'repair';
+export type EnemyKind = 'drone' | 'walker' | 'shielded' | 'stealth' | 'boss' | 'runner' | 'brute' | 'flyer' | 'healer' | 'splitter';
 
 /** Per-tower targeting priority — the player's live agency over what each
  *  tower shoots. 'first' (most path progress) is the default. */
@@ -21,6 +21,12 @@ export interface TowerDef {
   slow?: number;           // 0..1 slow strength
   slowDuration?: number;   // seconds
   armorPierce?: number;    // flat reduction of enemy armor
+  /** Can this tower hit flying enemies? Only a few can — the anti-air answer. */
+  canHitAir?: boolean;
+  /** Splash-damage radius (cells) around the primary target (mortar/flak). */
+  splashDamage?: number;
+  /** Support tower: buffs nearby towers instead of shooting. */
+  supportAura?: { range: number; damageMult: number; rangeBonus: number };
   upgradeCost: number;
   upgradeMultiplier: number; // damage scaling per level
   color: string;           // tailwind hsl token used for styling
@@ -37,6 +43,12 @@ export interface EnemyDef {
   bounty: number;          // energy granted on kill
   damage: number;          // base hp dealt to nexus on leak
   stealth?: boolean;       // invisible to non-detector towers
+  /** Flying — only towers with canHitAir can target it. */
+  flying?: boolean;
+  /** Field medic: heals nearby enemies. */
+  heal?: { radius: number; perSec: number };
+  /** On death, spawns smaller enemies at its position. */
+  splitInto?: { kind: EnemyKind; count: number };
   color: string;
   glyph: string;
 }
@@ -95,6 +107,7 @@ export interface ActiveEnemy {
   id: string;
   kind: EnemyKind;
   hp: number;
+  maxHp: number;             // spawned hp (after scaling) — for HP bar + heal cap
   shield: number;
   pathIndex: number;         // along the path cells
   progress: number;          // 0..1 between pathIndex and next
@@ -127,6 +140,8 @@ export interface BattleState {
   abilities: AbilityRuntime[];
   status: 'pre' | 'in_wave' | 'between' | 'victory' | 'defeat';
   betweenWaveMs: number;     // countdown to next wave
+  /** Overclock ability window — all towers fire faster/harder until this elapsedMs. */
+  overclockUntilMs?: number;
   score: number;
   killedThisRun: number;
   events: BattleEvent[];     // recent visual events for UI

@@ -56,10 +56,12 @@ export const MISSIONS: MissionDef[] = [
       { index: 1, rewardEnergy: 70, spawns: [
         { enemy: 'shielded', count: 8, intervalMs: 1000 },
         { enemy: 'drone', count: 10, intervalMs: 500, delayMs: 1200 },
+        { enemy: 'runner', count: 8, intervalMs: 320, delayMs: 3000 },
       ] },
       { index: 2, rewardEnergy: 80, spawns: [
         { enemy: 'shielded', count: 6, intervalMs: 900 },
         { enemy: 'walker', count: 4, intervalMs: 1300, delayMs: 2000 },
+        { enemy: 'runner', count: 12, intervalMs: 280, delayMs: 3500 },
       ] },
       { index: 3, rewardEnergy: 100, spawns: [
         { enemy: 'shielded', count: 12, intervalMs: 800 },
@@ -89,10 +91,12 @@ export const MISSIONS: MissionDef[] = [
       { index: 2, rewardEnergy: 90, spawns: [
         { enemy: 'stealth', count: 8, intervalMs: 900 },
         { enemy: 'shielded', count: 4, intervalMs: 1200, delayMs: 1500 },
+        { enemy: 'flyer', count: 3, intervalMs: 1400, delayMs: 2500 },
       ] },
       { index: 3, rewardEnergy: 110, spawns: [
         { enemy: 'stealth', count: 10, intervalMs: 800 },
         { enemy: 'walker', count: 6, intervalMs: 1100, delayMs: 1200 },
+        { enemy: 'flyer', count: 6, intervalMs: 1000, delayMs: 2000 },
       ] },
     ],
   },
@@ -117,13 +121,15 @@ export const MISSIONS: MissionDef[] = [
       { index: 2, rewardEnergy: 100, spawns: [
         { enemy: 'walker', count: 6, intervalMs: 1100 },
         { enemy: 'shielded', count: 6, intervalMs: 1000, delayMs: 1500 },
+        { enemy: 'healer', count: 2, intervalMs: 1500, delayMs: 500 },
         { enemy: 'stealth', count: 4, intervalMs: 1100, delayMs: 3000 },
       ] },
       { index: 3, rewardEnergy: 130, spawns: [
         { enemy: 'drone', count: 20, intervalMs: 400 },
+        { enemy: 'splitter', count: 4, intervalMs: 1300, delayMs: 1000 },
         { enemy: 'walker', count: 8, intervalMs: 900, delayMs: 1500 },
-        { enemy: 'shielded', count: 8, intervalMs: 900, delayMs: 2500 },
-        { enemy: 'stealth', count: 6, intervalMs: 1000, delayMs: 4000 },
+        { enemy: 'healer', count: 3, intervalMs: 1400, delayMs: 2000 },
+        { enemy: 'flyer', count: 5, intervalMs: 1100, delayMs: 3000 },
       ] },
     ],
   },
@@ -145,16 +151,19 @@ export const MISSIONS: MissionDef[] = [
       { index: 1, rewardEnergy: 100, spawns: [
         { enemy: 'walker', count: 8, intervalMs: 900 },
         { enemy: 'stealth', count: 6, intervalMs: 1100, delayMs: 1500 },
+        { enemy: 'flyer', count: 5, intervalMs: 1100, delayMs: 2500 },
       ] },
       { index: 2, rewardEnergy: 120, spawns: [
-        { enemy: 'shielded', count: 10, intervalMs: 800 },
-        { enemy: 'walker', count: 6, intervalMs: 1100, delayMs: 1500 },
+        { enemy: 'brute', count: 2, intervalMs: 2200 },
+        { enemy: 'healer', count: 2, intervalMs: 1600, delayMs: 1500 },
+        { enemy: 'shielded', count: 10, intervalMs: 800, delayMs: 1000 },
         { enemy: 'drone', count: 18, intervalMs: 400, delayMs: 2500 },
       ] },
       { index: 3, rewardEnergy: 220, spawns: [
         { enemy: 'boss', count: 1, intervalMs: 1000 },
-        { enemy: 'shielded', count: 6, intervalMs: 1100, delayMs: 6000 },
-        { enemy: 'walker', count: 6, intervalMs: 1000, delayMs: 9000 },
+        { enemy: 'flyer', count: 6, intervalMs: 1000, delayMs: 3000 },
+        { enemy: 'brute', count: 2, intervalMs: 2500, delayMs: 6000 },
+        { enemy: 'splitter', count: 4, intervalMs: 1300, delayMs: 9000 },
       ] },
     ],
   },

@@ -1,8 +1,8 @@
-import { ABILITIES } from './abilities';
-import { ENEMIES } from './enemies';
+import { ABILITIES, ABILITY_KINDS } from './abilities';
+import { ENEMIES, ENEMY_KINDS } from './enemies';
 import { distanceCells, getGridLayout, type PathVariantId } from './grid';
 import { MISSIONS, getMission } from './missions';
-import { TOWERS, towerDamageAt, towerFireRateAt, towerRangeAt, towerSellValue, towerUpgradeCost } from './towers';
+import { TOWERS, TOWER_KINDS, TOWER_LIST, towerDamageAt, towerFireRateAt, towerRangeAt, towerSellValue, towerUpgradeCost } from './towers';
 import { aggregateModifiers, emptyAggregated, resolveModifiers } from './modifiers';
 import { isEndlessMission } from './endless';
 // Use the live-draft-aware scaling resolver so admin overrides take effect on
@@ -19,6 +19,12 @@ const EVENT_TTL_MS = 350;
 
 let idCounter = 0;
 const nextId = (p: string) => `${p}_${++idCounter}_${Date.now().toString(36).slice(-3)}`;
+
+// Per-kind record builders — keyed off the definition maps so adding a
+// tower/enemy/ability kind never requires hand-updating literals here.
+const towerRecord = <T>(v: T) => Object.fromEntries(TOWER_KINDS.map(k => [k, v])) as Record<TowerKind, T>;
+const enemyRecord = <T>(v: T) => Object.fromEntries(ENEMY_KINDS.map(k => [k, v])) as Record<EnemyKind, T>;
+const abilityRecord = <T>(v: T) => Object.fromEntries(ABILITY_KINDS.map(k => [k, v])) as Record<AbilityKind, T>;
 
 // ---------- INIT ----------
 
@@ -47,9 +53,9 @@ export interface InitBattleOptions {
 export function initBattle(missionId: number, abilities: AbilityKind[], opts: InitBattleOptions = {}): BattleState {
   const mission = opts.mission ?? getMission(missionId);
   if (!mission) throw new Error('Mission not found');
-  const zeroTowers = { pulse: 0, arc: 0, cryo: 0, rail: 0 } as Record<TowerKind, number>;
-  const zeroAbilities = { orbital: 0, emp: 0 } as Record<AbilityKind, number>;
-  const oneEnemies: Record<EnemyKind, number> = { drone: 1, walker: 1, shielded: 1, stealth: 1, boss: 1 };
+  const zeroTowers = towerRecord(0);
+  const zeroAbilities = abilityRecord(0);
+  const oneEnemies = enemyRecord(1);
   const hpMult: Record<EnemyKind, number> = { ...oneEnemies, ...(opts.enemyHpMult ?? {}) };
   const shieldMult: Record<EnemyKind, number> = { ...oneEnemies, ...(opts.enemyShieldMult ?? {}) };
 
@@ -192,7 +198,7 @@ export function tick(state: BattleState, mission: MissionDef): BattleState {
 
   // --- Energy starvation tracking (during waves only) ---
   if (s.status === 'in_wave') {
-    const cheapest = Math.min(TOWERS.pulse.cost, TOWERS.arc.cost, TOWERS.cryo.cost, TOWERS.rail.cost);
+    const cheapest = Math.min(...TOWER_LIST.map(t => t.cost));
     if (s.energy < cheapest) s.energyStarvedMs += TICK_MS;
   }
 
@@ -201,30 +207,78 @@ export function tick(state: BattleState, mission: MissionDef): BattleState {
     return s;
   }
 
+  // --- Field medics heal nearby allies (up to their spawn hp) ---
+  const healers = s.enemies.filter(e => ENEMIES[e.kind].heal);
+  if (healers.length) {
+    const dt = TICK_MS / 1000;
+    for (const h of healers) {
+      const cfg = ENEMIES[h.kind].heal!;
+      const hpos = pathToXY(h.pathIndex, h.progress);
+      for (const e of s.enemies) {
+        const cap = e.maxHp || ENEMIES[e.kind].hp; // legacy saves may lack maxHp
+        if (e === h || e.hp <= 0 || e.hp >= cap) continue;
+        const pos = pathToXY(e.pathIndex, e.progress);
+        if (distanceCells(hpos.x, hpos.y, pos.x, pos.y) <= cfg.radius) {
+          e.hp = Math.min(cap, e.hp + cfg.perSec * dt);
+        }
+      }
+    }
+  }
+
+  // --- Support auras (Amp Node): buff nearby towers' damage + range ---
+  const ampTowers = s.towers.filter(t => TOWERS[t.kind].supportAura);
+  const ampBuff = new Map<string, { dmg: number; range: number }>();
+  if (ampTowers.length) {
+    for (const t of s.towers) {
+      if (TOWERS[t.kind].supportAura) continue; // amps don't buff other amps
+      let dmg = 1, rangeBonus = 0;
+      for (const a of ampTowers) {
+        const aura = TOWERS[a.kind].supportAura!;
+        const lvlScale = 1 + 0.5 * (a.level - 1);
+        const d = distanceCells(a.cell.col + 0.5, a.cell.row + 0.5, t.cell.col + 0.5, t.cell.row + 0.5);
+        if (d <= aura.range) { dmg += aura.damageMult * lvlScale; rangeBonus += aura.rangeBonus; }
+      }
+      if (dmg !== 1 || rangeBonus !== 0) ampBuff.set(t.id, { dmg, range: rangeBonus });
+    }
+  }
+
+  // Overclock ability window — all towers fire faster + harder.
+  const overclockActive = !!s.overclockUntilMs && s.elapsedMs <= s.overclockUntilMs;
+
   // --- Tower fire ---
   for (const t of s.towers) {
+    const tDef = TOWERS[t.kind];
+    if (tDef.supportAura) continue; // Amp Node never fires — aura only
     t.cooldownMs = Math.max(0, t.cooldownMs - TICK_MS);
     if (t.cooldownMs > 0) continue;
-    const tDef = TOWERS[t.kind];
-    const range = towerRangeAt(t.kind, t.level);
+    const buff = ampBuff.get(t.id);
+    const range = towerRangeAt(t.kind, t.level) + (buff?.range ?? 0);
     const baseDamage = towerDamageAt(t.kind, t.level);
     const dmgMod = s.modTowerDamageMult?.[t.kind] ?? 1;
     // Boost: timed-window tower damage uplift (Overcharge Coil)
     const boostActive = !!s.boostExpiresAtMs && s.elapsedMs <= s.boostExpiresAtMs;
     const boostDmg = boostActive && s.boostTowerDamageMult ? s.boostTowerDamageMult : 1;
-    const damage = Math.max(1, Math.round(baseDamage * dmgMod * boostDmg));
-    const fr = towerFireRateAt(t.kind, t.level);
+    const ocDmg = overclockActive ? 1.4 : 1;
+    const damage = Math.max(1, Math.round(baseDamage * dmgMod * boostDmg * (buff?.dmg ?? 1) * ocDmg));
+    const fr = towerFireRateAt(t.kind, t.level) * (overclockActive ? 1.5 : 1);
     const cooldown = Math.max(80, Math.round(1000 / fr));
 
-    // gather visible targets
-    const visible = s.enemies.filter(e => {
+    // gather visible targets — flying enemies only hittable by anti-air towers
+    let visible = s.enemies.filter(e => {
       const def = ENEMIES[e.kind];
       if (def.stealth && t.kind !== 'rail') return false;
+      if (def.flying && !tDef.canHitAir) return false;
       const pos = pathToXY(e.pathIndex, e.progress);
       const d = distanceCells(t.cell.col + 0.5, t.cell.row + 0.5, pos.x + 0.5, pos.y + 0.5);
       return d <= range;
     });
     if (visible.length === 0) continue;
+
+    // Flak prioritises flyers — clears the skies before ground.
+    if (t.kind === 'flak') {
+      const air = visible.filter(e => ENEMIES[e.kind].flying);
+      if (air.length) visible = air;
+    }
 
     // pick the primary target per the tower's targeting priority (player agency)
     const primary = pickPrimary(visible, t, pathToXY);
@@ -242,6 +296,21 @@ export function tick(state: BattleState, mission: MissionDef): BattleState {
           applyDamage(e, damage, 0, t, s);
           e.slowMs = Math.max(e.slowMs, (tDef.slowDuration ?? 1.5) * 1000);
           e.slowFactor = Math.max(e.slowFactor, tDef.slow ?? 0.5);
+        }
+      }
+    } else if (tDef.splashDamage) {
+      // Mortar / Flak — heavy splash damage around the primary (no slow).
+      // Flak only splashes its own target class (air→air, ground→ground).
+      const radius = tDef.splashDamage;
+      const flakAir = t.kind === 'flak' && !!ENEMIES[primary.kind].flying;
+      for (const e of s.enemies) {
+        const edef = ENEMIES[e.kind];
+        if (edef.stealth && t.kind !== 'rail') continue;
+        if (edef.flying && !tDef.canHitAir) continue;
+        if (t.kind === 'flak' && !!edef.flying !== flakAir) continue;
+        const pos = pathToXY(e.pathIndex, e.progress);
+        if (distanceCells(primaryPos.x, primaryPos.y, pos.x, pos.y) <= radius) {
+          applyDamage(e, damage, tDef.armorPierce ?? 0, t, s);
         }
       }
     } else if (t.kind === 'arc') {
@@ -273,6 +342,7 @@ export function tick(state: BattleState, mission: MissionDef): BattleState {
 
   // --- Cleanup dead enemies + bounty ---
   const survivors: ActiveEnemy[] = [];
+  const splitSpawns: { kind: EnemyKind; pathIndex: number; progress: number }[] = [];
   for (const e of s.enemies) {
     if (e.hp <= 0) {
       const def = ENEMIES[e.kind];
@@ -289,11 +359,18 @@ export function tick(state: BattleState, mission: MissionDef): BattleState {
       }
       const pos = pathToXY(e.pathIndex, e.progress);
       s.events.push({ type: 'kill', at: pos, t: s.elapsedMs });
+      // Splitter — burst into smaller enemies at the death position.
+      if (def.splitInto) {
+        for (let n = 0; n < def.splitInto.count; n++) {
+          splitSpawns.push({ kind: def.splitInto.kind, pathIndex: e.pathIndex, progress: e.progress });
+        }
+      }
     } else {
       survivors.push(e);
     }
   }
   s.enemies = survivors;
+  for (const sp of splitSpawns) spawnAt(s, sp.kind, sp.pathIndex, sp.progress, 1);
 
   // Modifier-driven shield regen (e.g. Shielded Vanguard).
   if (s.modShieldRegen) {
@@ -384,6 +461,7 @@ function spawnEnemy(s: BattleState, kind: EnemyKind, mission: MissionDef) {
     id: nextId('e'),
     kind,
     hp,
+    maxHp: hp,
     shield,
     pathIndex: 0,
     progress: 0,
@@ -391,6 +469,18 @@ function spawnEnemy(s: BattleState, kind: EnemyKind, mission: MissionDef) {
     slowFactor: 0,
     stunnedMs: 0,
     speedMult: endlessScale.speed,
+  });
+}
+
+/** Spawn a smaller enemy at an existing path position (splitter offspring). */
+function spawnAt(s: BattleState, kind: EnemyKind, pathIndex: number, progress: number, hpScale: number) {
+  const def = ENEMIES[kind];
+  const hpMult = (s.enemyHpMult?.[kind] ?? 1) * (s.modEnemyHpMult?.[kind] ?? 1);
+  const hp = Math.max(1, Math.round(def.hp * hpMult * hpScale));
+  s.enemies.push({
+    id: nextId('e'), kind, hp, maxHp: hp,
+    shield: Math.max(0, Math.round((def.shield ?? 0) * (s.enemyShieldMult?.[kind] ?? 1))),
+    pathIndex, progress, slowMs: 0, slowFactor: 0, stunnedMs: 0, speedMult: 1,
   });
 }
 
@@ -494,6 +584,8 @@ export function castAbility(state: BattleState, kind: AbilityKind): { state: Bat
   if (ab.cooldownMs > 0) return { state, ok: false };
   const def = ABILITIES[kind];
   const enemies = state.enemies.map(e => ({ ...e }));
+  let baseHp = state.baseHp;
+  let overclockUntilMs = state.overclockUntilMs;
   if (kind === 'orbital') {
     // Damage to leading 6 enemies
     const sorted = [...enemies].sort((a, b) => (b.pathIndex + b.progress) - (a.pathIndex + a.progress)).slice(0, 6);
@@ -506,12 +598,20 @@ export function castAbility(state: BattleState, kind: AbilityKind): { state: Bat
       e.shield = 0;
       e.stunnedMs = 3000;
     });
+  } else if (kind === 'overclock') {
+    // 6s window where every tower fires faster + harder (read in tick()).
+    overclockUntilMs = state.elapsedMs + 6000;
+  } else if (kind === 'repair') {
+    // Restore 30% of max Nexus integrity — the defensive panic button.
+    baseHp = Math.min(state.baseHpMax, state.baseHp + Math.round(state.baseHpMax * 0.3));
   }
   const cooldown = Math.max(1000, Math.round(def.cooldownMs * (state.modAbilityCooldownMult?.[kind] ?? 1)));
   return {
     state: {
       ...state,
       enemies,
+      baseHp,
+      overclockUntilMs,
       abilities: state.abilities.map(a => a.kind === kind ? { ...a, cooldownMs: cooldown } : a),
       events: [...state.events, { type: 'ability', ability: kind, t: state.elapsedMs }],
       abilityUses: { ...state.abilityUses, [kind]: state.abilityUses[kind] + 1 },

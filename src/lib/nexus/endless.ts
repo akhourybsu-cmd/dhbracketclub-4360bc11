@@ -98,6 +98,8 @@ function buildWaves(): Wave[] {
   w.push(wave(11, 130, [
     { enemy: 'walker', count: 11, intervalMs: 800 },
     { enemy: 'drone', count: 24, intervalMs: 280, delayMs: 1500 },
+    { enemy: 'runner', count: 14, intervalMs: 240, delayMs: 3000 },
+    { enemy: 'flyer', count: 4, intervalMs: 1200, delayMs: 4000 },
   ]));
   w.push(wave(12, 140, [
     { enemy: 'shielded', count: 13, intervalMs: 700 },
@@ -124,6 +126,8 @@ function buildWaves(): Wave[] {
   w.push(wave(16, 180, [
     { enemy: 'drone', count: 34, intervalMs: 230 },
     { enemy: 'shielded', count: 12, intervalMs: 750, delayMs: 1500 },
+    { enemy: 'healer', count: 3, intervalMs: 1500, delayMs: 2000 },
+    { enemy: 'flyer', count: 6, intervalMs: 1000, delayMs: 3500 },
   ]));
   w.push(wave(17, 190, [
     { enemy: 'shielded', count: 16, intervalMs: 650 },
@@ -155,6 +159,8 @@ function buildWaves(): Wave[] {
   w.push(wave(22, 240, [
     { enemy: 'shielded', count: 18, intervalMs: 600 },
     { enemy: 'walker', count: 14, intervalMs: 700, delayMs: 1500 },
+    { enemy: 'splitter', count: 6, intervalMs: 1100, delayMs: 3000 },
+    { enemy: 'brute', count: 2, intervalMs: 2500, delayMs: 5000 },
     { enemy: 'stealth', count: 10, intervalMs: 850, delayMs: 5000 },
   ]));
   w.push(wave(23, 250, [
@@ -184,6 +190,8 @@ function buildWaves(): Wave[] {
   w.push(wave(27, 280, [
     { enemy: 'shielded', count: 22, intervalMs: 550 },
     { enemy: 'stealth', count: 16, intervalMs: 700, delayMs: 1500 },
+    { enemy: 'flyer', count: 8, intervalMs: 900, delayMs: 2500 },
+    { enemy: 'healer', count: 4, intervalMs: 1400, delayMs: 3000 },
     { enemy: 'walker', count: 14, intervalMs: 800, delayMs: 4500 },
   ]));
   w.push(wave(28, 290, [
@@ -195,10 +203,11 @@ function buildWaves(): Wave[] {
   // ── Tier 12: FINAL — dual boss + heavy escort (wave 30)
   w.push(wave(29, 600, [
     { enemy: 'boss', count: 1, intervalMs: 1000 },
-    { enemy: 'walker', count: 14, intervalMs: 750, delayMs: 3000 },
+    { enemy: 'brute', count: 3, intervalMs: 2200, delayMs: 3000 },
     { enemy: 'boss', count: 1, intervalMs: 1000, delayMs: 8000 },
-    { enemy: 'shielded', count: 18, intervalMs: 700, delayMs: 11000 },
-    { enemy: 'stealth', count: 14, intervalMs: 800, delayMs: 15000 },
+    { enemy: 'flyer', count: 10, intervalMs: 800, delayMs: 11000 },
+    { enemy: 'splitter', count: 6, intervalMs: 1100, delayMs: 15000 },
+    { enemy: 'stealth', count: 14, intervalMs: 800, delayMs: 18000 },
   ]));
 
   return w;

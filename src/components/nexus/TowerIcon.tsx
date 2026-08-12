@@ -91,6 +91,56 @@ export function TowerIcon({ kind, size = 24, className }: Props) {
     );
   }
 
+  if (kind === 'flak') {
+    return (
+      <svg {...common}>
+        {/* base */}
+        <path d="M8 26 L8 22 L24 22 L24 26" opacity="0.55" />
+        {/* quad-barrel AA cluster angled up */}
+        <path d="M12 22 L12 16 L20 16 L20 22" />
+        <path d="M13 16 L11 7" />
+        <path d="M16 16 L16 6" />
+        <path d="M19 16 L21 7" />
+        <circle cx="11" cy="6.5" r="0.9" fill="currentColor" stroke="none" />
+        <circle cx="16" cy="5.5" r="0.9" fill="currentColor" stroke="none" />
+        <circle cx="21" cy="6.5" r="0.9" fill="currentColor" stroke="none" />
+      </svg>
+    );
+  }
+
+  if (kind === 'mortar') {
+    return (
+      <svg {...common}>
+        {/* wide base */}
+        <path d="M6 26 L9 20 L23 20 L26 26 Z" opacity="0.55" />
+        {/* fat angled tube */}
+        <path d="M12 22 L20 8" strokeWidth={4} opacity="0.9" />
+        <circle cx="20.5" cy="7" r="2" />
+        {/* lobbed shell arc */}
+        <path d="M22 6 Q27 4 27 10" opacity="0.6" strokeDasharray="1.5 1.5" />
+        <circle cx="27" cy="10" r="0.9" fill="currentColor" stroke="none" />
+      </svg>
+    );
+  }
+
+  if (kind === 'amp') {
+    return (
+      <svg {...common}>
+        {/* pylon base */}
+        <path d="M10 26 L14 20 L18 20 L22 26" opacity="0.55" />
+        <path d="M16 20 L16 12" />
+        {/* broadcast node */}
+        <circle cx="16" cy="9" r="2.6" />
+        <circle cx="16" cy="9" r="1" fill="currentColor" stroke="none" />
+        {/* radiating buff waves */}
+        <path d="M9 9 Q6 6 8 3" opacity="0.6" />
+        <path d="M23 9 Q26 6 24 3" opacity="0.6" />
+        <path d="M11 13 Q8 15 5 14" opacity="0.45" />
+        <path d="M21 13 Q24 15 27 14" opacity="0.45" />
+      </svg>
+    );
+  }
+
   // rail
   return (
     <svg {...common}>

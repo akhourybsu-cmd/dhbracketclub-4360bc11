@@ -3,7 +3,8 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion';
 import { Trophy, X, Cpu, Zap, ShieldOff, Clock, ChevronRight, Users, Target, TrendingUp } from 'lucide-react';
 import { useResolvedMissions } from '@/hooks/useMissionCalibrations';
-import { TOWERS } from '@/lib/nexus/towers';
+import { TOWERS, TOWER_KINDS } from '@/lib/nexus/towers';
+import { ABILITY_KINDS } from '@/lib/nexus/abilities';
 import type { TowerKind, AbilityKind } from '@/lib/nexus/types';
 import { NexusRewardsPanel } from '@/components/nexus/NexusRewardsPanel';
 import { MapLayoutPreview } from '@/components/nexus/MapLayoutPreview';
@@ -67,8 +68,8 @@ export default function NexusResultsPage() {
     } catch { return null; }
   }, [id]);
 
-  const towerKinds: TowerKind[] = ['pulse', 'arc', 'cryo', 'rail'];
-  const abilityKinds: AbilityKind[] = ['orbital', 'emp'];
+  const towerKinds: TowerKind[] = TOWER_KINDS;
+  const abilityKinds: AbilityKind[] = ABILITY_KINDS;
   const totalBuilt = insight ? towerKinds.reduce((a, k) => a + (insight.towerBuilds[k] || 0), 0) : 0;
   const totalSells = insight ? towerKinds.reduce((a, k) => a + (insight.towerSells[k] || 0), 0) : 0;
   const totalAbilities = insight ? abilityKinds.reduce((a, k) => a + (insight.abilityUses[k] || 0), 0) : 0;

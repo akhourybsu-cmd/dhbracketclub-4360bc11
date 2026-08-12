@@ -20,6 +20,9 @@ const TOWER_HSL: Record<TowerKind, { c: string; bg: string; text: string }> = {
   arc:   { c: 'hsl(265 80% 70%)', bg: 'hsl(265 80% 70% / 0.12)', text: 'hsl(265 80% 84%)' },
   cryo:  { c: 'hsl(200 95% 70%)', bg: 'hsl(200 95% 70% / 0.12)', text: 'hsl(200 95% 84%)' },
   rail:  { c: 'hsl(38 95% 60%)',  bg: 'hsl(38 95% 60% / 0.12)',  text: 'hsl(38 95% 78%)' },
+  flak:  { c: 'hsl(150 80% 55%)', bg: 'hsl(150 80% 55% / 0.12)', text: 'hsl(150 80% 78%)' },
+  mortar:{ c: 'hsl(350 85% 62%)', bg: 'hsl(350 85% 62% / 0.12)', text: 'hsl(350 85% 80%)' },
+  amp:   { c: 'hsl(300 85% 68%)', bg: 'hsl(300 85% 68% / 0.12)', text: 'hsl(300 85% 84%)' },
 };
 
 export default function NexusLoadoutPage() {
@@ -184,7 +187,7 @@ export default function NexusLoadoutPage() {
       </div>
 
       <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-4">
-        <h2 className="nx-title text-[9px] mb-2" style={{ color: 'hsl(0 0% 100% / 0.55)' }}>◢ TOWER LOADOUT · ALL 4 UNLOCKED</h2>
+        <h2 className="nx-title text-[9px] mb-2" style={{ color: 'hsl(0 0% 100% / 0.55)' }}>◢ TOWER LOADOUT · ALL UNLOCKED</h2>
         <div className="grid grid-cols-2 gap-2">
           {TOWER_LIST.map(t => {
             const c = TOWER_HSL[t.kind];
