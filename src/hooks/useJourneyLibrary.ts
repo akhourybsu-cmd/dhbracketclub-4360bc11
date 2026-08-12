@@ -33,11 +33,12 @@ export function useJourneyLibrary(): JourneyLibrary {
     setError(null);
     try {
       const [c, r, h] = await withTimeout<any[]>(Promise.all([
-        withTimeout<any>((supabase as any).from('journey_campaigns').select('*').order('created_at', { ascending: false }), QUERY_TIMEOUT_MS, 'journey campaigns'),
+        withTimeout<any>((supabase as any).rpc('journey_list_campaigns'), QUERY_TIMEOUT_MS, 'journey campaigns'),
         withTimeout<any>((supabase as any).from('journey_campaign_runs').select('*').eq('user_id', user.id).order('last_played_at', { ascending: false }), QUERY_TIMEOUT_MS, 'journey runs'),
         withTimeout<any>((supabase as any).from('journey_characters').select('*').eq('user_id', user.id).order('created_at', { ascending: false }), QUERY_TIMEOUT_MS, 'journey heroes'),
       ]), HYDRATE_TIMEOUT_MS, 'journey library');
       if (c?.error) throw new Error(c.error.message);
+      // Campaign metadata now arrives through a spoiler-safe RPC (jsonb array).
       setCampaigns((c?.data ?? []) as CampaignRow[]);
       setRuns((r?.data ?? []) as RunRow[]);
       setHeroes((h?.data ?? []) as HeroRow[]);
@@ -52,21 +53,18 @@ export function useJourneyLibrary(): JourneyLibrary {
 
   const createHero = useCallback(async (input: Partial<HeroRow> & { name: string }) => {
     if (!user) return null;
-    const { data, error: err } = await (supabase as any)
-      .from('journey_characters')
-      .insert({
-        user_id: user.id,
-        name: input.name,
-        pronouns: input.pronouns ?? null,
-        origin: input.origin ?? null,
-        background: input.background ?? null,
-        stats: input.stats ?? { might: 2, finesse: 2, wits: 2, resolve: 2 },
-      })
-      .select('*')
-      .single();
+    // Heroes are created through a controlled function: players cannot write
+    // their own character rows (stats are clamped server-side).
+    const { data, error: err } = await (supabase as any).rpc('journey_create_character', {
+      _name: input.name,
+      _pronouns: input.pronouns ?? null,
+      _origin: input.origin ?? null,
+      _background: input.background ?? null,
+      _stats: input.stats ?? null,
+    });
     if (err) { setError(err.message); return null; }
     await refresh();
-    return data as HeroRow;
+    return (Array.isArray(data) ? data[0] : data) as HeroRow;
   }, [user, refresh]);
 
   const startRun = useCallback(async (campaignId: string, heroId: string, isTest = false) => {
@@ -81,7 +79,7 @@ export function useJourneyLibrary(): JourneyLibrary {
 
   const abandonRun = useCallback(async (runId: string) => {
     const { error: err } = await (supabase as any)
-      .from('journey_campaign_runs').update({ status: 'abandoned' }).eq('id', runId);
+      .rpc('journey_set_run_status', { _run_id: runId, _status: 'abandoned' });
     if (err) { setError(err.message); return false; }
     await refresh();
     return true;

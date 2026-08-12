@@ -1,22 +1,23 @@
 import { useState } from 'react';
 import { Lock } from 'lucide-react';
-import type { PresentedChoice } from '@/hooks/useJourneyRun';
+import type { RuntimeChoice } from '@/lib/journey/types';
 
 /**
- * Choice presentation. Hidden choices are already filtered out by the hook;
+ * Choice presentation. Hidden choices are already filtered out server-side;
  * locked choices stay visible with an authored hint so progression reads
  * clearly. Style only affects presentation — never implied morality.
  */
 export function ChoiceList({
   choices, busy, onChoose,
-}: { choices: PresentedChoice[]; busy: boolean; onChoose: (key: string) => void }) {
+}: { choices: RuntimeChoice[]; busy: boolean; onChoose: (key: string) => void }) {
   const [confirming, setConfirming] = useState<string | null>(null);
   if (choices.length === 0) return null;
 
   return (
     <section aria-label="Available choices" className="mt-8 space-y-2.5">
       <h2 className="jy-eyebrow">What do you do?</h2>
-      {choices.map(({ choice, available, lockedLabel }) => {
+      {choices.map((choice) => {
+        const { available, locked_hint: lockedLabel } = choice;
         const styleClass =
           choice.major_decision ? 'jy-choice-major'
           : choice.choice_style === 'skill' ? 'jy-choice-skill'
@@ -25,7 +26,7 @@ export function ChoiceList({
 
         return (
           <button
-            key={choice.id}
+            key={choice.choice_key}
             type="button"
             className={`jy-choice ${styleClass}`}
             disabled={!available || busy}

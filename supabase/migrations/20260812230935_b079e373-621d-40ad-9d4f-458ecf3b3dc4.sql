@@ -1,0 +1,24 @@
+revoke execute on function public.journey_live_scene(uuid, text) from anon, public;
+revoke execute on function public.journey_release_package(uuid, integer) from anon, public;
+revoke execute on function public.journey_scene_content(uuid, integer, text) from anon, public;
+revoke execute on function public.journey_endings_content(uuid, integer) from anon, public;
+revoke execute on function public.journey_world_content(uuid, integer) from anon, public;
+revoke execute on function public.journey_resolve_ending(uuid, integer, jsonb, text) from anon, public;
+revoke execute on function public.journey_enter_scene(uuid, integer, text, jsonb) from anon, public;
+revoke execute on function public.journey_get_runtime_scene(uuid) from anon, public;
+revoke execute on function public.journey_get_world(uuid) from anon, public;
+revoke execute on function public.journey_list_campaigns() from anon, public;
+revoke execute on function public.journey_create_character(text, text, text, text, jsonb) from anon, public;
+revoke execute on function public.journey_set_run_status(uuid, text) from anon, public;
+revoke execute on function public.journey_advance_scene(uuid) from anon, public;
+revoke execute on function public.journey_execute_choice(uuid, text, text) from anon, public;
+revoke execute on function public.journey_publish_campaign(uuid, text) from anon, public;
+
+grant execute on function public.journey_get_runtime_scene(uuid) to authenticated;
+grant execute on function public.journey_get_world(uuid) to authenticated;
+grant execute on function public.journey_list_campaigns() to authenticated;
+grant execute on function public.journey_create_character(text, text, text, text, jsonb) to authenticated;
+grant execute on function public.journey_set_run_status(uuid, text) to authenticated;
+grant execute on function public.journey_advance_scene(uuid) to authenticated;
+grant execute on function public.journey_execute_choice(uuid, text, text) to authenticated;
+grant execute on function public.journey_publish_campaign(uuid, text) to authenticated;

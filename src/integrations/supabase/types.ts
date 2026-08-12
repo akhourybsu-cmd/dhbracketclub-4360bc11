@@ -2198,6 +2198,44 @@ export type Database = {
           },
         ]
       }
+      journey_campaign_releases: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          package: Json
+          version: number
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          package: Json
+          version: number
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          package?: Json
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_campaign_releases_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "journey_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       journey_campaign_runs: {
         Row: {
           campaign_id: string
@@ -9855,13 +9893,63 @@ export type Database = {
       join_club_with_password:
         | { Args: { _password: string }; Returns: string }
         | { Args: { _password: string; _user_id: string }; Returns: string }
+      journey_advance_scene: { Args: { _run_id: string }; Returns: Json }
       journey_apply_effects: {
         Args: { _effects: Json; _state: Json }
         Returns: Json
       }
+      journey_create_character: {
+        Args: {
+          _background?: string
+          _name: string
+          _origin?: string
+          _pronouns?: string
+          _stats?: Json
+        }
+        Returns: {
+          abilities: string[]
+          background: string | null
+          created_at: string
+          currency: number
+          equipment: Json
+          health: number
+          id: string
+          level: number
+          max_health: number
+          name: string
+          origin: string | null
+          portrait: string | null
+          pronouns: string | null
+          stats: Json
+          traits: string[]
+          updated_at: string
+          user_id: string
+          xp: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "journey_characters"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       journey_default_state: {
         Args: {
           _character: Database["public"]["Tables"]["journey_characters"]["Row"]
+        }
+        Returns: Json
+      }
+      journey_effect_notices: { Args: { _effects: Json }; Returns: Json }
+      journey_endings_content: {
+        Args: { _campaign_id: string; _version: number }
+        Returns: Json
+      }
+      journey_enter_scene: {
+        Args: {
+          _campaign_id: string
+          _scene_key: string
+          _state: Json
+          _version: number
         }
         Returns: Json
       }
@@ -9871,6 +9959,69 @@ export type Database = {
       }
       journey_execute_choice: {
         Args: { _choice_key: string; _run_id: string; _scene_key: string }
+        Returns: Json
+      }
+      journey_get_runtime_scene: { Args: { _run_id: string }; Returns: Json }
+      journey_get_world: { Args: { _run_id: string }; Returns: Json }
+      journey_import_campaign: { Args: { _package: Json }; Returns: Json }
+      journey_is_author: { Args: { _uid: string }; Returns: boolean }
+      journey_list_campaigns: { Args: never; Returns: Json }
+      journey_live_scene: {
+        Args: { _campaign_id: string; _scene_key: string }
+        Returns: Json
+      }
+      journey_publish_campaign: {
+        Args: { _campaign_id: string; _notes?: string }
+        Returns: {
+          author: string | null
+          author_notes: string | null
+          config: Json
+          content_notes: string | null
+          cover_image: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          estimated_length: string | null
+          hero_image: string | null
+          id: string
+          minimum_level: number
+          published_at: string | null
+          recommended_level: number
+          slug: string
+          starting_scene_key: string | null
+          status: string
+          subtitle: string | null
+          tags: string[]
+          title: string
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "journey_campaigns"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      journey_release_package: {
+        Args: { _campaign_id: string; _version: number }
+        Returns: Json
+      }
+      journey_resolve_ending: {
+        Args: {
+          _campaign_id: string
+          _fallback: string
+          _state: Json
+          _version: number
+        }
+        Returns: string
+      }
+      journey_scene_content: {
+        Args: { _campaign_id: string; _scene_key: string; _version: number }
+        Returns: Json
+      }
+      journey_set_run_status: {
+        Args: { _run_id: string; _status: string }
         Returns: {
           campaign_id: string
           campaign_version: number
@@ -9898,8 +10049,6 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      journey_import_campaign: { Args: { _package: Json }; Returns: Json }
-      journey_is_author: { Args: { _uid: string }; Returns: boolean }
       journey_start_run: {
         Args: {
           _campaign_id: string
@@ -9965,6 +10114,14 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      journey_validate_campaign: {
+        Args: { _campaign_id: string }
+        Returns: Json
+      }
+      journey_world_content: {
+        Args: { _campaign_id: string; _version: number }
+        Returns: Json
       }
       log_admin_action: {
         Args: {
