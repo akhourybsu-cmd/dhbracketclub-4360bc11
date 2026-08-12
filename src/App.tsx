@@ -284,10 +284,12 @@ function AnimatedRoutes() {
         <Route path="/nexus/results/:missionId" element={<ProtectedPage assetSlug="nexus-defense"><NexusLayout><NexusResultsPage /></NexusLayout></ProtectedPage>} />
         <Route path="/nexus/leaderboard" element={<ProtectedPage assetSlug="nexus-defense"><NexusLayout><NexusLeaderboardPage /></NexusLayout></ProtectedPage>} />
         <Route path="/nexus/codex" element={<ProtectedPage assetSlug="nexus-defense"><NexusLayout><NexusCodexPage /></NexusLayout></ProtectedPage>} />
-        <Route path="/nexus/balance" element={<ProtectedPage assetSlug="nexus-defense"><NexusLayout><NexusBalancePage /></NexusLayout></ProtectedPage>} />
-        <Route path="/nexus/calibration" element={<ProtectedPage assetSlug="nexus-defense"><NexusLayout><NexusCalibrationPage /></NexusLayout></ProtectedPage>} />
         <Route path="/nexus/operation" element={<ProtectedPage assetSlug="nexus-defense"><NexusLayout><NexusOperationPage /></NexusLayout></ProtectedPage>} />
         <Route path="/nexus/sigils" element={<ProtectedPage assetSlug="nexus-defense"><NexusLayout><NexusSigilVaultPage /></NexusLayout></ProtectedPage>} />
+        {/* Admin tuning tools — reachable only from the platform admin area,
+            not the player-facing Nexus hub (trim-hard pass). */}
+        <Route path="/nexus/balance" element={<ProtectedPage assetSlug="nexus-defense"><NexusLayout><NexusBalancePage /></NexusLayout></ProtectedPage>} />
+        <Route path="/nexus/calibration" element={<ProtectedPage assetSlug="nexus-defense"><NexusLayout><NexusCalibrationPage /></NexusLayout></ProtectedPage>} />
         <Route path="/nexus/simulator" element={<ProtectedPage assetSlug="nexus-defense"><NexusLayout><NexusSimulatorPage /></NexusLayout></ProtectedPage>} />
         <Route path="/nexus/mission-workshop" element={<ProtectedPage assetSlug="nexus-defense"><NexusLayout><NexusMissionWorkshopPage /></NexusLayout></ProtectedPage>} />
 

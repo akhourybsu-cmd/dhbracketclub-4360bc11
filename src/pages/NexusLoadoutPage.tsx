@@ -149,19 +149,11 @@ export default function NexusLoadoutPage() {
                         {mod.glyph}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-baseline gap-1.5 flex-wrap">
-                          <span className="text-[11px] font-black tracking-wide" style={{ color: t.fg }}>
-                            {mod.label.toUpperCase()}
-                          </span>
-                          <span
-                            className="nx-title text-[8px] px-1 py-px"
-                            style={{ color: 'hsl(0 0% 100% / 0.55)', border: '1px solid hsl(0 0% 100% / 0.18)', letterSpacing: '0.18em' }}
-                          >
-                            {mod.category.toUpperCase()}
-                          </span>
-                        </div>
-                        <div className="text-[11px] mt-0.5" style={{ color: 'hsl(0 0% 100% / 0.85)' }}>
-                          {mod.description}
+                        <span className="text-[11px] font-black tracking-wide" style={{ color: t.fg }}>
+                          {mod.label.toUpperCase()}
+                        </span>
+                        <div className="text-[11px] mt-0.5" style={{ color: 'hsl(0 0% 100% / 0.8)' }}>
+                          {mod.short}
                         </div>
                       </div>
                     </div>
@@ -186,62 +178,32 @@ export default function NexusLoadoutPage() {
         })()}
       </div>
 
+      {/* Arsenal at a glance — icons only; details live in the Codex, and
+          you learn everything in-battle. No reading required to deploy. */}
       <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-4">
-        <h2 className="nx-title text-[9px] mb-2" style={{ color: 'hsl(0 0% 100% / 0.55)' }}>◢ TOWER LOADOUT · ALL UNLOCKED</h2>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="nx-title text-[9px]" style={{ color: 'hsl(0 0% 100% / 0.55)' }}>◢ ARSENAL · ALL UNLOCKED</h2>
+          <button onClick={() => navigate('/nexus/codex')} className="nx-title text-[8px]" style={{ color: 'hsl(var(--nx-cyan))' }}>
+            CODEX ›
+          </button>
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5">
           {TOWER_LIST.map(t => {
             const c = TOWER_HSL[t.kind];
             return (
-              <div
-                key={t.kind}
-                className="p-2.5 nx-clip-sm relative"
-                style={{
-                  background: 'linear-gradient(180deg, hsl(218 35% 11%), hsl(218 38% 7%))',
-                  border: `1px solid ${c.c}`,
-                  boxShadow: `inset 0 1px 0 hsl(0 0% 100% / 0.05), 0 0 12px -6px ${c.c}`,
-                }}
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  <div
-                    className="w-8 h-8 rounded-md flex items-center justify-center shrink-0"
-                    style={{ background: c.bg, border: `1.5px solid ${c.c}`, color: c.c }}
-                  >
-                    <TowerIcon kind={t.kind} size={20} />
-                  </div>
-                  <div className="text-xs font-black" style={{ color: c.text }}>{t.name}</div>
-                </div>
-                <div className="text-[10px] text-foreground/70 leading-snug">{t.tagline}</div>
-                <div className="nx-title text-[9px] mt-1.5" style={{ color: 'hsl(var(--nx-amber))' }}>⚡{t.cost}</div>
+              <div key={t.kind} title={`${t.name} — ${t.tagline}`}
+                className="w-9 h-9 rounded-md flex items-center justify-center shrink-0"
+                style={{ background: c.bg, border: `1px solid ${c.c}`, color: c.c }}>
+                <TowerIcon kind={t.kind} size={20} />
               </div>
             );
           })}
-        </div>
-      </motion.section>
-
-      <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.05 }} className="mb-4">
-        <h2 className="nx-title text-[9px] mb-2" style={{ color: 'hsl(0 0% 100% / 0.55)' }}>◢ COMMANDER ABILITIES</h2>
-        <div className="grid grid-cols-2 gap-2">
+          <div className="w-px h-7 mx-0.5" style={{ background: 'hsl(0 0% 100% / 0.14)' }} />
           {ABILITY_LIST.map(a => (
-            <div
-              key={a.kind}
-              className="p-2.5 nx-clip-sm"
-              style={{
-                background: 'linear-gradient(180deg, hsl(218 35% 11%), hsl(218 38% 7%))',
-                border: '1px solid hsl(var(--nx-amber) / 0.55)',
-                boxShadow: 'inset 0 1px 0 hsl(0 0% 100% / 0.05), 0 0 10px -6px hsl(var(--nx-amber))',
-              }}
-            >
-              <div className="flex items-center gap-2 mb-1">
-                <div
-                  className="w-8 h-8 rounded-md flex items-center justify-center font-black text-sm"
-                  style={{ background: 'hsl(var(--nx-amber) / 0.18)', border: '1.5px solid hsl(var(--nx-amber))', color: 'hsl(var(--nx-amber))' }}
-                >
-                  {a.glyph}
-                </div>
-                <div className="text-xs font-black" style={{ color: 'hsl(var(--nx-amber))' }}>{a.name}</div>
-              </div>
-              <div className="text-[10px] text-foreground/70 leading-snug">{a.tagline}</div>
-              <div className="nx-title text-[9px] mt-1.5" style={{ color: 'hsl(var(--nx-cyan))' }}>CD {a.cooldownMs / 1000}s</div>
+            <div key={a.kind} title={`${a.name} — ${a.tagline}`}
+              className="w-9 h-9 rounded-md flex items-center justify-center font-black text-sm shrink-0"
+              style={{ background: 'hsl(var(--nx-amber) / 0.15)', border: '1px solid hsl(var(--nx-amber) / 0.5)', color: 'hsl(var(--nx-amber))' }}>
+              {a.glyph}
             </div>
           ))}
         </div>
