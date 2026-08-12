@@ -104,9 +104,17 @@ export function useJourneyStudio() {
   }, [refresh]);
 
   const setStatus = useCallback(async (campaignId: string, status: CampaignStatus) => {
-    const patch: Record<string, unknown> = { status };
-    if (status === 'published') patch.published_at = new Date().toISOString();
-    const { error: err } = await table('journey_campaigns').update(patch).eq('id', campaignId);
+    // Publishing is a *release*: the whole campaign is snapshotted immutably so
+    // journeys already in progress keep running the content they started on.
+    if (status === 'published') {
+      const { error: pubErr } = await (supabase as any).rpc('journey_publish_campaign', {
+        _campaign_id: campaignId, _notes: null,
+      });
+      if (pubErr) { setError(pubErr.message); return false; }
+      await refresh();
+      return true;
+    }
+    const { error: err } = await table('journey_campaigns').update({ status }).eq('id', campaignId);
     if (err) { setError(err.message); return false; }
     await refresh();
     return true;
