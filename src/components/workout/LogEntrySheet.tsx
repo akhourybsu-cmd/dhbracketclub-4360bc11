@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Plus, Trash2, Play, Pause, RotateCcw, Flame } from 'lucide-react';
 import { useStopwatch } from '@/lib/workout/useStopwatch';
 import { scoreEntry, fmtDur, type LogKind, type LogSet } from '@/lib/workout/logScoring';
+import { loadDraft, saveDraft, clearDraft, draftMatchesPick } from '@/lib/workout/logDraft';
 import type { ExercisePick } from './ExerciseSearchSheet';
 import type { AddEntryInput } from '@/hooks/useWorkoutLog';
 
@@ -47,9 +48,10 @@ function Stepper({ value, onChange, step = 1, min = 0, label, suffix }: {
  * distance+time, a distance, or a plain completion) and previews the fuel the
  * entry will earn. Emits one AddEntryInput on save. Portaled to <body>.
  */
-export function LogEntrySheet({ pick, initial, onClose, onSave }: {
+export function LogEntrySheet({ pick, sessionId, onClose, onSave }: {
   pick: ExercisePick | null;
-  initial?: EntryDraft | null;
+  /** Session the draft is keyed to — lets a half-composed entry survive an app kill. */
+  sessionId: string | null;
   onClose: () => void;
   onSave: (input: AddEntryInput) => Promise<unknown> | void;
 }) {
@@ -58,20 +60,39 @@ export function LogEntrySheet({ pick, initial, onClose, onSave }: {
   const [seconds, setSeconds] = useState(0);
   const [distanceMi, setDistanceMi] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
 
-  // Live timer for timed / cardio-time entries.
+  // Live timer for timed / cardio-time entries. Persists on its own
+  // (timestamp-based localStorage) so a running clock survives an app kill.
   const timerKey = pick ? `dh_workout_log_timer_v1:${pick.catalogId ?? pick.name}` : 'dh_workout_log_timer_v1:none';
   const sw = useStopwatch(timerKey);
 
-  // (Re)initialise whenever a new pick opens the sheet.
+  // (Re)initialise whenever a new pick opens the sheet — restoring any draft
+  // the member had in progress for this movement, so closing the app
+  // mid-exercise and returning picks up exactly where they left off.
   useEffect(() => {
-    if (!pick) return;
-    setSets(initial?.sets?.length ? initial.sets : [{ weight: null, reps: null }]);
-    setSeconds(initial?.seconds ?? 0);
-    setDistanceMi(initial?.distanceMi ?? 0);
-    sw.reset();
+    if (!pick) { setHydrated(false); return; }
+    const draft = loadDraft(sessionId);
+    if (draftMatchesPick(draft, pick)) {
+      setSets(draft!.sets?.length ? draft!.sets : [{ weight: null, reps: null }]);
+      setSeconds(draft!.seconds ?? 0);
+      setDistanceMi(draft!.distanceMi ?? 0);
+      // The timer restores itself from its own timestamp store — don't reset.
+    } else {
+      setSets([{ weight: null, reps: null }]);
+      setSeconds(0);
+      setDistanceMi(0);
+      sw.reset(); // fresh movement — clear any stale timer under this key
+    }
+    setHydrated(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pick?.catalogId, pick?.name]);
+  }, [pick?.catalogId, pick?.name, sessionId]);
+
+  // Autosave the in-progress draft as the member composes it.
+  useEffect(() => {
+    if (!pick || !sessionId || !hydrated) return;
+    saveDraft(sessionId, { pick, sets, seconds, distanceMi });
+  }, [pick, sessionId, sets, seconds, distanceMi, hydrated]);
 
   // Fold the running timer into the seconds value for timed/cardio kinds.
   const liveSeconds = (kind === 'duration' || kind === 'cardio') && sw.started
@@ -120,11 +141,19 @@ export function LogEntrySheet({ pick, initial, onClose, onSave }: {
         distanceMi: (kind === 'distance' || kind === 'cardio') ? (distanceMi || null) : null,
         unit: null,
       });
+      clearDraft(sessionId);
       sw.reset();
       onClose();
     } finally {
       setSaving(false);
     }
+  };
+
+  // Explicitly cancel this entry — discard the draft + any running timer.
+  const abandon = () => {
+    clearDraft(sessionId);
+    sw.reset();
+    onClose();
   };
 
   if (typeof document === 'undefined') return null;
@@ -133,7 +162,7 @@ export function LogEntrySheet({ pick, initial, onClose, onSave }: {
       {pick && (
         <motion.div className="fixed inset-0 z-[70] flex flex-col justify-end"
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-          <div className="absolute inset-0 bg-black/55 backdrop-blur-[2px]" onClick={onClose} aria-hidden />
+          <div className="absolute inset-0 bg-black/55 backdrop-blur-[2px]" onClick={abandon} aria-hidden />
           <motion.div role="dialog" aria-modal="true" aria-label={`Log ${pick.name}`}
             initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
             transition={{ type: 'spring', stiffness: 420, damping: 38 }}
@@ -145,7 +174,7 @@ export function LogEntrySheet({ pick, initial, onClose, onSave }: {
                 <h2 className="text-[17px] font-black tracking-tight truncate" style={{ color: 'hsl(30 40% 96%)' }}>{pick.name}</h2>
                 {pick.category && <p className="text-[10px] font-bold uppercase tracking-[0.14em]" style={{ color: 'hsl(28 30% 56%)' }}>{pick.category}</p>}
               </div>
-              <button onClick={onClose} aria-label="Close" className="fg-back flex-shrink-0"><X className="w-5 h-5" /></button>
+              <button onClick={abandon} aria-label="Close" className="fg-back flex-shrink-0"><X className="w-5 h-5" /></button>
             </div>
 
             {/* ── Sets: weights or bodyweight reps ── */}

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Flame, Check, Trash2, Dumbbell, Timer, ChevronDown, Sparkles } from 'lucide-react';
+import { Plus, Flame, Check, Trash2, Dumbbell, Timer, ChevronDown, Sparkles, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClub } from '@/contexts/ClubContext';
@@ -11,6 +11,7 @@ import { useWorkoutLog, type AddEntryInput } from '@/hooks/useWorkoutLog';
 import { ExerciseSearchSheet, type ExercisePick } from '@/components/workout/ExerciseSearchSheet';
 import { LogEntrySheet } from '@/components/workout/LogEntrySheet';
 import { entrySummary, sessionPoints, fmtDur, type LogSessionWithEntries } from '@/lib/workout/logScoring';
+import { loadDraft, clearDraft, type LogDraft } from '@/lib/workout/logDraft';
 
 /** Live mm:ss elapsed since an ISO timestamp. */
 function useElapsed(sinceIso: string | null): number {
@@ -106,9 +107,17 @@ export default function WorkoutLogPage() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [finished, setFinished] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
+  const [resumeDraft, setResumeDraft] = useState<LogDraft | null>(null);
 
   const elapsed = useElapsed(activeSession?.started_at ?? null);
   const runningTotal = useMemo(() => activeSession ? sessionPoints(activeSession.entries) : 0, [activeSession]);
+
+  // Surface a half-composed entry left over from a previous visit (app kill)
+  // so the member can resume it. Recomputed whenever the sheet closes.
+  useEffect(() => {
+    if (pick) return; // the sheet owns the draft while open
+    setResumeDraft(loadDraft(activeSession?.id));
+  }, [pick, activeSession?.id]);
 
   if (!assetsLoading && !installed) return <Navigate to="/dashboard" replace />;
 
@@ -138,7 +147,10 @@ export default function WorkoutLogPage() {
     if (activeSession.entries.length === 0) { toast.message('Add at least one exercise first'); return; }
     setBusy(true);
     try {
-      const total = await completeSession(activeSession.id);
+      const sid = activeSession.id;
+      const total = await completeSession(sid);
+      clearDraft(sid);
+      setResumeDraft(null);
       setFinished(total);
     } catch { toast.error('Could not finish — try again'); } finally { setBusy(false); }
   };
@@ -146,8 +158,13 @@ export default function WorkoutLogPage() {
   const handleDiscard = async () => {
     if (!activeSession || busy) return;
     setBusy(true);
-    try { await discardSession(activeSession.id); toast.success('Session discarded'); }
-    catch { toast.error('Could not discard'); } finally { setBusy(false); }
+    try {
+      const sid = activeSession.id;
+      await discardSession(sid);
+      clearDraft(sid);
+      setResumeDraft(null);
+      toast.success('Session discarded');
+    } catch { toast.error('Could not discard'); } finally { setBusy(false); }
   };
 
   return (
@@ -214,6 +231,15 @@ export default function WorkoutLogPage() {
             )}
           </div>
 
+          {/* Resume a half-composed entry from a previous visit */}
+          {resumeDraft && !pick && (
+            <button onClick={() => setPick(resumeDraft.pick)}
+              className="w-full h-11 rounded-xl text-[13px] font-bold mb-2.5 inline-flex items-center justify-center gap-2"
+              style={{ background: 'hsl(24 60% 30% / 0.16)', border: '1px dashed hsl(24 95% 55% / 0.5)', color: 'hsl(28 100% 70%)' }}>
+              <RotateCcw className="w-4 h-4" /> Resume “{resumeDraft.pick.name}”
+            </button>
+          )}
+
           <button onClick={() => setSearchOpen(true)} className="fg-cta w-full h-12 rounded-xl text-[15px] mb-2.5">
             <Plus className="w-5 h-5" /> Add exercise
           </button>
@@ -265,7 +291,7 @@ export default function WorkoutLogPage() {
       )}
 
       <ExerciseSearchSheet open={searchOpen} onClose={() => setSearchOpen(false)} onPick={handlePick} />
-      <LogEntrySheet pick={pick} onClose={() => setPick(null)} onSave={handleSaveEntry} />
+      <LogEntrySheet pick={pick} sessionId={activeSession?.id ?? null} onClose={() => setPick(null)} onSave={handleSaveEntry} />
       <CompleteCelebration points={finished} onDone={() => { setFinished(null); navigate('/workouts'); }} />
     </div>
   );

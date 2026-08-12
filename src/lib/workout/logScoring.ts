@@ -18,6 +18,14 @@ export type { LogKind } from './exerciseCatalog';
 
 export type LogSessionStatus = 'in_progress' | 'completed';
 
+/** A pick from the exercise search — a catalog movement or a custom one. */
+export interface ExercisePick {
+  catalogId: string | null;
+  name: string;
+  category: string | null;
+  logKind: LogKind;
+}
+
 /** One set inside a weight×reps or bodyweight-reps entry. */
 export interface LogSet {
   weight?: number | null; // lb; null/0 = bodyweight

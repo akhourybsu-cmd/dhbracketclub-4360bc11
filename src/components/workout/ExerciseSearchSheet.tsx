@@ -5,6 +5,9 @@ import { X, Search, Plus, Dumbbell } from 'lucide-react';
 import {
   searchCatalog, CATALOG_MUSCLES, type CatalogExercise, type LogKind,
 } from '@/lib/workout/exerciseCatalog';
+import type { ExercisePick } from '@/lib/workout/logScoring';
+
+export type { ExercisePick } from '@/lib/workout/logScoring';
 
 const KIND_CHIPS: { key: LogKind; label: string }[] = [
   { key: 'weight_reps', label: 'Weights' },
@@ -16,14 +19,6 @@ const KIND_CHIPS: { key: LogKind; label: string }[] = [
 const KIND_LABEL: Record<LogKind, string> = {
   weight_reps: 'Weights', reps: 'Reps', duration: 'Timed', distance: 'Distance', cardio: 'Cardio', completion: 'Done',
 };
-
-/** A pick from the search sheet — either a catalog movement or a custom one. */
-export interface ExercisePick {
-  catalogId: string | null;
-  name: string;
-  category: string | null;
-  logKind: LogKind;
-}
 
 /**
  * Full-catalog search + custom-entry sheet. Portaled to <body> per the DH
