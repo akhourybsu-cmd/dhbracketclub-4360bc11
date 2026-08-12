@@ -42,6 +42,7 @@ export function useWorkoutLog(clubId: string | undefined, userId: string | undef
   const [myWeekPoints, setMyWeekPoints] = useState(0);
   const [myLifetimePoints, setMyLifetimePoints] = useState(0);
   const [clubWeekPoints, setClubWeekPoints] = useState(0);
+  const [clubWeekByMember, setClubWeekByMember] = useState<Record<string, { sessions: number; points: number }>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -243,7 +244,7 @@ export function useWorkoutLog(clubId: string | undefined, userId: string | undef
 
   return {
     activeSession, history,
-    myWeekPoints, myLifetimePoints, clubWeekPoints,
+    myWeekPoints, myLifetimePoints, clubWeekPoints, clubWeekByMember,
     loading, error, refresh,
     startSession, addEntry, updateEntry, removeEntry, completeSession, discardSession, deleteSession,
   };
