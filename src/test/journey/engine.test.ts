@@ -24,8 +24,9 @@ describe('journey requirement engine', () => {
 
   it('honours all / any groups', () => {
     const s = base({ flags: { a: true }, gold: 10 });
-    const all = { all: [{ type: 'flag_exists', key: 'a' }, { type: 'flag_exists', key: 'b' }] } as any;
-    const any = { any: [{ type: 'flag_exists', key: 'a' }, { type: 'flag_exists', key: 'b' }] } as any;
+    const conditions = [{ type: 'flag_exists', key: 'a' }, { type: 'flag_exists', key: 'b' }];
+    const all = { type: 'all', conditions } as any;
+    const any = { type: 'any', conditions } as any;
     expect(evaluateRequirements(all, s)).toBe(false);
     expect(evaluateRequirements(any, s)).toBe(true);
   });
