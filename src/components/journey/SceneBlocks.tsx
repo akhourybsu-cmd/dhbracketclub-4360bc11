@@ -1,26 +1,24 @@
 import { Fragment } from 'react';
 import { BookOpen, MapPin, Package, ScrollText, Sparkles, Swords } from 'lucide-react';
-import { evaluateRequirements } from '@/lib/journey/requirements';
-import type { BlockRow, RunState } from '@/lib/journey/types';
+import type { RuntimeBlock } from '@/lib/journey/types';
 
 /**
- * Renders the ordered narrative blocks of a scene. Blocks whose conditions
- * fail are simply not rendered — the same requirement engine used everywhere.
+ * Renders the ordered narrative blocks of a scene. Conditional blocks are
+ * already filtered server-side, so nothing hidden ever reaches the client.
  * Artwork is always optional: a missing image falls back to atmosphere rather
  * than a broken placeholder.
  */
-export function SceneBlocks({ blocks, state }: { blocks: BlockRow[]; state: RunState }) {
-  const visible = blocks.filter((b) => evaluateRequirements(b.conditions, state));
+export function SceneBlocks({ blocks }: { blocks: RuntimeBlock[] }) {
   return (
     <div className="space-y-5">
-      {visible.map((b) => (
-        <Fragment key={b.id}>{renderBlock(b)}</Fragment>
+      {blocks.map((b, i) => (
+        <Fragment key={`${b.block_type}-${b.display_order}-${i}`}>{renderBlock(b)}</Fragment>
       ))}
     </div>
   );
 }
 
-function renderBlock(b: BlockRow) {
+function renderBlock(b: RuntimeBlock) {
   const md = (b.metadata ?? {}) as Record<string, any>;
   switch (b.block_type) {
     case 'location_intro':

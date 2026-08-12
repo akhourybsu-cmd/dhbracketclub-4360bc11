@@ -20,7 +20,7 @@ export default function JourneyPlayPage() {
   useEffect(() => {
     topRef.current?.scrollIntoView({ block: 'start' });
     window.scrollTo({ top: 0 });
-  }, [scene?.id]);
+  }, [scene?.scene_key]);
 
   useEffect(() => {
     if (notices.length === 0) return;
@@ -62,7 +62,7 @@ export default function JourneyPlayPage() {
 
       {scene ? (
         <>
-          <SceneBlocks blocks={blocks} state={state} />
+          <SceneBlocks blocks={blocks} />
 
           {ended ? (
             <div className="jy-panel-raised mt-8 p-5 text-center">
