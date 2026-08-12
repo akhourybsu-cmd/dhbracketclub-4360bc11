@@ -275,3 +275,41 @@ export interface HeroRow {
   health: number; max_health: number; currency: number; equipment: Record<string, unknown>;
   created_at: string; updated_at: string;
 }
+
+/* ── Runtime payloads (spoiler-safe, returned by journey_get_runtime_scene) ── */
+
+export interface CampaignSummary {
+  id: string; title: string; subtitle: string | null;
+  slug: string; cover_image: string | null;
+}
+
+export interface RuntimeScene {
+  scene_key: string;
+  scene_type: string;
+  title: string | null;
+  subtitle: string | null;
+  background_asset: string | null;
+  is_terminal: boolean;
+  /** True when the author defined an automatic transition out of this scene. */
+  has_auto_next: boolean;
+}
+
+export interface RuntimeBlock {
+  block_type: BlockType;
+  display_order: number;
+  content: string | null;
+  metadata: Record<string, unknown>;
+}
+
+/** Choices as the player may see them: no requirements, effects or destinations. */
+export interface RuntimeChoice {
+  choice_key: string;
+  choice_text: string;
+  short_label: string | null;
+  description: string | null;
+  choice_style: ChoiceStyle;
+  confirmation_required: boolean;
+  major_decision: boolean;
+  available: boolean;
+  locked_hint: string | null;
+}
