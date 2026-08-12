@@ -2154,6 +2154,1140 @@ export type Database = {
         }
         Relationships: []
       }
+      journey_acts: {
+        Row: {
+          act_key: string
+          author_notes: string | null
+          campaign_id: string
+          created_at: string
+          display_order: number
+          id: string
+          subtitle: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          act_key: string
+          author_notes?: string | null
+          campaign_id: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          subtitle?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          act_key?: string
+          author_notes?: string | null
+          campaign_id?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          subtitle?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_acts_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "journey_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journey_campaign_runs: {
+        Row: {
+          campaign_id: string
+          campaign_version: number
+          character_id: string | null
+          completed_at: string | null
+          created_at: string
+          current_chapter_key: string | null
+          current_scene_key: string | null
+          ending_key: string | null
+          id: string
+          is_test_run: boolean
+          last_played_at: string
+          playtime_seconds: number
+          run_number: number
+          started_at: string
+          state: Json
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          campaign_id: string
+          campaign_version?: number
+          character_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          current_chapter_key?: string | null
+          current_scene_key?: string | null
+          ending_key?: string | null
+          id?: string
+          is_test_run?: boolean
+          last_played_at?: string
+          playtime_seconds?: number
+          run_number?: number
+          started_at?: string
+          state?: Json
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          campaign_id?: string
+          campaign_version?: number
+          character_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          current_chapter_key?: string | null
+          current_scene_key?: string | null
+          ending_key?: string | null
+          id?: string
+          is_test_run?: boolean
+          last_played_at?: string
+          playtime_seconds?: number
+          run_number?: number
+          started_at?: string
+          state?: Json
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_campaign_runs_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "journey_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journey_campaign_runs_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "journey_characters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journey_campaign_variables: {
+        Row: {
+          author_notes: string | null
+          campaign_id: string
+          created_at: string
+          default_value: Json | null
+          enum_values: string[] | null
+          id: string
+          label: string | null
+          updated_at: string
+          value_type: string
+          variable_key: string
+        }
+        Insert: {
+          author_notes?: string | null
+          campaign_id: string
+          created_at?: string
+          default_value?: Json | null
+          enum_values?: string[] | null
+          id?: string
+          label?: string | null
+          updated_at?: string
+          value_type?: string
+          variable_key: string
+        }
+        Update: {
+          author_notes?: string | null
+          campaign_id?: string
+          created_at?: string
+          default_value?: Json | null
+          enum_values?: string[] | null
+          id?: string
+          label?: string | null
+          updated_at?: string
+          value_type?: string
+          variable_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_campaign_variables_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "journey_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journey_campaigns: {
+        Row: {
+          author: string | null
+          author_notes: string | null
+          config: Json
+          content_notes: string | null
+          cover_image: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          estimated_length: string | null
+          hero_image: string | null
+          id: string
+          minimum_level: number
+          published_at: string | null
+          recommended_level: number
+          slug: string
+          starting_scene_key: string | null
+          status: string
+          subtitle: string | null
+          tags: string[]
+          title: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          author?: string | null
+          author_notes?: string | null
+          config?: Json
+          content_notes?: string | null
+          cover_image?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          estimated_length?: string | null
+          hero_image?: string | null
+          id?: string
+          minimum_level?: number
+          published_at?: string | null
+          recommended_level?: number
+          slug: string
+          starting_scene_key?: string | null
+          status?: string
+          subtitle?: string | null
+          tags?: string[]
+          title: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          author?: string | null
+          author_notes?: string | null
+          config?: Json
+          content_notes?: string | null
+          cover_image?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          estimated_length?: string | null
+          hero_image?: string | null
+          id?: string
+          minimum_level?: number
+          published_at?: string | null
+          recommended_level?: number
+          slug?: string
+          starting_scene_key?: string | null
+          status?: string
+          subtitle?: string | null
+          tags?: string[]
+          title?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: []
+      }
+      journey_chapters: {
+        Row: {
+          act_id: string | null
+          artwork: string | null
+          author_notes: string | null
+          campaign_id: string
+          chapter_key: string
+          created_at: string
+          display_order: number
+          id: string
+          intro_text: string | null
+          subtitle: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          act_id?: string | null
+          artwork?: string | null
+          author_notes?: string | null
+          campaign_id: string
+          chapter_key: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          intro_text?: string | null
+          subtitle?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          act_id?: string | null
+          artwork?: string | null
+          author_notes?: string | null
+          campaign_id?: string
+          chapter_key?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          intro_text?: string | null
+          subtitle?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_chapters_act_id_fkey"
+            columns: ["act_id"]
+            isOneToOne: false
+            referencedRelation: "journey_acts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journey_chapters_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "journey_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journey_characters: {
+        Row: {
+          abilities: string[]
+          background: string | null
+          created_at: string
+          currency: number
+          equipment: Json
+          health: number
+          id: string
+          level: number
+          max_health: number
+          name: string
+          origin: string | null
+          portrait: string | null
+          pronouns: string | null
+          stats: Json
+          traits: string[]
+          updated_at: string
+          user_id: string
+          xp: number
+        }
+        Insert: {
+          abilities?: string[]
+          background?: string | null
+          created_at?: string
+          currency?: number
+          equipment?: Json
+          health?: number
+          id?: string
+          level?: number
+          max_health?: number
+          name: string
+          origin?: string | null
+          portrait?: string | null
+          pronouns?: string | null
+          stats?: Json
+          traits?: string[]
+          updated_at?: string
+          user_id: string
+          xp?: number
+        }
+        Update: {
+          abilities?: string[]
+          background?: string | null
+          created_at?: string
+          currency?: number
+          equipment?: Json
+          health?: number
+          id?: string
+          level?: number
+          max_health?: number
+          name?: string
+          origin?: string | null
+          portrait?: string | null
+          pronouns?: string | null
+          stats?: Json
+          traits?: string[]
+          updated_at?: string
+          user_id?: string
+          xp?: number
+        }
+        Relationships: []
+      }
+      journey_choices: {
+        Row: {
+          author_notes: string | null
+          campaign_id: string
+          choice_key: string
+          choice_style: string
+          choice_text: string
+          confirmation_required: boolean
+          created_at: string
+          description: string | null
+          display_order: number
+          effects: Json
+          hidden_when_unavailable: boolean
+          id: string
+          locked_hint: string | null
+          major_decision: boolean
+          next_scene_key: string | null
+          once_only: boolean
+          requirements: Json | null
+          scene_id: string
+          short_label: string | null
+          tags: string[]
+          updated_at: string
+        }
+        Insert: {
+          author_notes?: string | null
+          campaign_id: string
+          choice_key: string
+          choice_style?: string
+          choice_text: string
+          confirmation_required?: boolean
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          effects?: Json
+          hidden_when_unavailable?: boolean
+          id?: string
+          locked_hint?: string | null
+          major_decision?: boolean
+          next_scene_key?: string | null
+          once_only?: boolean
+          requirements?: Json | null
+          scene_id: string
+          short_label?: string | null
+          tags?: string[]
+          updated_at?: string
+        }
+        Update: {
+          author_notes?: string | null
+          campaign_id?: string
+          choice_key?: string
+          choice_style?: string
+          choice_text?: string
+          confirmation_required?: boolean
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          effects?: Json
+          hidden_when_unavailable?: boolean
+          id?: string
+          locked_hint?: string | null
+          major_decision?: boolean
+          next_scene_key?: string | null
+          once_only?: boolean
+          requirements?: Json | null
+          scene_id?: string
+          short_label?: string | null
+          tags?: string[]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_choices_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "journey_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journey_choices_scene_id_fkey"
+            columns: ["scene_id"]
+            isOneToOne: false
+            referencedRelation: "journey_scenes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journey_codex_entries: {
+        Row: {
+          author_notes: string | null
+          body: string | null
+          campaign_id: string
+          category: string
+          codex_key: string
+          created_at: string
+          display_order: number
+          id: string
+          image: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          author_notes?: string | null
+          body?: string | null
+          campaign_id: string
+          category?: string
+          codex_key: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          image?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          author_notes?: string | null
+          body?: string | null
+          campaign_id?: string
+          category?: string
+          codex_key?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          image?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_codex_entries_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "journey_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journey_combat_sessions: {
+        Row: {
+          created_at: string
+          enemies: Json
+          id: string
+          log: Json
+          player_state: Json
+          round: number
+          run_id: string
+          scene_key: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          enemies?: Json
+          id?: string
+          log?: Json
+          player_state?: Json
+          round?: number
+          run_id: string
+          scene_key: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          enemies?: Json
+          id?: string
+          log?: Json
+          player_state?: Json
+          round?: number
+          run_id?: string
+          scene_key?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_combat_sessions_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "journey_campaign_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journey_endings: {
+        Row: {
+          author_notes: string | null
+          campaign_id: string
+          created_at: string
+          description: string | null
+          ending_key: string
+          epilogue_blocks: Json
+          id: string
+          name: string
+          priority: number
+          requirements: Json | null
+          spoiler_safe_label: string | null
+          updated_at: string
+        }
+        Insert: {
+          author_notes?: string | null
+          campaign_id: string
+          created_at?: string
+          description?: string | null
+          ending_key: string
+          epilogue_blocks?: Json
+          id?: string
+          name: string
+          priority?: number
+          requirements?: Json | null
+          spoiler_safe_label?: string | null
+          updated_at?: string
+        }
+        Update: {
+          author_notes?: string | null
+          campaign_id?: string
+          created_at?: string
+          description?: string | null
+          ending_key?: string
+          epilogue_blocks?: Json
+          id?: string
+          name?: string
+          priority?: number
+          requirements?: Json | null
+          spoiler_safe_label?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_endings_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "journey_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journey_enemies: {
+        Row: {
+          abilities: Json
+          armor: number
+          attack: number
+          author_notes: string | null
+          campaign_id: string
+          created_at: string
+          description: string | null
+          enemy_key: string
+          id: string
+          max_health: number
+          metadata: Json
+          name: string
+          portrait: string | null
+          updated_at: string
+        }
+        Insert: {
+          abilities?: Json
+          armor?: number
+          attack?: number
+          author_notes?: string | null
+          campaign_id: string
+          created_at?: string
+          description?: string | null
+          enemy_key: string
+          id?: string
+          max_health?: number
+          metadata?: Json
+          name: string
+          portrait?: string | null
+          updated_at?: string
+        }
+        Update: {
+          abilities?: Json
+          armor?: number
+          attack?: number
+          author_notes?: string | null
+          campaign_id?: string
+          created_at?: string
+          description?: string | null
+          enemy_key?: string
+          id?: string
+          max_health?: number
+          metadata?: Json
+          name?: string
+          portrait?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_enemies_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "journey_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journey_factions: {
+        Row: {
+          author_notes: string | null
+          campaign_id: string
+          created_at: string
+          description: string | null
+          faction_key: string
+          id: string
+          image: string | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          author_notes?: string | null
+          campaign_id: string
+          created_at?: string
+          description?: string | null
+          faction_key: string
+          id?: string
+          image?: string | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          author_notes?: string | null
+          campaign_id?: string
+          created_at?: string
+          description?: string | null
+          faction_key?: string
+          id?: string
+          image?: string | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_factions_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "journey_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journey_items: {
+        Row: {
+          author_notes: string | null
+          campaign_id: string
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          image: string | null
+          item_key: string
+          item_type: string
+          max_stack: number
+          metadata: Json
+          name: string
+          quest_item: boolean
+          rarity: string
+          stackable: boolean
+          updated_at: string
+          usable: boolean
+        }
+        Insert: {
+          author_notes?: string | null
+          campaign_id: string
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          image?: string | null
+          item_key: string
+          item_type?: string
+          max_stack?: number
+          metadata?: Json
+          name: string
+          quest_item?: boolean
+          rarity?: string
+          stackable?: boolean
+          updated_at?: string
+          usable?: boolean
+        }
+        Update: {
+          author_notes?: string | null
+          campaign_id?: string
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          image?: string | null
+          item_key?: string
+          item_type?: string
+          max_stack?: number
+          metadata?: Json
+          name?: string
+          quest_item?: boolean
+          rarity?: string
+          stackable?: boolean
+          updated_at?: string
+          usable?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_items_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "journey_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journey_locations: {
+        Row: {
+          ambient_audio: string | null
+          author_notes: string | null
+          campaign_id: string
+          codex_key: string | null
+          created_at: string
+          description: string | null
+          id: string
+          image: string | null
+          location_key: string
+          map_position: Json | null
+          metadata: Json
+          name: string
+          region: string | null
+          updated_at: string
+        }
+        Insert: {
+          ambient_audio?: string | null
+          author_notes?: string | null
+          campaign_id: string
+          codex_key?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          image?: string | null
+          location_key: string
+          map_position?: Json | null
+          metadata?: Json
+          name: string
+          region?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ambient_audio?: string | null
+          author_notes?: string | null
+          campaign_id?: string
+          codex_key?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          image?: string | null
+          location_key?: string
+          map_position?: Json | null
+          metadata?: Json
+          name?: string
+          region?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_locations_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "journey_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journey_npcs: {
+        Row: {
+          author_notes: string | null
+          biography: string | null
+          campaign_id: string
+          codex_key: string | null
+          created_at: string
+          description: string | null
+          faction_key: string | null
+          id: string
+          metadata: Json
+          name: string
+          npc_key: string
+          portrait: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          author_notes?: string | null
+          biography?: string | null
+          campaign_id: string
+          codex_key?: string | null
+          created_at?: string
+          description?: string | null
+          faction_key?: string | null
+          id?: string
+          metadata?: Json
+          name: string
+          npc_key: string
+          portrait?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          author_notes?: string | null
+          biography?: string | null
+          campaign_id?: string
+          codex_key?: string | null
+          created_at?: string
+          description?: string | null
+          faction_key?: string | null
+          id?: string
+          metadata?: Json
+          name?: string
+          npc_key?: string
+          portrait?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_npcs_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "journey_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journey_quests: {
+        Row: {
+          author_notes: string | null
+          campaign_id: string
+          created_at: string
+          description: string | null
+          hidden_until_discovered: boolean
+          id: string
+          objectives: Json
+          quest_key: string
+          quest_type: string
+          rewards: Json
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          author_notes?: string | null
+          campaign_id: string
+          created_at?: string
+          description?: string | null
+          hidden_until_discovered?: boolean
+          id?: string
+          objectives?: Json
+          quest_key: string
+          quest_type?: string
+          rewards?: Json
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          author_notes?: string | null
+          campaign_id?: string
+          created_at?: string
+          description?: string | null
+          hidden_until_discovered?: boolean
+          id?: string
+          objectives?: Json
+          quest_key?: string
+          quest_type?: string
+          rewards?: Json
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_quests_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "journey_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journey_run_choice_history: {
+        Row: {
+          campaign_version: number
+          choice_key: string | null
+          choice_text_snapshot: string | null
+          created_at: string
+          id: string
+          metadata: Json
+          run_id: string
+          scene_key: string
+          user_id: string
+        }
+        Insert: {
+          campaign_version?: number
+          choice_key?: string | null
+          choice_text_snapshot?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json
+          run_id: string
+          scene_key: string
+          user_id: string
+        }
+        Update: {
+          campaign_version?: number
+          choice_key?: string | null
+          choice_text_snapshot?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json
+          run_id?: string
+          scene_key?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_run_choice_history_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "journey_campaign_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journey_scene_blocks: {
+        Row: {
+          block_type: string
+          campaign_id: string
+          conditions: Json | null
+          content: string | null
+          created_at: string
+          display_order: number
+          id: string
+          metadata: Json
+          scene_id: string
+          updated_at: string
+        }
+        Insert: {
+          block_type: string
+          campaign_id: string
+          conditions?: Json | null
+          content?: string | null
+          created_at?: string
+          display_order?: number
+          id?: string
+          metadata?: Json
+          scene_id: string
+          updated_at?: string
+        }
+        Update: {
+          block_type?: string
+          campaign_id?: string
+          conditions?: Json | null
+          content?: string | null
+          created_at?: string
+          display_order?: number
+          id?: string
+          metadata?: Json
+          scene_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_scene_blocks_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "journey_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journey_scene_blocks_scene_id_fkey"
+            columns: ["scene_id"]
+            isOneToOne: false
+            referencedRelation: "journey_scenes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journey_scenes: {
+        Row: {
+          ambient_audio: string | null
+          author_notes: string | null
+          auto_next_scene_key: string | null
+          background_asset: string | null
+          campaign_id: string
+          chapter_id: string | null
+          created_at: string
+          display_order: number
+          ending_key: string | null
+          entry_conditions: Json | null
+          entry_effects: Json
+          id: string
+          is_terminal: boolean
+          location_key: string | null
+          music_track: string | null
+          scene_key: string
+          scene_type: string
+          subtitle: string | null
+          tags: string[]
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          ambient_audio?: string | null
+          author_notes?: string | null
+          auto_next_scene_key?: string | null
+          background_asset?: string | null
+          campaign_id: string
+          chapter_id?: string | null
+          created_at?: string
+          display_order?: number
+          ending_key?: string | null
+          entry_conditions?: Json | null
+          entry_effects?: Json
+          id?: string
+          is_terminal?: boolean
+          location_key?: string | null
+          music_track?: string | null
+          scene_key: string
+          scene_type?: string
+          subtitle?: string | null
+          tags?: string[]
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ambient_audio?: string | null
+          author_notes?: string | null
+          auto_next_scene_key?: string | null
+          background_asset?: string | null
+          campaign_id?: string
+          chapter_id?: string | null
+          created_at?: string
+          display_order?: number
+          ending_key?: string | null
+          entry_conditions?: Json | null
+          entry_effects?: Json
+          id?: string
+          is_terminal?: boolean
+          location_key?: string | null
+          music_track?: string | null
+          scene_key?: string
+          scene_type?: string
+          subtitle?: string | null
+          tags?: string[]
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_scenes_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "journey_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journey_scenes_chapter_id_fkey"
+            columns: ["chapter_id"]
+            isOneToOne: false
+            referencedRelation: "journey_chapters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lockbox_attempts: {
         Row: {
           attacker_id: string
@@ -8721,6 +9855,117 @@ export type Database = {
       join_club_with_password:
         | { Args: { _password: string }; Returns: string }
         | { Args: { _password: string; _user_id: string }; Returns: string }
+      journey_apply_effects: {
+        Args: { _effects: Json; _state: Json }
+        Returns: Json
+      }
+      journey_default_state: {
+        Args: {
+          _character: Database["public"]["Tables"]["journey_characters"]["Row"]
+        }
+        Returns: Json
+      }
+      journey_eval_requirements: {
+        Args: { _req: Json; _state: Json }
+        Returns: boolean
+      }
+      journey_execute_choice: {
+        Args: { _choice_key: string; _run_id: string; _scene_key: string }
+        Returns: {
+          campaign_id: string
+          campaign_version: number
+          character_id: string | null
+          completed_at: string | null
+          created_at: string
+          current_chapter_key: string | null
+          current_scene_key: string | null
+          ending_key: string | null
+          id: string
+          is_test_run: boolean
+          last_played_at: string
+          playtime_seconds: number
+          run_number: number
+          started_at: string
+          state: Json
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "journey_campaign_runs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      journey_import_campaign: { Args: { _package: Json }; Returns: Json }
+      journey_is_author: { Args: { _uid: string }; Returns: boolean }
+      journey_start_run: {
+        Args: {
+          _campaign_id: string
+          _character_id: string
+          _is_test?: boolean
+        }
+        Returns: {
+          campaign_id: string
+          campaign_version: number
+          character_id: string | null
+          completed_at: string | null
+          created_at: string
+          current_chapter_key: string | null
+          current_scene_key: string | null
+          ending_key: string | null
+          id: string
+          is_test_run: boolean
+          last_played_at: string
+          playtime_seconds: number
+          run_number: number
+          started_at: string
+          state: Json
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "journey_campaign_runs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      journey_state_number: {
+        Args: { _bucket: string; _key: string; _state: Json }
+        Returns: number
+      }
+      journey_test_patch_run: {
+        Args: { _run_id: string; _scene_key: string; _state_patch: Json }
+        Returns: {
+          campaign_id: string
+          campaign_version: number
+          character_id: string | null
+          completed_at: string | null
+          created_at: string
+          current_chapter_key: string | null
+          current_scene_key: string | null
+          ending_key: string | null
+          id: string
+          is_test_run: boolean
+          last_played_at: string
+          playtime_seconds: number
+          run_number: number
+          started_at: string
+          state: Json
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "journey_campaign_runs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       log_admin_action: {
         Args: {
           _action: string

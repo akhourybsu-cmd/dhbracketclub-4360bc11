@@ -11,13 +11,9 @@ import { ABILITIES } from '@/lib/nexus/abilities';
 import { ENEMIES } from '@/lib/nexus/enemies';
 import { EnemyKind, TowerKind, AbilityKind } from '@/lib/nexus/types';
 
-const ENEMY_LABELS: Record<EnemyKind, string> = {
-  drone: 'Drone',
-  walker: 'Walker',
-  shielded: 'Shielded',
-  stealth: 'Stealth',
-  boss: 'Boss',
-};
+const ENEMY_LABELS = Object.fromEntries(
+  (Object.keys(ENEMIES) as EnemyKind[]).map((k) => [k, ENEMIES[k]?.name ?? k]),
+) as Record<EnemyKind, string>;
 
 export function EffectiveValuesPanel({ eff }: { eff: EffectiveMission }) {
   const [openWaves, setOpenWaves] = useState(false);

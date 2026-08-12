@@ -1,0 +1,210 @@
+/* THE SPLENDID JOURNEY — encapsulated fantasy design system.
+   Every token lives under `.jy-mode` so nothing here can leak into DH Club
+   components. Colors are aged ink, charcoal, deep forest, muted burgundy and
+   restrained brass — never neon, never purple gradients. */
+
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Spectral:ital,wght@0,300;0,400;0,500;1,400&display=swap');
+
+.jy-mode {
+  --jy-bg-primary: 28 12% 7%;
+  --jy-bg-surface: 30 10% 11%;
+  --jy-bg-elevated: 32 10% 15%;
+
+  --jy-text-primary: 40 30% 90%;
+  --jy-text-secondary: 38 14% 72%;
+  --jy-text-muted: 36 10% 52%;
+
+  --jy-gold: 38 48% 58%;
+  --jy-blood: 355 42% 42%;
+  --jy-forest: 150 22% 34%;
+  --jy-arcane: 214 28% 52%;
+
+  --jy-border-subtle: 34 14% 22%;
+  --jy-border-strong: 36 22% 34%;
+
+  --jy-display: 'Cormorant Garamond', Georgia, serif;
+  --jy-body: 'Spectral', Georgia, 'Times New Roman', serif;
+
+  --jy-reading-size: 1.0625rem;
+
+  color: hsl(var(--jy-text-primary));
+  background-color: hsl(var(--jy-bg-primary));
+  font-family: var(--jy-body);
+  min-height: 100dvh;
+}
+
+/* Atmospheric base: layered vignette + a faint paper grain, no particles. */
+.jy-shell {
+  position: relative;
+  background:
+    radial-gradient(120% 80% at 50% -10%, hsl(36 20% 18% / 0.55), transparent 60%),
+    radial-gradient(90% 60% at 50% 110%, hsl(150 20% 12% / 0.5), transparent 65%),
+    linear-gradient(180deg, hsl(var(--jy-bg-primary)), hsl(28 14% 5%));
+}
+.jy-shell::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.05;
+  background-image: radial-gradient(hsl(40 40% 80%) 0.5px, transparent 0.5px);
+  background-size: 3px 3px;
+}
+
+/* ── Typography ───────────────────────────────────────────────── */
+.jy-display {
+  font-family: var(--jy-display);
+  letter-spacing: 0.02em;
+  font-weight: 600;
+  color: hsl(var(--jy-text-primary));
+}
+.jy-title {
+  font-family: var(--jy-display);
+  font-size: clamp(1.75rem, 5vw, 2.75rem);
+  line-height: 1.1;
+  font-weight: 600;
+}
+.jy-eyebrow {
+  font-family: var(--jy-body);
+  font-size: 0.6875rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: hsl(var(--jy-text-muted));
+}
+.jy-prose {
+  font-family: var(--jy-body);
+  font-size: var(--jy-reading-size);
+  line-height: 1.78;
+  color: hsl(var(--jy-text-primary) / 0.94);
+  max-width: 68ch;
+}
+.jy-prose p + p { margin-top: 1.05em; }
+.jy-muted { color: hsl(var(--jy-text-muted)); }
+.jy-secondary { color: hsl(var(--jy-text-secondary)); }
+
+/* Reader text-size preference */
+.jy-text-sm  { --jy-reading-size: 0.9375rem; }
+.jy-text-md  { --jy-reading-size: 1.0625rem; }
+.jy-text-lg  { --jy-reading-size: 1.1875rem; }
+.jy-text-xl  { --jy-reading-size: 1.3125rem; }
+
+/* ── Surfaces ─────────────────────────────────────────────────── */
+.jy-panel {
+  background: linear-gradient(180deg, hsl(var(--jy-bg-surface)), hsl(var(--jy-bg-primary)));
+  border: 1px solid hsl(var(--jy-border-subtle));
+  border-radius: 4px;
+}
+.jy-panel-raised {
+  background: linear-gradient(180deg, hsl(var(--jy-bg-elevated)), hsl(var(--jy-bg-surface)));
+  border: 1px solid hsl(var(--jy-border-subtle));
+  border-radius: 4px;
+  box-shadow: 0 18px 40px -28px hsl(0 0% 0% / 0.9);
+}
+.jy-rule {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, hsl(var(--jy-border-strong)), transparent);
+}
+
+/* ── Choices ──────────────────────────────────────────────────── */
+.jy-choice {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.9rem 1rem;
+  min-height: 3rem;
+  border: 1px solid hsl(var(--jy-border-subtle));
+  border-left: 2px solid hsl(var(--jy-border-strong));
+  background: linear-gradient(180deg, hsl(var(--jy-bg-surface) / 0.9), hsl(var(--jy-bg-primary) / 0.9));
+  color: hsl(var(--jy-text-primary));
+  font-family: var(--jy-body);
+  border-radius: 3px;
+  transition: border-color 160ms ease, transform 120ms ease, background 160ms ease;
+}
+.jy-choice:hover:not(:disabled) {
+  border-left-color: hsl(var(--jy-gold));
+  background: linear-gradient(180deg, hsl(var(--jy-bg-elevated)), hsl(var(--jy-bg-surface)));
+}
+.jy-choice:active:not(:disabled) { transform: translateY(1px); }
+.jy-choice:focus-visible { outline: 2px solid hsl(var(--jy-gold)); outline-offset: 2px; }
+.jy-choice[disabled] { opacity: 0.5; cursor: not-allowed; }
+.jy-choice-major { border-left-color: hsl(var(--jy-blood)); }
+.jy-choice-skill { border-left-color: hsl(var(--jy-arcane)); }
+.jy-choice-secret { border-left-color: hsl(var(--jy-forest)); }
+
+/* ── Buttons ──────────────────────────────────────────────────── */
+.jy-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  padding: 0 1.1rem;
+  border-radius: 3px;
+  border: 1px solid hsl(var(--jy-border-strong));
+  background: linear-gradient(180deg, hsl(var(--jy-bg-elevated)), hsl(var(--jy-bg-surface)));
+  color: hsl(var(--jy-text-primary));
+  font-family: var(--jy-body);
+  font-size: 0.9375rem;
+  transition: transform 120ms ease, border-color 160ms ease;
+}
+.jy-btn:hover:not(:disabled) { border-color: hsl(var(--jy-gold) / 0.8); }
+.jy-btn:active:not(:disabled) { transform: translateY(1px); }
+.jy-btn:disabled { opacity: 0.5; }
+.jy-btn-primary {
+  border-color: hsl(var(--jy-gold) / 0.6);
+  background: linear-gradient(180deg, hsl(var(--jy-gold) / 0.22), hsl(var(--jy-gold) / 0.08));
+  color: hsl(42 55% 86%);
+}
+.jy-btn-ghost { background: transparent; border-color: hsl(var(--jy-border-subtle)); }
+.jy-btn-sm { min-height: 2.25rem; font-size: 0.8125rem; padding: 0 0.75rem; }
+
+/* ── Small elements ───────────────────────────────────────────── */
+.jy-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.15rem 0.5rem;
+  border: 1px solid hsl(var(--jy-border-subtle));
+  border-radius: 2px;
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: hsl(var(--jy-text-secondary));
+  background: hsl(var(--jy-bg-elevated) / 0.6);
+}
+.jy-chip-gold { color: hsl(var(--jy-gold)); border-color: hsl(var(--jy-gold) / 0.4); }
+.jy-chip-blood { color: hsl(355 50% 68%); border-color: hsl(var(--jy-blood) / 0.5); }
+.jy-chip-forest { color: hsl(150 28% 62%); border-color: hsl(var(--jy-forest) / 0.5); }
+
+.jy-input {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0 0.75rem;
+  background: hsl(var(--jy-bg-primary));
+  border: 1px solid hsl(var(--jy-border-subtle));
+  border-radius: 3px;
+  color: hsl(var(--jy-text-primary));
+  font-family: var(--jy-body);
+}
+.jy-input:focus-visible { outline: 2px solid hsl(var(--jy-gold) / 0.7); outline-offset: 1px; }
+
+.jy-dialogue {
+  border-left: 2px solid hsl(var(--jy-gold) / 0.45);
+  padding-left: 0.9rem;
+}
+.jy-speaker {
+  font-family: var(--jy-display);
+  font-size: 0.95rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: hsl(var(--jy-gold));
+}
+
+.jy-fade-in { animation: jyFade 420ms ease both; }
+@keyframes jyFade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .jy-fade-in { animation: none; }
+  .jy-choice, .jy-btn { transition: none; }
+}
+.jy-reduced-motion .jy-fade-in { animation: none; }
