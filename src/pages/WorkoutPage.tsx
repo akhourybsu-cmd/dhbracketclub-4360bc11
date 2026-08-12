@@ -12,6 +12,7 @@ import { WorkoutLoggerSheet } from '@/components/workout/WorkoutLoggerSheet';
 import { TutorialSheet } from '@/components/workout/TutorialSheet';
 import { ManageLogSheet } from '@/components/workout/ManageLogSheet';
 import { ClubFlame } from '@/components/workout/ClubFlame';
+import { FullBlazeCelebration } from '@/components/workout/FullBlazeCelebration';
 import {
   buildLeaderboard, computeExerciseProgress, userWeekScore,
   lifetimeXp, levelFromXp, computeStreak, computeRecords, computeMilestones, personalGoal,
@@ -117,6 +118,9 @@ export default function WorkoutPage() {
   const [tutorialKey, setTutorialKey] = useState<string | null>(null);
   const [poppedGoal, setPoppedGoal] = useState<string | null>(null);
   const [manageOpen, setManageOpen] = useState(false);
+  const [flameSurge, setFlameSurge] = useState(0);
+  const [showBlaze, setShowBlaze] = useState(false);
+  const bumpFlame = () => setFlameSurge(s => s + 1);
 
   const currentMondayKey = useMemo(() => {
     const d = mondayWeekBounds().start;
@@ -178,6 +182,17 @@ export default function WorkoutPage() {
     });
   }, [loading, myActivities, myWeekActivities, weekExercises, week, unlocks, todayLocal, insertUnlock]);
 
+  // FULL BLAZE — fire once per club per week when the flame is maxed.
+  useEffect(() => {
+    if (loading || !week || !club?.id || clubStoke < 1) return;
+    const key = `fg_blaze_v1:${club.id}:${week.id}`;
+    let done = false;
+    try { done = localStorage.getItem(key) === '1'; } catch { /* ignore */ }
+    if (done) return;
+    try { localStorage.setItem(key, '1'); } catch { /* ignore */ }
+    setShowBlaze(true);
+  }, [loading, week, club?.id, clubStoke]);
+
   if (!assetsLoading && !installed) return <Navigate to="/dashboard" replace />;
 
   const weekTotalFor = (exerciseId: string) =>
@@ -213,6 +228,7 @@ export default function WorkoutPage() {
     const before = computeExerciseProgress(we, myWeekActivities, pg).goalPct;
     try {
       await logActivity({ exercise: we.exercise, weekId: week?.id ?? null, rawValue: amount });
+      bumpFlame();
       try { navigator.vibrate?.(8); } catch { /* ignore */ }
       // Celebrate the moment a personal goal is crossed.
       const after = computeExerciseProgress(we, [...myWeekActivities, { raw_value: amount } as any], pg).goalPct;
@@ -277,7 +293,7 @@ export default function WorkoutPage() {
         </div>
 
         <div className="flex flex-col items-center -mt-1">
-          <ClubFlame intensity={clubStoke} />
+          <ClubFlame intensity={clubStoke} surge={flameSurge} />
           <div className="text-center -mt-4 relative z-[2]">
             <p className="text-[10px] font-black uppercase tracking-[0.18em]" style={{ color: 'hsl(28 60% 64%)' }}>The club has forged</p>
             <CountUp value={clubPoints} className="text-[44px] leading-none font-black tabular-nums" />
@@ -514,13 +530,14 @@ export default function WorkoutPage() {
         onClose={() => setSelected(null)}
         onLog={async (rawValue, opts) => {
           if (!selected) return;
-          try { await logActivity({ exercise: selected.exercise, weekId: week?.id ?? null, rawValue, startedAt: opts?.startedAt, endedAt: opts?.endedAt, metadata: opts?.metadata }); }
+          try { await logActivity({ exercise: selected.exercise, weekId: week?.id ?? null, rawValue, startedAt: opts?.startedAt, endedAt: opts?.endedAt, metadata: opts?.metadata }); bumpFlame(); }
           catch { toast.error('Could not log that — try again'); }
         }}
         onUndo={selected ? async () => { try { await undoLast(selected.exercise.id); } catch { toast.error('Undo failed'); } } : undefined}
       />
 
       <TutorialSheet libKey={tutorialKey} onClose={() => setTutorialKey(null)} />
+      <FullBlazeCelebration show={showBlaze} onDone={() => setShowBlaze(false)} />
 
       <ManageLogSheet
         open={manageOpen}
