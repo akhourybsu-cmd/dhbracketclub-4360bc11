@@ -11,7 +11,7 @@ export default function JourneyPlayPage() {
   const { runId } = useParams<{ runId: string }>();
   const {
     run, campaign, scene, chapterTitle, locationName, blocks, choices, state,
-    loading, busy, error, notices, clearNotices, refresh, chooseChoice,
+    loading, busy, error, notices, clearNotices, refresh, chooseChoice, advance,
   } = useJourneyRun(runId);
   const topRef = useRef<HTMLDivElement>(null);
 
