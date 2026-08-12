@@ -4,7 +4,7 @@ import { ABILITIES } from '@/lib/nexus/abilities';
 import { ENEMIES } from '@/lib/nexus/enemies';
 import { TOWERS, towerDamageAt, towerRangeAt, towerSellValue, towerUpgradeCost } from '@/lib/nexus/towers';
 import { GRID_COLS, GRID_ROWS, getGridLayout } from '@/lib/nexus/grid';
-import { BattleState, TargetMode, TowerKind } from '@/lib/nexus/types';
+import { BattleEvent, BattleState, TargetMode, TowerKind } from '@/lib/nexus/types';
 import { cn } from '@/lib/utils';
 import { Heart, ChevronUp, X, Crosshair } from 'lucide-react';
 import { TowerIcon } from './TowerIcon';
@@ -39,6 +39,124 @@ const TARGET_MODES: { mode: TargetMode; label: string }[] = [
   { mode: 'strong', label: 'STRONG' },
   { mode: 'close', label: 'CLOSE' },
 ];
+
+/** Jagged lightning polyline (Arc) — deterministic per bolt via its timestamp,
+ *  so the geometry is stable while opacity flickers. SVG 0..100 units. */
+function jaggedPath(sx: number, sy: number, tx: number, ty: number, seed: number): string {
+  const segs = 5;
+  const dx = tx - sx, dy = ty - sy;
+  const len = Math.hypot(dx, dy) || 1;
+  const px = -dy / len, py = dx / len; // perpendicular unit
+  const pts: string[] = [];
+  for (let i = 0; i <= segs; i++) {
+    const f = i / segs;
+    const bx = sx + dx * f, by = sy + dy * f;
+    const amp = i === 0 || i === segs ? 0 : Math.sin(seed * 0.013 + i * 2.7) * 3.4;
+    pts.push(`${(bx + px * amp).toFixed(2)},${(by + py * amp).toFixed(2)}`);
+  }
+  return pts.join(' ');
+}
+
+/**
+ * Per-tower muzzle→impact visual. Each weapon reads as a DIFFERENT kind of
+ * attack, not just a recolored beam:
+ *   • pulse — a fast little plasma bolt that travels, with a thin tracer
+ *   • arc   — a jagged, flickering lightning arc (no travel)
+ *   • rail  — a thick instant railgun beam with muzzle recoil + hard impact
+ *   • cryo  — no beam at all; an expanding frost shockwave at the target
+ */
+function ShotEffect({ ev }: { ev: Extract<BattleEvent, { type: 'shot' }> }) {
+  const sx = ((ev.from.col + 0.5) / GRID_COLS) * 100;
+  const sy = ((ev.from.row + 0.5) / GRID_ROWS) * 100;
+  const tx = ((ev.to.x + 0.5) / GRID_COLS) * 100;
+  const ty = ((ev.to.y + 0.5) / GRID_ROWS) * 100;
+
+  if (ev.tower === 'cryo') {
+    // Cold shockwave — area modality, deliberately no line/bolt.
+    return (
+      <>
+        <motion.span aria-hidden className="absolute rounded-full"
+          initial={{ opacity: 0.8, scale: 0.2 }} animate={{ opacity: 0, scale: 1.9 }} exit={{ opacity: 0 }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+          style={{ left: `${tx}%`, top: `${ty}%`, width: 30, height: 30, transform: 'translate(-50%,-50%)',
+            border: '1.5px solid hsl(200 95% 82% / 0.9)', borderRadius: '50%',
+            background: 'radial-gradient(circle, hsl(200 95% 80% / 0.35), transparent 70%)',
+            boxShadow: '0 0 12px hsl(200 95% 70% / 0.7)' }} />
+        <motion.span aria-hidden className="absolute rounded-full"
+          initial={{ opacity: 0.9, scale: 0.3 }} animate={{ opacity: 0, scale: 1 }} exit={{ opacity: 0 }}
+          transition={{ duration: 0.35, ease: 'easeOut' }}
+          style={{ left: `${tx}%`, top: `${ty}%`, width: 14, height: 14, transform: 'translate(-50%,-50%)',
+            background: 'radial-gradient(circle, hsl(190 100% 92%), hsl(200 95% 75% / 0.5) 55%, transparent 75%)' }} />
+      </>
+    );
+  }
+
+  if (ev.tower === 'arc') {
+    const pts = jaggedPath(sx, sy, tx, ty, ev.t);
+    return (
+      <>
+        <motion.svg aria-hidden initial={{ opacity: 1 }} animate={{ opacity: [1, 0.35, 0.9, 0] }} exit={{ opacity: 0 }}
+          transition={{ duration: 0.3, ease: 'easeOut', times: [0, 0.35, 0.6, 1] }}
+          className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+          <polyline points={pts} fill="none" stroke="hsl(265 90% 72% / 0.55)" strokeWidth={2.2}
+            strokeLinejoin="round" strokeLinecap="round" style={{ filter: 'blur(1.5px)' }} />
+          <polyline points={pts} fill="none" stroke="#ede9fe" strokeWidth={0.35}
+            strokeLinejoin="round" strokeLinecap="round" />
+        </motion.svg>
+        <motion.span aria-hidden className="absolute rounded-full"
+          initial={{ opacity: 0.9, scale: 0.3 }} animate={{ opacity: 0, scale: 1.3 }} exit={{ opacity: 0 }}
+          transition={{ duration: 0.25, ease: 'easeOut' }}
+          style={{ left: `${tx}%`, top: `${ty}%`, width: 11, height: 11, transform: 'translate(-50%,-50%)',
+            background: 'radial-gradient(circle, hsl(265 90% 85%), transparent 70%)' }} />
+      </>
+    );
+  }
+
+  if (ev.tower === 'rail') {
+    // Railgun — thick instant beam that snaps in and fades, heavy recoil + impact.
+    return (
+      <>
+        <motion.svg aria-hidden initial={{ opacity: 0.95 }} animate={{ opacity: 0 }} exit={{ opacity: 0 }}
+          transition={{ duration: 0.4, ease: 'easeOut' }}
+          className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+          <line x1={sx} y1={sy} x2={tx} y2={ty} stroke="hsl(38 95% 60% / 0.5)" strokeWidth={2.6} style={{ filter: 'blur(1.5px)' }} />
+          <line x1={sx} y1={sy} x2={tx} y2={ty} stroke="#fff7e6" strokeWidth={0.7} />
+        </motion.svg>
+        <motion.span aria-hidden className="absolute rounded-full"
+          initial={{ opacity: 0.9, scale: 0.6 }} animate={{ opacity: 0, scale: 1.5 }} exit={{ opacity: 0 }}
+          transition={{ duration: 0.3, ease: 'easeOut' }}
+          style={{ left: `${sx}%`, top: `${sy}%`, width: 12, height: 12, transform: 'translate(-50%,-50%)',
+            background: 'radial-gradient(circle, hsl(38 100% 85%), transparent 70%)' }} />
+        <motion.span aria-hidden className="absolute rounded-full"
+          initial={{ opacity: 1, scale: 0.4 }} animate={{ opacity: 0, scale: 1.7 }} exit={{ opacity: 0 }}
+          transition={{ duration: 0.35, ease: 'easeOut' }}
+          style={{ left: `${tx}%`, top: `${ty}%`, width: 18, height: 18, transform: 'translate(-50%,-50%)',
+            background: 'radial-gradient(circle, hsl(38 100% 80%), hsl(30 95% 60% / 0.5) 50%, transparent 75%)',
+            boxShadow: '0 0 14px hsl(38 95% 60% / 0.8)' }} />
+      </>
+    );
+  }
+
+  // pulse — a quick plasma bolt with a thin tracer + small impact pop.
+  return (
+    <>
+      <motion.svg aria-hidden initial={{ opacity: 0.8 }} animate={{ opacity: 0 }} exit={{ opacity: 0 }}
+        transition={{ duration: 0.16, ease: 'easeOut' }}
+        className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+        <line x1={sx} y1={sy} x2={tx} y2={ty} stroke="hsl(188 92% 70% / 0.5)" strokeWidth={0.3} />
+      </motion.svg>
+      <motion.span aria-hidden className="absolute rounded-full"
+        initial={{ left: `${sx}%`, top: `${sy}%`, opacity: 1 }} animate={{ left: `${tx}%`, top: `${ty}%`, opacity: 1 }}
+        transition={{ duration: 0.12, ease: 'linear' }}
+        style={{ width: 4, height: 4, transform: 'translate(-50%,-50%)', background: '#22d3ee', boxShadow: '0 0 8px #22d3ee, 0 0 14px #22d3ee' }} />
+      <motion.span aria-hidden className="absolute rounded-full"
+        initial={{ opacity: 0.9, scale: 0.2 }} animate={{ opacity: 0, scale: 1.2 }} exit={{ opacity: 0 }}
+        transition={{ duration: 0.22, delay: 0.12, ease: 'easeOut' }}
+        style={{ left: `${tx}%`, top: `${ty}%`, width: 10, height: 10, transform: 'translate(-50%,-50%)',
+          background: 'radial-gradient(circle, #a5f3fc, transparent 70%)' }} />
+    </>
+  );
+}
 
 export function NexusBattleScreen({
   state, selectedTowerKind, selectedTowerId,
@@ -460,73 +578,12 @@ export function NexusBattleScreen({
             />
           )}
 
-          {/* Shot effects */}
+          {/* Per-tower shot FX — each weapon reads as a distinct attack */}
           <div className="absolute inset-0 pointer-events-none">
             <AnimatePresence>
-              {state.events.filter(ev => ev.type === 'shot').map((ev, i) => {
-                if (ev.type !== 'shot') return null;
-                const x1 = ((ev.from.col + 0.5) / GRID_COLS) * 100;
-                const y1 = ((ev.from.row + 0.5) / GRID_ROWS) * 100;
-                const x2 = ((ev.to.x + 0.5) / GRID_COLS) * 100;
-                const y2 = ((ev.to.y + 0.5) / GRID_ROWS) * 100;
-                const stroke = ev.tower === 'pulse' ? '#22d3ee'
-                  : ev.tower === 'arc' ? '#a78bfa'
-                  : ev.tower === 'cryo' ? '#7dd3fc'
-                  : '#fbbf24';
-                return (
-                  <motion.svg
-                    key={`${ev.t}-${i}`}
-                    initial={{ opacity: 1 }}
-                    animate={{ opacity: 0 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="absolute inset-0 w-full h-full"
-                    viewBox="0 0 100 100"
-                    preserveAspectRatio="none"
-                  >
-                    <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={stroke} strokeWidth={ev.tower === 'rail' ? 0.6 : 0.35} />
-                  </motion.svg>
-                );
-              })}
-            </AnimatePresence>
-          </div>
-
-          {/* Traveling projectiles + impact flashes — gives shots weight */}
-          <div className="absolute inset-0 pointer-events-none">
-            <AnimatePresence>
-              {state.events.filter(ev => ev.type === 'shot').map((ev, i) => {
-                if (ev.type !== 'shot') return null;
-                const sx = ((ev.from.col + 0.5) / GRID_COLS) * 100;
-                const sy = ((ev.from.row + 0.5) / GRID_ROWS) * 100;
-                const tx = ((ev.to.x + 0.5) / GRID_COLS) * 100;
-                const ty = ((ev.to.y + 0.5) / GRID_ROWS) * 100;
-                const col = ev.tower === 'pulse' ? '#22d3ee' : ev.tower === 'arc' ? '#a78bfa' : ev.tower === 'cryo' ? '#7dd3fc' : '#fbbf24';
-                const travels = ev.tower === 'pulse' || ev.tower === 'rail';
-                const travelDur = ev.tower === 'rail' ? 0.08 : 0.14;
-                return (
-                  <Fragment key={`proj-${ev.t}-${i}`}>
-                    {travels && (
-                      <motion.span
-                        aria-hidden
-                        className="absolute rounded-full"
-                        initial={{ left: `${sx}%`, top: `${sy}%`, opacity: 1 }}
-                        animate={{ left: `${tx}%`, top: `${ty}%`, opacity: 1 }}
-                        transition={{ duration: travelDur, ease: 'linear' }}
-                        style={{ width: ev.tower === 'rail' ? 5 : 4, height: ev.tower === 'rail' ? 5 : 4, transform: 'translate(-50%,-50%)', background: col, boxShadow: `0 0 8px ${col}, 0 0 14px ${col}` }}
-                      />
-                    )}
-                    <motion.span
-                      aria-hidden
-                      className="absolute rounded-full"
-                      initial={{ opacity: 0.9, scale: 0.3 }}
-                      animate={{ opacity: 0, scale: 1.35 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.28, delay: travels ? travelDur : 0, ease: 'easeOut' }}
-                      style={{ left: `${tx}%`, top: `${ty}%`, width: 12, height: 12, transform: 'translate(-50%,-50%)', background: `radial-gradient(circle, ${col}, transparent 70%)` }}
-                    />
-                  </Fragment>
-                );
-              })}
+              {state.events.map((ev, i) =>
+                ev.type === 'shot' ? <ShotEffect key={`shot-${ev.t}-${i}`} ev={ev} /> : null,
+              )}
             </AnimatePresence>
           </div>
 
