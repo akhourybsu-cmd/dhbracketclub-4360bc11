@@ -9,9 +9,11 @@
 //   • Use a single contiguous orthogonal path (no diagonals, no branches)
 //   • End at a single nexus cell
 //
-// Multi-spawn / multi-core UI map layouts (twin_gate, dual_nexus, four_gate,
-// crossfire_grid, …) intentionally fall back to the canonical 'default' path
-// at the engine level — multi-source routing is a separate engine pass.
+// Every reachable UI map layout now routes to a distinct real path variant
+// (see LAYOUT_TO_PATH_VARIANT in mapLayouts.ts). The engine is still
+// single-spawn / single-core; layouts whose art shows multiple entries are
+// framed as lanes that CONVERGE into one corridor. True multi-source routing
+// remains a separate future engine pass.
 //
 // Backwards compat: `PATH`, `BUILD_TILES`, `NEXUS_CELL`, `isPath`, `isBuildable`,
 // and `pathToXY` are still exported as the canonical-layout helpers for any
@@ -126,14 +128,72 @@ const PATH_SPIRAL: Cell[] = [
   { col: 6, row: 8 },
 ];
 
+const PATH_SERPENTINE: Cell[] = [
+  // Big three-sweep S — long boustrophedon across the whole board.
+  { col: 0, row: 0 }, { col: 1, row: 0 }, { col: 2, row: 0 }, { col: 3, row: 0 }, { col: 4, row: 0 }, { col: 5, row: 0 }, { col: 6, row: 0 },
+  { col: 6, row: 1 }, { col: 6, row: 2 }, { col: 6, row: 3 },
+  { col: 5, row: 3 }, { col: 4, row: 3 }, { col: 3, row: 3 }, { col: 2, row: 3 }, { col: 1, row: 3 }, { col: 0, row: 3 },
+  { col: 0, row: 4 }, { col: 0, row: 5 }, { col: 0, row: 6 },
+  { col: 1, row: 6 }, { col: 2, row: 6 }, { col: 3, row: 6 }, { col: 4, row: 6 }, { col: 5, row: 6 }, { col: 6, row: 6 },
+  { col: 6, row: 7 }, { col: 6, row: 8 },
+];
+
+const PATH_HORSESHOE: Cell[] = [
+  // U-shape: down the left wall, across the bottom, up the right wall.
+  { col: 0, row: 0 }, { col: 0, row: 1 }, { col: 0, row: 2 }, { col: 0, row: 3 }, { col: 0, row: 4 },
+  { col: 0, row: 5 }, { col: 0, row: 6 }, { col: 0, row: 7 }, { col: 0, row: 8 },
+  { col: 1, row: 8 }, { col: 2, row: 8 }, { col: 3, row: 8 }, { col: 4, row: 8 }, { col: 5, row: 8 }, { col: 6, row: 8 },
+  { col: 6, row: 7 }, { col: 6, row: 6 }, { col: 6, row: 5 }, { col: 6, row: 4 }, { col: 6, row: 3 }, { col: 6, row: 2 }, { col: 6, row: 1 }, { col: 6, row: 0 },
+];
+
+const PATH_CHICANE: Cell[] = [
+  // Tight top-down chicane with sharp double-backs to the centre core.
+  { col: 3, row: 0 }, { col: 3, row: 1 }, { col: 3, row: 2 },
+  { col: 2, row: 2 }, { col: 1, row: 2 },
+  { col: 1, row: 3 }, { col: 1, row: 4 },
+  { col: 2, row: 4 }, { col: 3, row: 4 }, { col: 4, row: 4 }, { col: 5, row: 4 },
+  { col: 5, row: 5 }, { col: 5, row: 6 },
+  { col: 4, row: 6 }, { col: 3, row: 6 },
+  { col: 3, row: 7 }, { col: 3, row: 8 },
+];
+
+const PATH_SWITCHBACK: Cell[] = [
+  // Descending switchbacks — alternating right/left ledges down the board.
+  { col: 0, row: 0 }, { col: 1, row: 0 }, { col: 2, row: 0 }, { col: 3, row: 0 }, { col: 4, row: 0 }, { col: 5, row: 0 }, { col: 6, row: 0 },
+  { col: 6, row: 1 }, { col: 6, row: 2 },
+  { col: 5, row: 2 }, { col: 4, row: 2 },
+  { col: 4, row: 3 }, { col: 4, row: 4 },
+  { col: 5, row: 4 }, { col: 6, row: 4 },
+  { col: 6, row: 5 }, { col: 6, row: 6 },
+  { col: 5, row: 6 }, { col: 4, row: 6 }, { col: 3, row: 6 },
+  { col: 3, row: 7 }, { col: 3, row: 8 },
+];
+
+const PATH_FUNNEL: Cell[] = [
+  // A long approach that narrows into a straight central killbox at the nexus.
+  { col: 0, row: 0 }, { col: 1, row: 0 }, { col: 2, row: 0 }, { col: 3, row: 0 },
+  { col: 3, row: 1 }, { col: 3, row: 2 },
+  { col: 4, row: 2 }, { col: 5, row: 2 }, { col: 6, row: 2 },
+  { col: 6, row: 3 }, { col: 6, row: 4 },
+  { col: 5, row: 4 }, { col: 4, row: 4 }, { col: 3, row: 4 },
+  { col: 3, row: 5 }, { col: 3, row: 6 }, { col: 3, row: 7 }, { col: 3, row: 8 },
+];
+
 /** Engine-level path variant ids. Adding a new id requires a path entry here. */
-export type PathVariantId = 'default' | 'bend' | 'zigzag' | 'spiral';
+export type PathVariantId =
+  | 'default' | 'bend' | 'zigzag' | 'spiral'
+  | 'serpentine' | 'horseshoe' | 'chicane' | 'switchback' | 'funnel';
 
 const PATHS_BY_VARIANT: Record<PathVariantId, Cell[]> = {
   default: PATH_DEFAULT,
   bend: PATH_BEND,
   zigzag: PATH_ZIGZAG,
   spiral: PATH_SPIRAL,
+  serpentine: PATH_SERPENTINE,
+  horseshoe: PATH_HORSESHOE,
+  chicane: PATH_CHICANE,
+  switchback: PATH_SWITCHBACK,
+  funnel: PATH_FUNNEL,
 };
 
 /* ─── Layout factory ─────────────────────────────────────────────── */

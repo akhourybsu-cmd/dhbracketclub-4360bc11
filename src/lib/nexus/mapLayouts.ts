@@ -118,12 +118,12 @@ export const MAP_LAYOUTS: Record<MapLayoutId, MapLayout> = {
   twin_gate: {
     id: 'twin_gate',
     name: 'Twin Gate Breach',
-    tagline: 'Two entry gates pour into one defensive fork.',
-    description: 'Hostiles split between two upper gates before converging on a single core. Crossfire placement is mandatory — solo lanes will be overrun.',
+    tagline: 'Two gates merge into one tight, twisting corridor.',
+    description: 'Hostiles pour through twin gates that merge into a single chicane toward the core. The double-backs bunch the swarm up — perfect for splash and slows.',
     category: 'solo',
     difficulty: 3,
     preview: { accent: 'hsl(38 95% 60%)', accent2: 'hsl(188 92% 56%)', shape: 'twingate', spawns: 2, cores: 1 },
-    tags: ['Two Gates', 'Convergence', 'Crossfire'],
+    tags: ['Chicane', 'Convergence', 'Chokepoints'],
   },
   reactor_ring: {
     id: 'reactor_ring',
@@ -162,12 +162,12 @@ export const MAP_LAYOUTS: Record<MapLayoutId, MapLayout> = {
   split_path: {
     id: 'split_path',
     name: 'Split Path',
-    tagline: 'Two diverging lanes — split your defenses or commit to one.',
-    description: 'Hostiles fork left or right at the entrance. Mirror your placements or risk one lane collapsing while you patch the other.',
+    tagline: 'A lane that splits and rejoins in tight switchbacks.',
+    description: 'The corridor breaks into switchbacks that fold back on themselves before rejoining. Towers placed on the ledges rake the lane two or three times over.',
     category: 'endless',
     difficulty: 3,
     preview: { accent: 'hsl(188 92% 56%)', accent2: 'hsl(38 95% 60%)', shape: 'split', spawns: 2, cores: 1 },
-    tags: ['Two Lanes', 'Mirror Defense', 'Adaptive'],
+    tags: ['Switchbacks', 'Repeat Coverage', 'Adaptive'],
   },
   spiral_core: {
     id: 'spiral_core',
@@ -182,12 +182,12 @@ export const MAP_LAYOUTS: Record<MapLayoutId, MapLayout> = {
   crossfire_grid: {
     id: 'crossfire_grid',
     name: 'Crossfire Grid',
-    tagline: 'Four-way intersection — towers cover multiple lanes at once.',
-    description: 'A perfect cross intersection. Place at the center and your range overlaps every lane — but every lane also pours toward the same core.',
+    tagline: 'The lane crosses back over itself — central towers rule.',
+    description: 'A long serpentine that sweeps back across the board three times. A tower stack in the middle catches the swarm on every pass — brutal crossfire value.',
     category: 'endless',
     difficulty: 4,
     preview: { accent: 'hsl(150 80% 60%)', accent2: 'hsl(188 92% 56%)', shape: 'cross', spawns: 4, cores: 1 },
-    tags: ['4 Lanes', 'Crossfire', 'Volume'],
+    tags: ['Serpentine', 'Crossfire', 'Volume'],
   },
   outer_rim: {
     id: 'outer_rim',
@@ -201,13 +201,13 @@ export const MAP_LAYOUTS: Record<MapLayoutId, MapLayout> = {
   },
   dual_nexus: {
     id: 'dual_nexus',
-    name: 'Dual Nexus Defense',
-    tagline: 'Two cores to defend — losing either ends the run.',
-    description: 'Two parallel cores share the same wave clock. You can\'t neglect one — both must hold or the run ends.',
+    name: 'Overtaxed Core',
+    tagline: 'A long funnel dumps the whole assault onto one core.',
+    description: 'Every lane converges into a single narrowing funnel to an overtaxed core. The straightest, most punishing route on the board — bring your heaviest hitters.',
     category: 'endless',
     difficulty: 5,
-    preview: { accent: 'hsl(350 85% 62%)', accent2: 'hsl(265 80% 70%)', shape: 'dual', spawns: 2, cores: 2 },
-    tags: ['Two Cores', 'High Pressure', 'Mythic'],
+    preview: { accent: 'hsl(350 85% 62%)', accent2: 'hsl(265 80% 70%)', shape: 'siege', spawns: 1, cores: 1 },
+    tags: ['Funnel', 'High Pressure', 'Mythic'],
   },
 
   // ──────────────────────────────────────────────────────────────────
@@ -303,30 +303,34 @@ export const DEFAULT_COOP_LAYOUT: MapLayoutId = 'shared_reactor';
  * identity is preserved on briefings but routing collapses to the canonical
  * S-curve for those.
  */
-export type EnginePathVariantId = 'default' | 'bend' | 'zigzag' | 'spiral';
+export type EnginePathVariantId =
+  | 'default' | 'bend' | 'zigzag' | 'spiral'
+  | 'serpentine' | 'horseshoe' | 'chicane' | 'switchback' | 'funnel';
 
+// Every layout now routes to a DISTINCT real path so each battlefield plays
+// differently — no more silent collapse to the default S-curve.
 const LAYOUT_TO_PATH_VARIANT: Record<MapLayoutId, EnginePathVariantId> = {
-  // Solo campaign — explicitly tuned variants where they exist
+  // Solo campaign
   tutorial_outpost: 'bend',
   broken_corridor: 'zigzag',
-  central_nexus: 'default',
-  twin_gate: 'default',          // multi-spawn → engine fallback
+  central_nexus: 'serpentine',
+  twin_gate: 'chicane',
   reactor_ring: 'spiral',
-  final_stand: 'default',
+  final_stand: 'funnel',
   // Endless
   classic_lane: 'bend',
-  split_path: 'default',         // multi-path → engine fallback
+  split_path: 'switchback',
   spiral_core: 'spiral',
-  crossfire_grid: 'default',     // multi-spawn → engine fallback
-  outer_rim: 'spiral',
-  dual_nexus: 'default',         // multi-core → engine fallback
-  // Co-op — engine is single-player, all coop layouts route default
-  dual_core: 'default',
-  north_south: 'default',
-  four_gate: 'default',
+  crossfire_grid: 'serpentine',
+  outer_rim: 'horseshoe',
+  dual_nexus: 'funnel',
+  // Co-op
+  dual_core: 'horseshoe',
+  north_south: 'switchback',
+  four_gate: 'serpentine',
   shared_reactor: 'default',
-  partner_lanes: 'default',
-  nexus_siege: 'default',
+  partner_lanes: 'chicane',
+  nexus_siege: 'funnel',
 };
 
 export function getEnginePathVariant(layoutId: MapLayoutId | undefined | null): EnginePathVariantId {
