@@ -380,7 +380,11 @@ export default function WorkoutPage() {
               <span className="text-[19px] font-black tabular-nums" style={{ color: 'hsl(30 45% 96%)' }}>{formatValueShort(g.exercise.measurement_type, combined)}</span>
               <span className="text-[12px] font-bold tabular-nums" style={{ color: 'hsl(28 30% 60%)' }}>/ {formatValueShort(g.exercise.measurement_type, g.target)}</span>
             </div>
-            <EmberBar pct={pct} height="h-2.5" />
+            <ContributionBar
+              contributions={contributionsFor(g.exercise_id)}
+              target={g.target}
+              formatValue={(v) => formatValueShort(g.exercise.measurement_type, v)}
+            />
           </motion.div>
         );
       })}
@@ -406,7 +410,11 @@ export default function WorkoutPage() {
               <span className="text-[19px] font-black tabular-nums" style={{ color: 'hsl(30 45% 96%)' }}>{formatValueShort(headline.exercise.measurement_type, combined)}</span>
               <span className="text-[12px] font-bold tabular-nums" style={{ color: 'hsl(28 30% 60%)' }}>/ {formatValueShort(headline.exercise.measurement_type, target)}</span>
             </div>
-            <EmberBar pct={pct} height="h-2.5" />
+            <ContributionBar
+              contributions={contributionsFor(headline.exercise_id)}
+              target={target}
+              formatValue={(v) => formatValueShort(headline.exercise.measurement_type, v)}
+            />
           </motion.div>
         );
       })()}
