@@ -42,6 +42,7 @@ export function useWorkoutLog(clubId: string | undefined, userId: string | undef
   const [myWeekPoints, setMyWeekPoints] = useState(0);
   const [myLifetimePoints, setMyLifetimePoints] = useState(0);
   const [clubWeekPoints, setClubWeekPoints] = useState(0);
+  const [clubWeekByMember, setClubWeekByMember] = useState<Record<string, { sessions: number; points: number }>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -67,7 +68,7 @@ export function useWorkoutLog(clubId: string | undefined, userId: string | undef
           // Club-wide completed sessions this week — for the flame fuel meter.
           withTimeout(
             sb.from('workout_log_sessions')
-              .select('id, entries:workout_log_entries(points)')
+              .select('id, user_id, entries:workout_log_entries(points)')
               .eq('club_id', clubId).eq('status', 'completed')
               .gte('completed_at', weekBounds.startIso).lt('completed_at', weekBounds.endIso)
               .limit(500),
@@ -98,6 +99,18 @@ export function useWorkoutLog(clubId: string | undefined, userId: string | undef
       const clubPts = ((clubWeekSessions || []) as any[])
         .reduce((t, s) => t + sessionPoints((s.entries || []) as { points: number }[]), 0);
       setClubWeekPoints(clubPts);
+
+      // Per-member freeform tallies this week. Deliberately COUNTS + fuel
+      // only — the freeform log's contents stay private to its owner.
+      const perMember: Record<string, { sessions: number; points: number }> = {};
+      for (const s of (clubWeekSessions || []) as any[]) {
+        const uid = s.user_id as string;
+        if (!uid) continue;
+        const row = perMember[uid] ?? (perMember[uid] = { sessions: 0, points: 0 });
+        row.sessions += 1;
+        row.points += sessionPoints((s.entries || []) as { points: number }[]);
+      }
+      setClubWeekByMember(perMember);
 
       setError(null);
     } catch (e: any) {
@@ -231,7 +244,7 @@ export function useWorkoutLog(clubId: string | undefined, userId: string | undef
 
   return {
     activeSession, history,
-    myWeekPoints, myLifetimePoints, clubWeekPoints,
+    myWeekPoints, myLifetimePoints, clubWeekPoints, clubWeekByMember,
     loading, error, refresh,
     startSession, addEntry, updateEntry, removeEntry, completeSession, discardSession, deleteSession,
   };
