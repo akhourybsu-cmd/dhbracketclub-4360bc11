@@ -259,7 +259,9 @@ export function useWorkoutArena(clubId: string | undefined, userId: string | und
       setMyActivities(beforeMine);
       throw insErr || new Error('log failed');
     }
-    // Reconcile the optimistic row with the authoritative one.
+    // Reconcile the optimistic row with the authoritative one, and remember it
+    // briefly so an in-flight (older) snapshot can't drop it from the totals.
+    recentWritesRef.current = [...recentWritesRef.current, data as WorkoutActivity];
     if (input.weekId) setWeekActivities(prev => prev.map(a => a.id === optimistic.id ? (data as WorkoutActivity) : a));
     setMyActivities(prev => prev.map(a => a.id === optimistic.id ? (data as WorkoutActivity) : a));
     return data as WorkoutActivity;
