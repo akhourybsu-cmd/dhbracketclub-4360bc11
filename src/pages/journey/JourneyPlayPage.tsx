@@ -77,7 +77,20 @@ export default function JourneyPlayPage() {
             <ChoiceList choices={choices} busy={busy} onChoose={chooseChoice} />
           )}
 
-          {!ended && choices.length === 0 && (
+          {!ended && choices.length === 0 && scene?.has_auto_next && (
+            <div className="mt-8 text-center">
+              <button
+                type="button"
+                className="jy-btn jy-btn-primary"
+                disabled={busy}
+                onClick={() => { void advance(); }}
+              >
+                {busy ? 'The tale moves…' : 'Continue'}
+              </button>
+            </div>
+          )}
+
+          {!ended && choices.length === 0 && !scene?.has_auto_next && (
             <div className="jy-panel mt-8 p-4 text-center">
               <p className="jy-secondary text-sm">
                 No path leads onward from here yet. This is an authoring gap, not your doing.
