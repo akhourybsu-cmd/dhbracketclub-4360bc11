@@ -52,6 +52,7 @@ const ASSET_META: Record<string, TileMeta> = {
   'birthdays-milestones':  { to: '/celebrations',    icon: Cake,             tint: '14 90% 60%' },
   'narrative-rpg':         { to: '/narrative',       icon: Sparkles,         tint: '270 70% 65%' },
   'workout-competition':   { to: '/workouts',        icon: Flame,            tint: '20 95% 58%' },
+  'splendid-journey':      { to: '/journey',         icon: ScrollText,       tint: '38 45% 58%' },
 };
 
 const TONE_DOT: Record<AssetStatusTone, string | null> = {

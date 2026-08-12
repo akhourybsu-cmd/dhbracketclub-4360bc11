@@ -4,7 +4,7 @@ import { ABILITIES } from '@/lib/nexus/abilities';
 import { ENEMIES } from '@/lib/nexus/enemies';
 import { TOWERS, TOWER_LIST, towerDamageAt, towerRangeAt, towerSellValue, towerUpgradeCost } from '@/lib/nexus/towers';
 import { GRID_COLS, GRID_ROWS, getGridLayout } from '@/lib/nexus/grid';
-import { BattleEvent, BattleState, TargetMode, TowerKind } from '@/lib/nexus/types';
+import { AbilityKind, BattleEvent, BattleState, TargetMode, TowerKind } from '@/lib/nexus/types';
 import { cn } from '@/lib/utils';
 import { Heart, ChevronUp, X, Crosshair } from 'lucide-react';
 import { TowerIcon } from './TowerIcon';
@@ -36,7 +36,7 @@ interface Props {
   onUpgrade: (id: string) => void;
   onSell: (id: string) => void;
   onSetPriority: (id: string, mode: TargetMode) => void;
-  onCastAbility: (kind: 'orbital' | 'emp') => void;
+  onCastAbility: (kind: AbilityKind) => void;
   onStartWave: () => void;
 }
 

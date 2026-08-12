@@ -14,8 +14,9 @@
 import { initBattle, tick, startWave, placeTower, upgradeTower, castAbility } from './engine';
 import { ENDLESS_MISSION, ENDLESS_MISSION_ID } from './endless';
 import { BUILD_TILES, PATH, distanceCells } from './grid';
-import { TOWERS } from './towers';
+import { TOWERS, TOWER_KINDS } from './towers';
 import { ENEMIES } from './enemies';
+import { ABILITY_KINDS } from './abilities';
 import {
   AbilityKind, BattleState, EnemyKind, TowerKind,
 } from './types';
@@ -532,7 +533,7 @@ export function runOne(strategy: StrategyId, seed: number): SimRunResult {
   }
 
   // Compute per-tower damage attribution
-  const towerDamage: Record<TowerKind, number> = { pulse: 0, arc: 0, cryo: 0, rail: 0 };
+  const towerDamage = Object.fromEntries(TOWER_KINDS.map((k) => [k, 0])) as Record<TowerKind, number>;
   for (const t of state.towers) towerDamage[t.kind] += t.totalDamage;
 
   const wavesCleared = state.status === 'victory'
@@ -614,9 +615,9 @@ export function aggregate(strategy: StrategyId, runs: SimRunResult[]): SimAggreg
   const waves = runs.map(r => r.wavesCleared);
   const durations = runs.map(r => r.durationSec);
   const points = runs.map(r => r.contributionPoints);
-  const buildTotals: Record<TowerKind, number> = { pulse: 0, arc: 0, cryo: 0, rail: 0 };
-  const dmgTotals: Record<TowerKind, number> = { pulse: 0, arc: 0, cryo: 0, rail: 0 };
-  const abilityTotals: Record<AbilityKind, number> = { orbital: 0, emp: 0 };
+  const buildTotals = Object.fromEntries(TOWER_KINDS.map((k) => [k, 0])) as Record<TowerKind, number>;
+  const dmgTotals = Object.fromEntries(TOWER_KINDS.map((k) => [k, 0])) as Record<TowerKind, number>;
+  const abilityTotals = Object.fromEntries(ABILITY_KINDS.map((k) => [k, 0])) as Record<AbilityKind, number>;
   const failHist: Record<number, number> = {};
   let totalKills = 0, totalLeaks = 0, totalBoss = 0, totalStarved = 0, totalUnspent = 0;
   for (const r of runs) {

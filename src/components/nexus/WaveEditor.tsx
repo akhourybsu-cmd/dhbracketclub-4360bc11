@@ -13,24 +13,30 @@ import { ChevronDown, ChevronUp, Plus, Trash2, Copy, ArrowUp, ArrowDown, Zap } f
 import { cn } from '@/lib/utils';
 import { EnemyKind, Wave, WaveSpawn } from '@/lib/nexus/types';
 import { emptySpawn, emptyWave, estimateWavePressure } from '@/lib/nexus/missionDrafts';
+import { ENEMIES, ENEMY_KINDS as ALL_ENEMY_KINDS } from '@/lib/nexus/enemies';
 
-const ENEMY_KINDS: EnemyKind[] = ['drone', 'walker', 'shielded', 'stealth', 'boss'];
+const ENEMY_KINDS: EnemyKind[] = ALL_ENEMY_KINDS;
 
-const ENEMY_LABEL: Record<EnemyKind, string> = {
-  drone: 'Drone',
-  walker: 'Walker',
-  shielded: 'Shielded',
-  stealth: 'Stealth',
-  boss: 'Boss',
-};
+const ENEMY_LABEL = Object.fromEntries(
+  ALL_ENEMY_KINDS.map((k) => [k, ENEMIES[k]?.name ?? k]),
+) as Record<EnemyKind, string>;
 
-const ENEMY_COLOR: Record<EnemyKind, string> = {
-  drone: 'text-sky-300 border-sky-500/40 bg-sky-500/10',
-  walker: 'text-amber-200 border-amber-500/40 bg-amber-500/10',
-  shielded: 'text-violet-200 border-violet-500/40 bg-violet-500/10',
-  stealth: 'text-fuchsia-200 border-fuchsia-500/40 bg-fuchsia-500/10',
-  boss: 'text-rose-200 border-rose-500/40 bg-rose-500/10',
-};
+const ENEMY_COLOR_PALETTE = [
+  'text-sky-300 border-sky-500/40 bg-sky-500/10',
+  'text-amber-200 border-amber-500/40 bg-amber-500/10',
+  'text-violet-200 border-violet-500/40 bg-violet-500/10',
+  'text-fuchsia-200 border-fuchsia-500/40 bg-fuchsia-500/10',
+  'text-rose-200 border-rose-500/40 bg-rose-500/10',
+  'text-emerald-200 border-emerald-500/40 bg-emerald-500/10',
+  'text-cyan-200 border-cyan-500/40 bg-cyan-500/10',
+  'text-lime-200 border-lime-500/40 bg-lime-500/10',
+  'text-orange-200 border-orange-500/40 bg-orange-500/10',
+  'text-indigo-200 border-indigo-500/40 bg-indigo-500/10',
+];
+
+const ENEMY_COLOR = Object.fromEntries(
+  ALL_ENEMY_KINDS.map((k, i) => [k, ENEMY_COLOR_PALETTE[i % ENEMY_COLOR_PALETTE.length]]),
+) as Record<EnemyKind, string>;
 
 const PRESSURE_COLOR = {
   Light: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40',

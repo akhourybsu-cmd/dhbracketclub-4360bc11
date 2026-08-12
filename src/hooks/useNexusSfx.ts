@@ -1,3 +1,4 @@
+import { TOWER_KINDS } from '@/lib/nexus/towers';
 import { useCallback, useEffect, useRef } from 'react';
 import { getSoundSettings, type SoundCategory } from './useSoundSettings';
 import type { BattleEvent, TowerKind, AbilityKind } from '@/lib/nexus/types';
@@ -289,7 +290,9 @@ const HIT_MIN_MS = 60;             // hits are common during waves
 const KILL_MIN_MS = 80;
 
 export function useNexusSfx() {
-  const lastShotAtRef = useRef<Record<TowerKind, number>>({ pulse: 0, arc: 0, cryo: 0, rail: 0 });
+  const lastShotAtRef = useRef<Record<TowerKind, number>>(
+    Object.fromEntries(TOWER_KINDS.map((k) => [k, 0])) as Record<TowerKind, number>,
+  );
   const lastHitAtRef = useRef(0);
   const lastKillAtRef = useRef(0);
   const lastEventTimeRef = useRef(0);
