@@ -511,21 +511,66 @@ export default function WorkoutPage() {
       <div className="fg-glass overflow-hidden mb-6">
         {leaderboard.map((row, i) => {
           const isMe = row.userId === user?.id;
-          const medal = row.rank === 1 ? '🥇' : row.rank === 2 ? '🥈' : row.rank === 3 ? '🥉' : null;
+          const medal = row.rank === 1 ? '\ud83e\udd47' : row.rank === 2 ? '\ud83e\udd48' : row.rank === 3 ? '\ud83e\udd49' : null;
           const spark = clubPoints > 0 ? row.score / clubPoints : 0; // share of the club flame
+          const color = colorOf(row.userId);
+          const open = expandedMember === row.userId;
+          const acts = weekActivities.filter(a => a.user_id === row.userId);
+          const freeform = clubWeekByMember[row.userId];
           return (
             <motion.div key={row.userId} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.02 * Math.min(i, 12) }}
-              className="flex items-center gap-3 px-3.5 py-2.5" style={{ background: isMe ? 'hsl(24 95% 55% / 0.08)' : 'transparent', borderTop: i ? '1px solid hsl(220 14% 60% / 0.1)' : 'none' }}>
-              <span className="w-6 text-center text-[14px] font-black tabular-nums flex-shrink-0">{medal || <span style={{ color: 'hsl(28 30% 52%)' }}>{row.rank}</span>}</span>
-              <div className="flex-1 min-w-0">
-                <p className="truncate text-[13px] font-bold" style={{ color: isMe ? 'hsl(28 100% 70%)' : 'hsl(30 30% 90%)' }}>{isMe ? 'You' : (nameById.get(row.userId) || 'Member')}</p>
-                {/* individual contribution spark */}
-                <div className="h-1 rounded-full mt-1 overflow-hidden" style={{ background: 'hsl(220 14% 20% / 0.75)' }}>
-                  <div className="h-full rounded-full" style={{ width: `${Math.round(Math.min(1, spark * 2) * 100)}%`, background: 'linear-gradient(90deg, hsl(20 100% 55%), hsl(38 100% 58%))' }} />
+              style={{ background: isMe ? 'hsl(24 95% 55% / 0.08)' : 'transparent', borderTop: i ? '1px solid hsl(220 14% 60% / 0.1)' : 'none' }}>
+              <button
+                onClick={() => setExpandedMember(cur => (cur === row.userId ? null : row.userId))}
+                className="w-full flex items-center gap-3 px-3.5 py-2.5 text-left active:opacity-80"
+                aria-expanded={open}
+              >
+                <span className="w-6 text-center text-[14px] font-black tabular-nums flex-shrink-0">{medal || <span style={{ color: 'hsl(28 30% 52%)' }}>{row.rank}</span>}</span>
+                <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: color, boxShadow: `0 0 8px -1px ${color}` }} />
+                <div className="flex-1 min-w-0">
+                  <p className="truncate text-[13px] font-bold" style={{ color: isMe ? color : 'hsl(30 30% 90%)' }}>{isMe ? 'You' : (nameById.get(row.userId) || 'Member')}</p>
+                  <div className="h-1 rounded-full mt-1 overflow-hidden" style={{ background: 'hsl(220 14% 20% / 0.75)' }}>
+                    <div className="h-full rounded-full" style={{ width: `${Math.round(Math.min(1, spark * 2) * 100)}%`, background: color }} />
+                  </div>
                 </div>
-              </div>
-              <span className="text-[11px] tabular-nums flex-shrink-0" style={{ color: 'hsl(28 25% 55%)' }}>{Math.round(row.completionPct * 100)}%</span>
-              <span className="text-[13px] font-black tabular-nums w-16 text-right flex-shrink-0" style={{ color: 'hsl(30 40% 94%)' }}>{row.score.toLocaleString()}</span>
+                <span className="text-[11px] tabular-nums flex-shrink-0" style={{ color: 'hsl(28 25% 55%)' }}>{Math.round(row.completionPct * 100)}%</span>
+                <span className="text-[13px] font-black tabular-nums w-14 text-right flex-shrink-0" style={{ color: 'hsl(30 40% 94%)' }}>{row.score.toLocaleString()}</span>
+                <ChevronDown className="w-4 h-4 flex-shrink-0 transition-transform" style={{ color: 'hsl(28 30% 50%)', transform: open ? 'rotate(180deg)' : 'none' }} />
+              </button>
+
+              <AnimatePresence initial={false}>
+                {open && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.22, ease: 'easeOut' }}
+                    className="overflow-hidden"
+                  >
+                    <div className="px-3.5 pb-3 pt-0.5 space-y-1.5" style={{ borderLeft: `2px solid ${color}`, marginLeft: 12 }}>
+                      {weekExercises.map(we => {
+                        const total = acts.filter(a => a.exercise_id === we.exercise_id).reduce((t, a) => t + Number(a.raw_value), 0);
+                        const sessions = acts.filter(a => a.exercise_id === we.exercise_id).length;
+                        return (
+                          <div key={we.id} className="flex items-center gap-2">
+                            <span className="text-[11px] font-bold truncate flex-1" style={{ color: total > 0 ? 'hsl(30 28% 86%)' : 'hsl(28 18% 50%)' }}>{we.exercise.name}</span>
+                            <span className="text-[10px] tabular-nums flex-shrink-0" style={{ color: 'hsl(28 22% 52%)' }}>{sessions} log{sessions === 1 ? '' : 's'}</span>
+                            <span className="text-[11px] font-black tabular-nums w-16 text-right flex-shrink-0" style={{ color: total > 0 ? color : 'hsl(28 18% 45%)' }}>
+                              {formatValueShort(we.exercise.measurement_type, total)}
+                            </span>
+                          </div>
+                        );
+                      })}
+                      <div className="flex items-center gap-2 pt-1.5" style={{ borderTop: '1px solid hsl(220 14% 60% / 0.12)' }}>
+                        <Sparkles className="w-3 h-3 flex-shrink-0" style={{ color: 'hsl(28 45% 60%)' }} />
+                        <span className="text-[11px] font-bold flex-1" style={{ color: 'hsl(28 30% 66%)' }}>Personal workouts</span>
+                        <span className="text-[11px] font-black tabular-nums" style={{ color: 'hsl(30 30% 84%)' }}>
+                          {(freeform?.sessions ?? 0)} logged
+                        </span>
+                      </div>
+                      <p className="text-[9px]" style={{ color: 'hsl(28 18% 46%)' }}>Personal workout details stay private.</p>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
           );
         })}
