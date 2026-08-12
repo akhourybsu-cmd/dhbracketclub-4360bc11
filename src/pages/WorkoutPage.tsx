@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Dumbbell, Trophy, ChevronRight, Flame, Timer, Play, Medal, Users, Settings, HelpCircle, Undo2, Plus, Sparkles } from 'lucide-react';
+import { Dumbbell, Trophy, ChevronRight, ChevronDown, Flame, Timer, Play, Medal, Users, Settings, HelpCircle, Undo2, Plus, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -13,6 +13,8 @@ import { WorkoutLoggerSheet } from '@/components/workout/WorkoutLoggerSheet';
 import { TutorialSheet } from '@/components/workout/TutorialSheet';
 import { ManageLogSheet } from '@/components/workout/ManageLogSheet';
 import { ClubFlame } from '@/components/workout/ClubFlame';
+import { ContributionBar, type Contribution } from '@/components/workout/ContributionBar';
+import { memberColor } from '@/lib/workout/memberColors';
 import { FullBlazeCelebration } from '@/components/workout/FullBlazeCelebration';
 import {
   buildLeaderboard, computeExerciseProgress, userWeekScore,
@@ -116,12 +118,13 @@ export default function WorkoutPage() {
   } = useWorkoutArena(club?.id, user?.id);
 
   // Freeform log fuel — feeds the flame + XP (not the gauntlet leaderboard).
-  const { clubWeekPoints, myLifetimePoints, activeSession: activeLogSession } = useWorkoutLog(club?.id, user?.id);
+  const { clubWeekPoints, clubWeekByMember, myLifetimePoints, activeSession: activeLogSession } = useWorkoutLog(club?.id, user?.id);
 
   const [selected, setSelected] = useState<WeekExerciseWithDef | null>(null);
   const [tutorialKey, setTutorialKey] = useState<string | null>(null);
   const [poppedGoal, setPoppedGoal] = useState<string | null>(null);
   const [manageOpen, setManageOpen] = useState(false);
+  const [expandedMember, setExpandedMember] = useState<string | null>(null);
   const [flameSurge, setFlameSurge] = useState(0);
   const [showBlaze, setShowBlaze] = useState(false);
   const bumpFlame = () => setFlameSurge(s => s + 1);
@@ -146,6 +149,26 @@ export default function WorkoutPage() {
   }, [members, user?.id]);
   const leaderboard = useMemo(() => buildLeaderboard(weekExercises, weekActivities, rosterSeed), [weekExercises, weekActivities, rosterSeed]);
   const myScore = useMemo(() => userWeekScore(weekExercises, myWeekActivities), [weekExercises, myWeekActivities]);
+  // Stable per-member color — the signed-in member always keeps the base ember.
+  const colorOf = useMemo(() => {
+    const roster = rosterSeed;
+    return (uid: string) => memberColor(uid, user?.id, roster);
+  }, [rosterSeed, user?.id]);
+  /** Who contributed what to a single tracked exercise this week. */
+  const contributionsFor = (exerciseId: string): Contribution[] => {
+    const totals = new Map<string, number>();
+    for (const a of weekActivities) {
+      if (a.exercise_id !== exerciseId) continue;
+      totals.set(a.user_id, (totals.get(a.user_id) ?? 0) + Number(a.raw_value));
+    }
+    return Array.from(totals.entries()).map(([uid, value]) => ({
+      userId: uid,
+      name: uid === user?.id ? 'You' : (nameById.get(uid) || 'Member'),
+      value,
+      color: colorOf(uid),
+      isMe: uid === user?.id,
+    }));
+  };
   const myRank = leaderboard.find(r => r.userId === user?.id)?.rank ?? null;
 
   // Club collective "stoke" — how hard the whole club has fed the flame this
