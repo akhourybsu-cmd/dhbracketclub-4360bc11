@@ -32,11 +32,11 @@ export function useJourneyLibrary(): JourneyLibrary {
     if (!user) { setLoading(false); return; }
     setError(null);
     try {
-      const [c, r, h] = await withTimeout(Promise.all([
-        withTimeout((supabase as any).from('journey_campaigns').select('*').order('created_at', { ascending: false }), QUERY_TIMEOUT_MS),
-        withTimeout((supabase as any).from('journey_campaign_runs').select('*').eq('user_id', user.id).order('last_played_at', { ascending: false }), QUERY_TIMEOUT_MS),
-        withTimeout((supabase as any).from('journey_characters').select('*').eq('user_id', user.id).order('created_at', { ascending: false }), QUERY_TIMEOUT_MS),
-      ]), QUERY_TIMEOUT_MS * 2);
+      const [c, r, h] = await withTimeout<any[]>(Promise.all([
+        withTimeout<any>((supabase as any).from('journey_campaigns').select('*').order('created_at', { ascending: false }), QUERY_TIMEOUT_MS, 'journey campaigns'),
+        withTimeout<any>((supabase as any).from('journey_campaign_runs').select('*').eq('user_id', user.id).order('last_played_at', { ascending: false }), QUERY_TIMEOUT_MS, 'journey runs'),
+        withTimeout<any>((supabase as any).from('journey_characters').select('*').eq('user_id', user.id).order('created_at', { ascending: false }), QUERY_TIMEOUT_MS, 'journey heroes'),
+      ]), HYDRATE_TIMEOUT_MS, 'journey library');
       if (c?.error) throw new Error(c.error.message);
       setCampaigns((c?.data ?? []) as CampaignRow[]);
       setRuns((r?.data ?? []) as RunRow[]);
