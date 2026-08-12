@@ -87,6 +87,7 @@ const CelebrationsPage = lazyWithRetry(() => import("./pages/CelebrationsPage"))
 const WorkoutPage = lazyWithRetry(() => import("./pages/WorkoutPage"));
 const WorkoutAdminPage = lazyWithRetry(() => import("./pages/WorkoutAdminPage"));
 const WorkoutRecapPage = lazyWithRetry(() => import("./pages/WorkoutRecapPage"));
+const WorkoutLogPage = lazyWithRetry(() => import("./pages/WorkoutLogPage"));
 const NarrativeCampaignsPage = lazyWithRetry(() => import("./pages/NarrativeCampaignsPage"));
 const NarrativeCampaignCreatePage = lazyWithRetry(() => import("./pages/NarrativeCampaignCreatePage"));
 const NarrativeCampaignDetailPage = lazyWithRetry(() => import("./pages/NarrativeCampaignDetailPage"));
@@ -294,6 +295,7 @@ function AnimatedRoutes() {
         <Route path="/notifications" element={<ProtectedPage><NotificationsPage /></ProtectedPage>} />
         <Route path="/celebrations" element={<ProtectedPage assetSlug="birthdays-milestones"><CelebrationsPage /></ProtectedPage>} />
         <Route path="/workouts" element={<ProtectedPage assetSlug="workout-competition"><ForgeLayout><WorkoutPage /></ForgeLayout></ProtectedPage>} />
+        <Route path="/workouts/log" element={<ProtectedPage assetSlug="workout-competition"><ForgeLayout><WorkoutLogPage /></ForgeLayout></ProtectedPage>} />
         <Route path="/workouts/admin" element={<ProtectedPage assetSlug="workout-competition"><ClubAdminRoute><ForgeLayout><WorkoutAdminPage /></ForgeLayout></ClubAdminRoute></ProtectedPage>} />
         <Route path="/workouts/recap/:weekId" element={<ProtectedPage assetSlug="workout-competition"><ForgeLayout><WorkoutRecapPage /></ForgeLayout></ProtectedPage>} />
         <Route path="/narrative" element={<ProtectedPage assetSlug="narrative-rpg"><NarrativeCampaignsPage /></ProtectedPage>} />

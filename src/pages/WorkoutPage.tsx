@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Dumbbell, Trophy, ChevronRight, Flame, Timer, Play, Medal, Users, Settings, HelpCircle, Undo2 } from 'lucide-react';
+import { Dumbbell, Trophy, ChevronRight, Flame, Timer, Play, Medal, Users, Settings, HelpCircle, Undo2, Plus, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClub } from '@/contexts/ClubContext';
 import { useClubAssets } from '@/hooks/useClubAssets';
 import { useWorkoutArena } from '@/hooks/useWorkoutArena';
+import { useWorkoutLog } from '@/hooks/useWorkoutLog';
 import { WorkoutLoggerSheet } from '@/components/workout/WorkoutLoggerSheet';
 import { TutorialSheet } from '@/components/workout/TutorialSheet';
 import { ManageLogSheet } from '@/components/workout/ManageLogSheet';
@@ -114,6 +115,9 @@ export default function WorkoutPage() {
     logActivity, undoLast, insertUnlock, deleteActivity, resetWeek,
   } = useWorkoutArena(club?.id, user?.id);
 
+  // Freeform log fuel — feeds the flame + XP (not the gauntlet leaderboard).
+  const { clubWeekPoints, myLifetimePoints, activeSession: activeLogSession } = useWorkoutLog(club?.id, user?.id);
+
   const [selected, setSelected] = useState<WeekExerciseWithDef | null>(null);
   const [tutorialKey, setTutorialKey] = useState<string | null>(null);
   const [poppedGoal, setPoppedGoal] = useState<string | null>(null);
@@ -148,7 +152,11 @@ export default function WorkoutPage() {
   // week. Full blaze ≈ every member maxing every workout.
   const clubPoints = useMemo(() => leaderboard.reduce((t, r) => t + r.score, 0), [leaderboard]);
   const clubTarget = Math.max(1, members.length || 1) * Math.max(1, weekExercises.length) * 1000;
-  const clubStoke = clubTarget > 0 ? clubPoints / clubTarget : 0;
+  // The flame is stoked by BOTH the gauntlet and everyone's freeform logs this
+  // week (with a matching slice of target so freeform can't trivially max it).
+  const freeformTarget = Math.max(1, members.length || 1) * 300;
+  const combinedFuel = clubPoints + clubWeekPoints;
+  const clubStoke = (clubTarget + freeformTarget) > 0 ? combinedFuel / (clubTarget + freeformTarget) : 0;
   const participants = useMemo(() => leaderboard.filter(r => r.score > 0).length, [leaderboard]);
   const rosterSize = Math.max(members.length, leaderboard.length);
 
@@ -157,7 +165,7 @@ export default function WorkoutPage() {
     for (const we of weekExercises) m.set(we.exercise.id, we.exercise);
     return m;
   }, [weekExercises]);
-  const myXp = useMemo(() => lifetimeXp(exercisesById, myActivities), [exercisesById, myActivities]);
+  const myXp = useMemo(() => lifetimeXp(exercisesById, myActivities) + myLifetimePoints, [exercisesById, myActivities, myLifetimePoints]);
   const level = useMemo(() => levelFromXp(myXp), [myXp]);
   const todayLocal = useMemo(() => {
     const d = new Date();
@@ -319,6 +327,18 @@ export default function WorkoutPage() {
           ))}
         </div>
       </motion.div>
+
+      {/* Freeform log — stoke the flame with any workout */}
+      <Link to="/workouts/log" className="fg-cta w-full h-12 rounded-xl text-[15px] mb-2">
+        <Sparkles className="w-5 h-5" /> {activeLogSession ? 'Resume your workout' : 'Log a workout'}
+        <Plus className="w-4 h-4 opacity-70" />
+      </Link>
+      {clubWeekPoints > 0 && (
+        <p className="text-center text-[11px] font-bold mb-4" style={{ color: 'hsl(28 40% 62%)' }}>
+          🔥 +{clubWeekPoints.toLocaleString()} freeform fuel added to the flame this week
+        </p>
+      )}
+      {clubWeekPoints === 0 && <div className="mb-4" />}
 
       {/* Club group goals */}
       {groupGoals.map((g) => {

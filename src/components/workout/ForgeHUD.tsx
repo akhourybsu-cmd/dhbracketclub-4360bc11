@@ -31,7 +31,7 @@ export function ForgeHUD() {
   }, [club?.id, path]);
 
   const cd = useCountdown(endsAt);
-  const subtitle = isAdmin ? 'Commissioner' : path.startsWith('/workouts/recap') ? 'Week Recap' : 'This Week';
+  const subtitle = isAdmin ? 'Commissioner' : path.startsWith('/workouts/recap') ? 'Week Recap' : path.startsWith('/workouts/log') ? 'Freeform Log' : 'This Week';
 
   return (
     <header className="sticky top-0 z-40 w-full border-b backdrop-blur-xl"
