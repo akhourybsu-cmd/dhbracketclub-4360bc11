@@ -45,6 +45,19 @@ export function useWorkoutArena(clubId: string | undefined, userId: string | und
   // Only attempt auto-creation once per (club) per mount, so a failed RPC
   // (e.g. migration not deployed yet) can't spin.
   const ensureAttemptedRef = useRef<string | null>(null);
+  // Every realtime event fires a refresh; responses can land out of order and
+  // an older snapshot would visibly roll totals backwards. Only the newest
+  // in-flight refresh is allowed to write state.
+  const refreshSeqRef = useRef(0);
+  // Rows this client just wrote — merged back in if a snapshot predates them.
+  const recentWritesRef = useRef<WorkoutActivity[]>([]);
+  const mergeRecent = (rows: WorkoutActivity[]): WorkoutActivity[] => {
+    const cutoff = Date.now() - 20_000;
+    recentWritesRef.current = recentWritesRef.current.filter(a => Date.parse(a.logged_at) > cutoff);
+    const ids = new Set(rows.map(r => r.id));
+    const missing = recentWritesRef.current.filter(a => !ids.has(a.id));
+    return missing.length ? [...rows, ...missing] : rows;
+  };
 
   const exercisesById = useMemo(() => {
     const m = new Map<string, WorkoutExercise>();
@@ -54,6 +67,7 @@ export function useWorkoutArena(clubId: string | undefined, userId: string | und
 
   const refresh = useCallback(async () => {
     if (!clubId || !userId) { setLoading(false); return; }
+    const seq = ++refreshSeqRef.current;
     try {
       // Active week: prefer an explicitly-active row; fall back to one whose
       // window contains now (belt-and-suspenders if status wasn't flipped).
@@ -140,11 +154,12 @@ export function useWorkoutArena(clubId: string | undefined, userId: string | und
         HYDRATE_TIMEOUT_MS, 'workout arena hydrate',
       );
 
+      if (seq !== refreshSeqRef.current) return; // a newer refresh already won
       const [{ data: weRows }, { data: actRows }, { data: ggRows }] = weekBundle as any;
       setWeekExercises((weRows || []).filter((r: any) => r.exercise) as WeekExerciseWithDef[]);
-      setWeekActivities((actRows || []) as WorkoutActivity[]);
+      setWeekActivities(mergeRecent((actRows || []) as WorkoutActivity[]));
       setGroupGoals(((ggRows || []) as GroupGoalWithDef[]).filter(g => g.exercise));
-      setMyActivities((mine || []) as WorkoutActivity[]);
+      setMyActivities(mergeRecent((mine || []) as WorkoutActivity[]));
       setUnlocks(((unlockRows || []) as any[]).map(r => r.achievement_key));
       setPastWeeks((pastRows || []) as WorkoutWeek[]);
       // Profiles are fetched separately — there's no FK embed from
@@ -174,12 +189,25 @@ export function useWorkoutArena(clubId: string | undefined, userId: string | und
   useEffect(() => { setLoading(true); refresh(); }, [refresh]);
 
   // Live leaderboard/progress: any activity change in this club re-pulls.
+  // Debounced so a burst of quick logs collapses into one snapshot read.
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scheduleRefresh = useCallback(() => {
+    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+    refreshTimerRef.current = setTimeout(() => { refresh(); }, 400);
+  }, [refresh]);
+  useEffect(() => () => { if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current); }, []);
+
   useRealtimeSubscription({
     channelName: `workout-arena-${clubId ?? 'none'}`,
     configs: clubId ? [{ table: 'workout_activities', event: '*', filter: `club_id=eq.${clubId}` }] : [],
-    onPayload: refresh,
+    onPayload: scheduleRefresh,
     enabled: !!clubId,
   });
+
+  /** Forget a locally-tracked write so a snapshot can't resurrect it. */
+  const forgetRecent = (ids: Set<string>) => {
+    recentWritesRef.current = recentWritesRef.current.filter(a => !ids.has(a.id));
+  };
 
   // ─── Mutations (optimistic; reconcile on refresh) ─────────────────
   const logActivity = useCallback(async (input: LogActivityInput) => {
@@ -231,7 +259,9 @@ export function useWorkoutArena(clubId: string | undefined, userId: string | und
       setMyActivities(beforeMine);
       throw insErr || new Error('log failed');
     }
-    // Reconcile the optimistic row with the authoritative one.
+    // Reconcile the optimistic row with the authoritative one, and remember it
+    // briefly so an in-flight (older) snapshot can't drop it from the totals.
+    recentWritesRef.current = [...recentWritesRef.current, data as WorkoutActivity];
     if (input.weekId) setWeekActivities(prev => prev.map(a => a.id === optimistic.id ? (data as WorkoutActivity) : a));
     setMyActivities(prev => prev.map(a => a.id === optimistic.id ? (data as WorkoutActivity) : a));
     return data as WorkoutActivity;
@@ -247,6 +277,7 @@ export function useWorkoutArena(clubId: string | undefined, userId: string | und
     if (!last) return;
     const beforeWeek = weekActivities;
     const beforeMine = myActivities;
+    forgetRecent(new Set([last.id]));
     setWeekActivities(prev => prev.filter(a => a.id !== last.id));
     setMyActivities(prev => prev.filter(a => a.id !== last.id));
     const { error: delErr } = await sb.from('workout_activities').delete().eq('id', last.id);
@@ -263,6 +294,7 @@ export function useWorkoutArena(clubId: string | undefined, userId: string | und
     if (activityId.startsWith('opt-')) return;
     const beforeWeek = weekActivities;
     const beforeMine = myActivities;
+    forgetRecent(new Set([activityId]));
     setWeekActivities(prev => prev.filter(a => a.id !== activityId));
     setMyActivities(prev => prev.filter(a => a.id !== activityId));
     const { error: e } = await sb.from('workout_activities').delete().eq('id', activityId);
@@ -285,6 +317,7 @@ export function useWorkoutArena(clubId: string | undefined, userId: string | und
     const beforeMine = myActivities;
     const match = (a: WorkoutActivity) =>
       a.week_id === weekId && a.user_id === targetUserId && (!exerciseId || a.exercise_id === exerciseId);
+    forgetRecent(new Set(recentWritesRef.current.filter(match).map(a => a.id)));
     setWeekActivities(prev => prev.filter(a => !match(a)));
     setMyActivities(prev => prev.filter(a => !match(a)));
     let q = sb.from('workout_activities').delete().eq('week_id', weekId).eq('user_id', targetUserId);
