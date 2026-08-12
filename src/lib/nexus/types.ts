@@ -4,6 +4,10 @@ export type TowerKind = 'pulse' | 'arc' | 'cryo' | 'rail';
 export type AbilityKind = 'orbital' | 'emp';
 export type EnemyKind = 'drone' | 'walker' | 'shielded' | 'stealth' | 'boss';
 
+/** Per-tower targeting priority — the player's live agency over what each
+ *  tower shoots. 'first' (most path progress) is the default. */
+export type TargetMode = 'first' | 'last' | 'strong' | 'close';
+
 export interface TowerDef {
   kind: TowerKind;
   name: string;
@@ -83,6 +87,8 @@ export interface PlacedTower {
   cooldownMs: number;
   totalDamage: number;
   kills: number;
+  /** Player-set targeting priority. Undefined = 'first' (legacy default). */
+  targetPriority?: TargetMode;
 }
 
 export interface ActiveEnemy {

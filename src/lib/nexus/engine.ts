@@ -226,12 +226,8 @@ export function tick(state: BattleState, mission: MissionDef): BattleState {
     });
     if (visible.length === 0) continue;
 
-    // pick the most-progressed enemy as primary
-    const primary = visible.reduce((best, cur) => {
-      const bp = best.pathIndex + best.progress;
-      const cp = cur.pathIndex + cur.progress;
-      return cp > bp ? cur : best;
-    });
+    // pick the primary target per the tower's targeting priority (player agency)
+    const primary = pickPrimary(visible, t, pathToXY);
 
     const primaryPos = pathToXY(primary.pathIndex, primary.progress);
     s.events.push({ type: 'shot', from: { col: t.cell.col, row: t.cell.row }, to: primaryPos, tower: t.kind, t: s.elapsedMs });
@@ -330,6 +326,32 @@ export function tick(state: BattleState, mission: MissionDef): BattleState {
   }
 
   return s;
+}
+
+/** Choose a tower's primary target honoring its targeting priority. */
+function pickPrimary(
+  visible: ActiveEnemy[],
+  t: PlacedTower,
+  pathToXY: (i: number, p: number) => { x: number; y: number },
+): ActiveEnemy {
+  const mode = t.targetPriority ?? 'first';
+  const prog = (e: ActiveEnemy) => e.pathIndex + e.progress;
+  if (mode === 'strong') {
+    return visible.reduce((best, cur) => ((cur.hp + cur.shield) > (best.hp + best.shield) ? cur : best));
+  }
+  if (mode === 'close') {
+    const tx = t.cell.col + 0.5, ty = t.cell.row + 0.5;
+    return visible.reduce((best, cur) => {
+      const bp = pathToXY(best.pathIndex, best.progress);
+      const cp = pathToXY(cur.pathIndex, cur.progress);
+      return distanceCells(tx, ty, cp.x + 0.5, cp.y + 0.5) < distanceCells(tx, ty, bp.x + 0.5, bp.y + 0.5) ? cur : best;
+    });
+  }
+  if (mode === 'last') {
+    return visible.reduce((best, cur) => (prog(cur) < prog(best) ? cur : best));
+  }
+  // 'first' — most path progress (the classic default)
+  return visible.reduce((best, cur) => (prog(cur) > prog(best) ? cur : best));
 }
 
 function startNextWave(s: BattleState, mission: MissionDef) {
@@ -443,6 +465,14 @@ export function upgradeTower(state: BattleState, towerId: string): { state: Batt
       towerUpgrades: { ...state.towerUpgrades, [t.kind]: state.towerUpgrades[t.kind] + 1 },
     },
     ok: true,
+  };
+}
+
+/** Cycle/set a placed tower's targeting priority (player agency, no cost). */
+export function setTowerPriority(state: BattleState, towerId: string, mode: import('./types').TargetMode): BattleState {
+  return {
+    ...state,
+    towers: state.towers.map(t => t.id === towerId ? { ...t, targetPriority: mode } : t),
   };
 }
 

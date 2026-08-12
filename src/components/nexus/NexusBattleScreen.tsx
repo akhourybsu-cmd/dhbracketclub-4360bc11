@@ -4,9 +4,9 @@ import { ABILITIES } from '@/lib/nexus/abilities';
 import { ENEMIES } from '@/lib/nexus/enemies';
 import { TOWERS, towerDamageAt, towerRangeAt, towerSellValue, towerUpgradeCost } from '@/lib/nexus/towers';
 import { GRID_COLS, GRID_ROWS, getGridLayout } from '@/lib/nexus/grid';
-import { BattleState, TowerKind } from '@/lib/nexus/types';
+import { BattleState, TargetMode, TowerKind } from '@/lib/nexus/types';
 import { cn } from '@/lib/utils';
-import { Heart, ChevronUp, X } from 'lucide-react';
+import { Heart, ChevronUp, X, Crosshair } from 'lucide-react';
 import { TowerIcon } from './TowerIcon';
 import { EnemyMarker, getEnemyAccent } from './EnemyMarker';
 
@@ -28,13 +28,21 @@ interface Props {
   onSelectTower: (id: string | null) => void;
   onUpgrade: (id: string) => void;
   onSell: (id: string) => void;
+  onSetPriority: (id: string, mode: TargetMode) => void;
   onCastAbility: (kind: 'orbital' | 'emp') => void;
   onStartWave: () => void;
 }
 
+const TARGET_MODES: { mode: TargetMode; label: string }[] = [
+  { mode: 'first', label: 'FIRST' },
+  { mode: 'last', label: 'LAST' },
+  { mode: 'strong', label: 'STRONG' },
+  { mode: 'close', label: 'CLOSE' },
+];
+
 export function NexusBattleScreen({
   state, selectedTowerKind, selectedTowerId,
-  onSelectKind, onPlace, onSelectTower, onUpgrade, onSell, onCastAbility, onStartWave,
+  onSelectKind, onPlace, onSelectTower, onUpgrade, onSell, onSetPriority, onCastAbility, onStartWave,
 }: Props) {
   // Layout-aware grid helpers — every render reads the path/build tiles for
   // the run's active variant. Cached per variantId by getGridLayout().
@@ -483,6 +491,45 @@ export function NexusBattleScreen({
             </AnimatePresence>
           </div>
 
+          {/* Traveling projectiles + impact flashes — gives shots weight */}
+          <div className="absolute inset-0 pointer-events-none">
+            <AnimatePresence>
+              {state.events.filter(ev => ev.type === 'shot').map((ev, i) => {
+                if (ev.type !== 'shot') return null;
+                const sx = ((ev.from.col + 0.5) / GRID_COLS) * 100;
+                const sy = ((ev.from.row + 0.5) / GRID_ROWS) * 100;
+                const tx = ((ev.to.x + 0.5) / GRID_COLS) * 100;
+                const ty = ((ev.to.y + 0.5) / GRID_ROWS) * 100;
+                const col = ev.tower === 'pulse' ? '#22d3ee' : ev.tower === 'arc' ? '#a78bfa' : ev.tower === 'cryo' ? '#7dd3fc' : '#fbbf24';
+                const travels = ev.tower === 'pulse' || ev.tower === 'rail';
+                const travelDur = ev.tower === 'rail' ? 0.08 : 0.14;
+                return (
+                  <Fragment key={`proj-${ev.t}-${i}`}>
+                    {travels && (
+                      <motion.span
+                        aria-hidden
+                        className="absolute rounded-full"
+                        initial={{ left: `${sx}%`, top: `${sy}%`, opacity: 1 }}
+                        animate={{ left: `${tx}%`, top: `${ty}%`, opacity: 1 }}
+                        transition={{ duration: travelDur, ease: 'linear' }}
+                        style={{ width: ev.tower === 'rail' ? 5 : 4, height: ev.tower === 'rail' ? 5 : 4, transform: 'translate(-50%,-50%)', background: col, boxShadow: `0 0 8px ${col}, 0 0 14px ${col}` }}
+                      />
+                    )}
+                    <motion.span
+                      aria-hidden
+                      className="absolute rounded-full"
+                      initial={{ opacity: 0.9, scale: 0.3 }}
+                      animate={{ opacity: 0, scale: 1.35 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.28, delay: travels ? travelDur : 0, ease: 'easeOut' }}
+                      style={{ left: `${tx}%`, top: `${ty}%`, width: 12, height: 12, transform: 'translate(-50%,-50%)', background: `radial-gradient(circle, ${col}, transparent 70%)` }}
+                    />
+                  </Fragment>
+                );
+              })}
+            </AnimatePresence>
+          </div>
+
           {/* Kill bursts — quick energy disintegration at the death position */}
           <div className="absolute inset-0 pointer-events-none">
             <AnimatePresence>
@@ -593,7 +640,7 @@ export function NexusBattleScreen({
 
       {/* ───── Selected tower panel ───── */}
       {selectedTower && (
-        <div className="px-3 pb-2">
+        <div className="px-3 pb-2 space-y-1.5">
           <div
             className="nx-clip-sm p-2 flex items-center gap-2"
             style={{
@@ -645,6 +692,39 @@ export function NexusBattleScreen({
             >
               <X className="w-3 h-3 inline" /> {towerSellValue(selectedTower.kind, selectedTower.level)}
             </button>
+          </div>
+
+          {/* Targeting priority — live agency over what this tower shoots */}
+          <div
+            className="nx-clip-sm px-2 py-1.5 flex items-center gap-1.5"
+            style={{
+              background: 'linear-gradient(180deg, hsl(218 40% 10%), hsl(218 42% 7%))',
+              border: '1px solid hsl(var(--nx-cyan) / 0.35)',
+            }}
+          >
+            <span className="flex items-center gap-1 shrink-0 nx-title text-[8px]" style={{ color: 'hsl(0 0% 100% / 0.55)', letterSpacing: '0.14em' }}>
+              <Crosshair className="w-3 h-3" style={{ color: 'hsl(var(--nx-cyan))' }} /> TARGET
+            </span>
+            <div className="flex-1 grid grid-cols-4 gap-1">
+              {TARGET_MODES.map(({ mode, label }) => {
+                const active = (selectedTower.targetPriority ?? 'first') === mode;
+                return (
+                  <button
+                    key={mode}
+                    onClick={() => onSetPriority(selectedTower.id, mode)}
+                    className="py-1 rounded-sm text-[8px] font-black nx-title active:scale-95 transition"
+                    style={{
+                      background: active ? 'hsl(var(--nx-cyan) / 0.22)' : 'hsl(0 0% 100% / 0.04)',
+                      border: `1px solid ${active ? 'hsl(var(--nx-cyan) / 0.8)' : 'hsl(0 0% 100% / 0.1)'}`,
+                      color: active ? 'hsl(var(--nx-cyan))' : 'hsl(0 0% 100% / 0.55)',
+                      letterSpacing: '0.08em',
+                    }}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}

@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { castAbility, initBattle, placeTower, sellTower, startWave, tick, TICK_MS, upgradeTower } from '@/lib/nexus/engine';
-import { AbilityKind, BattleState, TowerKind } from '@/lib/nexus/types';
+import { castAbility, initBattle, placeTower, sellTower, setTowerPriority, startWave, tick, TICK_MS, upgradeTower } from '@/lib/nexus/engine';
+import { AbilityKind, BattleState, TargetMode, TowerKind } from '@/lib/nexus/types';
 import { NexusBattleScreen } from '@/components/nexus/NexusBattleScreen';
 import { useAuth } from '@/contexts/AuthContext';
 import { recordNexusRun, useNexusProgress } from '@/hooks/useNexusProgress';
@@ -89,6 +89,7 @@ export default function NexusBattlePage() {
   const [selectedKind, setSelectedKind] = useState<TowerKind | null>(null);
   const [selectedTowerId, setSelectedTowerId] = useState<string | null>(null);
   const [paused, setPaused] = useState(false);
+  const [speed, setSpeed] = useState(1); // 1× / 2× / 3× fast-forward
   const [exitOpen, setExitOpen] = useState(false);
   const savedRef = useRef(false);
   const sfx = useNexusSfx();
@@ -108,7 +109,13 @@ export default function NexusBattlePage() {
     const interval = setInterval(() => {
       const cur = stateRef.current;
       if (!cur || cur.status === 'victory' || cur.status === 'defeat' || paused || exitOpen) return;
-      const next = tick(cur, mission);
+      // Fast-forward runs multiple sim ticks per real interval (2×/3×), so the
+      // simulation stays deterministic — we just advance it faster.
+      let next = cur;
+      for (let i = 0; i < speed; i++) {
+        if (next.status === 'victory' || next.status === 'defeat') break;
+        next = tick(next, mission);
+      }
       stateRef.current = next;
       setState(next);
       // Throttled checkpoint so a tab-close keeps progress within ~1.5s.
@@ -119,7 +126,7 @@ export default function NexusBattlePage() {
       }
     }, TICK_MS);
     return () => clearInterval(interval);
-  }, [mission, paused, exitOpen, user?.id, abilities]);
+  }, [mission, paused, exitOpen, user?.id, abilities, speed]);
 
   // Auto-pause + flush save when the tab is hidden, the window blurs, or the
   // page is being unloaded (mobile background, PWA close, navigation).
@@ -158,7 +165,7 @@ export default function NexusBattlePage() {
     if (!state) return;
     sfx.consumeEvents(state.events);
 
-    if (state.events.some(ev => ev.type === 'leak')) {
+    if (state.events.some(ev => ev.type === 'leak' || (ev.type === 'ability' && ev.ability === 'orbital'))) {
       setShakeKey(k => k + 1);
     }
 
@@ -406,6 +413,10 @@ export default function NexusBattlePage() {
     // player taps "rush" or the timer auto-starts.
     setState(startWave(state, mission));
   };
+  const handleSetPriority = (towerId: string, mode: TargetMode) => {
+    sfx.play('place');
+    setState(setTowerPriority(state, towerId, mode));
+  };
 
   return (
     <div className="fixed inset-0 bg-background flex flex-col z-30">
@@ -476,6 +487,28 @@ export default function NexusBattlePage() {
             <span aria-hidden className="absolute bottom-0.5 left-0.5 w-2 h-2 border-l border-b" style={{ borderColor: 'hsl(var(--nx-cyan))' }} />
             <span aria-hidden className="absolute bottom-0.5 right-0.5 w-2 h-2 border-r border-b" style={{ borderColor: 'hsl(var(--nx-cyan))' }} />
           </div>
+
+          {/* Speed toggle: 1× / 2× / 3× fast-forward */}
+          <button
+            onClick={() => setSpeed(s => (s >= 3 ? 1 : s + 1))}
+            aria-label={`Game speed ${speed}×`}
+            className="relative w-12 h-12 nx-clip-sm flex flex-col items-center justify-center active:scale-95 transition"
+            style={{
+              background: speed > 1
+                ? 'linear-gradient(180deg, hsl(38 90% 22%), hsl(38 95% 12%))'
+                : 'linear-gradient(180deg, hsl(218 50% 11%), hsl(218 55% 7%))',
+              border: `1px solid hsl(var(--nx-amber) / ${speed > 1 ? 0.8 : 0.4})`,
+              boxShadow: speed > 1
+                ? '0 0 12px -2px hsl(var(--nx-amber) / 0.6), inset 0 1px 0 hsl(0 0% 100% / 0.08)'
+                : 'inset 0 1px 0 hsl(0 0% 100% / 0.06)',
+              color: 'hsl(var(--nx-amber))',
+            }}
+          >
+            <span className="text-sm font-black leading-none tabular-nums" style={{ filter: speed > 1 ? 'drop-shadow(0 0 4px hsl(var(--nx-amber)))' : undefined }}>{speed}×</span>
+            <span className="nx-title text-[7px] mt-0.5" style={{ color: 'hsl(var(--nx-amber) / 0.7)', letterSpacing: '0.14em' }}>SPEED</span>
+            <span aria-hidden className="absolute top-0.5 left-0.5 w-1.5 h-1.5 border-l border-t" style={{ borderColor: 'hsl(var(--nx-amber) / 0.7)' }} />
+            <span aria-hidden className="absolute bottom-0.5 right-0.5 w-1.5 h-1.5 border-r border-b" style={{ borderColor: 'hsl(var(--nx-amber) / 0.7)' }} />
+          </button>
 
           {/* Right bracket: pause */}
           <button
@@ -553,6 +586,7 @@ export default function NexusBattlePage() {
           onSelectTower={setSelectedTowerId}
           onUpgrade={handleUpgrade}
           onSell={handleSell}
+          onSetPriority={handleSetPriority}
           onCastAbility={handleAbility}
           onStartWave={handleStartWave}
         />
