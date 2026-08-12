@@ -317,6 +317,7 @@ export function useWorkoutArena(clubId: string | undefined, userId: string | und
     const beforeMine = myActivities;
     const match = (a: WorkoutActivity) =>
       a.week_id === weekId && a.user_id === targetUserId && (!exerciseId || a.exercise_id === exerciseId);
+    forgetRecent(new Set(recentWritesRef.current.filter(match).map(a => a.id)));
     setWeekActivities(prev => prev.filter(a => !match(a)));
     setMyActivities(prev => prev.filter(a => !match(a)));
     let q = sb.from('workout_activities').delete().eq('week_id', weekId).eq('user_id', targetUserId);
