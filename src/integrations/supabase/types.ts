@@ -8288,6 +8288,128 @@ export type Database = {
           },
         ]
       }
+      workout_log_entries: {
+        Row: {
+          catalog_id: string | null
+          category: string | null
+          club_id: string
+          created_at: string
+          distance_mi: number | null
+          exercise_name: string
+          id: string
+          log_kind: string
+          points: number
+          reps: number | null
+          seconds: number | null
+          session_id: string
+          sets: Json
+          sort_order: number
+          unit: string | null
+          user_id: string
+        }
+        Insert: {
+          catalog_id?: string | null
+          category?: string | null
+          club_id: string
+          created_at?: string
+          distance_mi?: number | null
+          exercise_name: string
+          id?: string
+          log_kind: string
+          points?: number
+          reps?: number | null
+          seconds?: number | null
+          session_id: string
+          sets?: Json
+          sort_order?: number
+          unit?: string | null
+          user_id: string
+        }
+        Update: {
+          catalog_id?: string | null
+          category?: string | null
+          club_id?: string
+          created_at?: string
+          distance_mi?: number | null
+          exercise_name?: string
+          id?: string
+          log_kind?: string
+          points?: number
+          reps?: number | null
+          seconds?: number | null
+          session_id?: string
+          sets?: Json
+          sort_order?: number
+          unit?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workout_log_entries_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workout_log_entries_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "workout_log_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workout_log_sessions: {
+        Row: {
+          activity_local_date: string
+          club_id: string
+          completed_at: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          started_at: string
+          status: string
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          activity_local_date: string
+          club_id: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          started_at?: string
+          status?: string
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          activity_local_date?: string
+          club_id?: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          started_at?: string
+          status?: string
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workout_log_sessions_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workout_week_exercises: {
         Row: {
           created_at: string
@@ -8562,6 +8684,9 @@ export type Database = {
         Returns: string
       }
       forge_monday_bounds: { Args: never; Returns: Record<string, unknown> }
+      forge_notify_final_hours: { Args: never; Returns: undefined }
+      forge_notify_midweek: { Args: never; Returns: undefined }
+      forge_notify_new_weeks: { Args: never; Returns: undefined }
       forge_roll_all: { Args: never; Returns: undefined }
       forge_roll_club: {
         Args: { p_club_id: string; p_ends_at: string; p_starts_at: string }
