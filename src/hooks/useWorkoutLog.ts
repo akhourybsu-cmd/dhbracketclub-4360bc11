@@ -99,6 +99,18 @@ export function useWorkoutLog(clubId: string | undefined, userId: string | undef
         .reduce((t, s) => t + sessionPoints((s.entries || []) as { points: number }[]), 0);
       setClubWeekPoints(clubPts);
 
+      // Per-member freeform tallies this week. Deliberately COUNTS + fuel
+      // only — the freeform log's contents stay private to its owner.
+      const perMember: Record<string, { sessions: number; points: number }> = {};
+      for (const s of (clubWeekSessions || []) as any[]) {
+        const uid = s.user_id as string;
+        if (!uid) continue;
+        const row = perMember[uid] ?? (perMember[uid] = { sessions: 0, points: 0 });
+        row.sessions += 1;
+        row.points += sessionPoints((s.entries || []) as { points: number }[]);
+      }
+      setClubWeekByMember(perMember);
+
       setError(null);
     } catch (e: any) {
       setError(e?.message || 'Failed to load your workout log');
