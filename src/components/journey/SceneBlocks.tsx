@@ -1,6 +1,7 @@
 import { Fragment } from 'react';
 import { BookOpen, MapPin, Package, ScrollText, Sparkles, Swords } from 'lucide-react';
 import type { RuntimeBlock } from '@/lib/journey/types';
+import { DialogueBlock } from './DialogueBlock';
 
 /**
  * Renders the ordered narrative blocks of a scene. Conditional blocks are
@@ -44,13 +45,12 @@ function renderBlock(b: RuntimeBlock) {
 
     case 'dialogue':
       return (
-        <div className="jy-dialogue jy-fade-in">
-          <div className="jy-speaker">{md.speaker_name ?? md.speaker_key ?? 'Unknown'}</div>
-          {md.emotion && md.emotion !== 'neutral' && (
-            <div className="jy-muted mb-1 text-[0.7rem] italic">{md.emotion}</div>
-          )}
-          <p className="jy-prose italic">{b.content}</p>
-        </div>
+        <DialogueBlock
+          speaker={String(md.speaker_name ?? md.speaker_key ?? 'Unknown')}
+          emotion={md.emotion as string | undefined}
+          portrait={(md.portrait ?? md.portrait_url) as string | undefined}
+          text={b.content ?? ''}
+        />
       );
 
     case 'image':

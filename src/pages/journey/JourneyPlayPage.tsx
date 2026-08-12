@@ -4,6 +4,7 @@ import { Heart, Coins, Sparkles } from 'lucide-react';
 import { JourneyLayout, JourneyError, JourneySkeleton } from '@/components/journey/JourneyLayout';
 import { SceneBlocks } from '@/components/journey/SceneBlocks';
 import { ChoiceList } from '@/components/journey/ChoiceList';
+import { SceneAtmosphere } from '@/components/journey/SceneAtmosphere';
 import { useJourneyRun } from '@/hooks/useJourneyRun';
 
 /** The reading surface: scene prose, then choices. Everything else is elsewhere. */
@@ -40,6 +41,11 @@ export default function JourneyPlayPage() {
   return (
     <JourneyLayout>
       <div ref={topRef} />
+      <SceneAtmosphere
+        sceneKey={scene?.scene_key}
+        sceneType={scene?.scene_type}
+        backgroundAsset={scene?.background_asset}
+      />
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <span className="jy-chip">
@@ -52,7 +58,7 @@ export default function JourneyPlayPage() {
         {run.is_test_run && <span className="jy-chip jy-chip-blood">Test run</span>}
       </div>
 
-      <header className="mb-6">
+      <header className="jy-focal mb-6">
         <div className="jy-eyebrow">
           {[campaign?.title, chapterTitle, locationName].filter(Boolean).join(' · ')}
         </div>
