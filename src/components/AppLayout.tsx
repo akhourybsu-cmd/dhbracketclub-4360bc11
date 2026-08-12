@@ -43,6 +43,7 @@ const STATIC_SECTIONS: SidebarSection[] = [
       { path: '/lockbox', label: 'Lockbox', icon: Lock },
       { path: '/readshift', label: 'READSHIFT', icon: BookMarked },
       { path: '/workouts', label: 'FORGE', icon: Flame },
+      { path: '/journey', label: 'The Splendid Journey', icon: ScrollText },
     ],
   },
   {

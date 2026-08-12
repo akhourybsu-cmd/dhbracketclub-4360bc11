@@ -413,6 +413,37 @@ const REGISTRY: Record<string, FeatureOnboarding> = {
     primaryCta: { label: 'Open Narrative RPG', route: '/narrative' },
   },
 
+  'splendid-journey': {
+    featureKey: 'splendid-journey',
+    displayName: 'The Splendid Journey',
+    shortDescription: 'A handcrafted choice-driven RPG set in the world of Mesoplasia.',
+    featureType: 'game',
+    importance: 'important',
+    version: 1,
+    iconKey: 'ScrollText',
+    tags: ['RPG', 'Story', 'Single player', 'Choices'],
+    onboardingTitle: 'The Splendid Journey awaits',
+    onboardingSummary: 'A written adventure of unimaginable consequence. Read, choose, and live with what follows — every path is authored by hand.',
+    onboardingSteps: [
+      {
+        title: 'Take up a hero',
+        body: 'Name your traveller and step into Mesoplasia. Your stats, bonds, and reputation are yours alone — each journey is a separate save.',
+        iconKey: 'ScrollText',
+      },
+      {
+        title: 'Choices carry weight',
+        body: 'Scenes end in decisions. Some paths stay locked until you have the right item, skill, or ally — and majors ones are marked before you commit.',
+        iconKey: 'Sparkles',
+      },
+      {
+        title: 'Keep the record',
+        body: 'Your Journal tracks quests and every decision made; the Codex fills in only with the lore, places, and people you actually discover.',
+        iconKey: 'BookOpen',
+      },
+    ],
+    primaryCta: { label: 'Begin the Journey', route: '/journey' },
+  },
+
   'workout-competition': {
     featureKey: 'workout-competition',
     displayName: 'FORGE',
