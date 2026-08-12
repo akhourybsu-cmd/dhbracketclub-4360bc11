@@ -5,7 +5,7 @@ import { JourneyLayout, JourneyError } from '@/components/journey/JourneyLayout'
 import { useJourneyStudio, exportCampaignPackage } from '@/hooks/useJourneyStudio';
 import { useJourneyLibrary } from '@/hooks/useJourneyLibrary';
 import { validateCampaign } from '@/lib/journey/validate';
-import { TEST_CAMPAIGN } from '@/lib/journey/testCampaign';
+import { ENGINE_TEST_CAMPAIGN } from '@/lib/journey/testCampaign';
 import type { CampaignPackage, CampaignRow, CampaignStatus } from '@/lib/journey/types';
 
 /**
@@ -44,7 +44,7 @@ export default function JourneyStudioPage() {
     if (!pkg) return;
     const r = validateCampaign(pkg);
     setReport(r);
-    if (r.errors.length > 0) {
+    if (r.errors > 0) {
       setMessage('Fix the blocking errors before importing.');
       return;
     }
@@ -105,7 +105,7 @@ export default function JourneyStudioPage() {
             </button>
             <button
               className="jy-btn jy-btn-ghost"
-              onClick={() => { setRaw(JSON.stringify(TEST_CAMPAIGN, null, 2)); setReport(null); setMessage('Loaded the engine test campaign.'); }}
+              onClick={() => { setRaw(JSON.stringify(ENGINE_TEST_CAMPAIGN, null, 2)); setReport(null); setMessage('Loaded the engine test campaign.'); }}
             >
               <FlaskConical className="h-4 w-4" aria-hidden /> Load engine test
             </button>
@@ -119,9 +119,17 @@ export default function JourneyStudioPage() {
             <p className="jy-secondary mt-1 text-sm">
               {report.stats.scenes} scenes · {report.stats.choices} choices · {report.stats.endings} endings
             </p>
-            <ReportList label="Errors" items={report.errors} tone="blood" />
-            <ReportList label="Warnings" items={report.warnings} tone="gold" />
-            {report.errors.length === 0 && report.warnings.length === 0 && (
+            <ReportList
+              label="Errors"
+              items={report.issues.filter((i) => i.severity === 'error').map(issueLine)}
+              tone="blood"
+            />
+            <ReportList
+              label="Warnings"
+              items={report.issues.filter((i) => i.severity === 'warning').map(issueLine)}
+              tone="gold"
+            />
+            {report.errors === 0 && report.warnings === 0 && (
               <p className="mt-2 flex items-center gap-1.5 text-sm" style={{ color: 'hsl(150 30% 60%)' }}>
                 <CheckCircle2 className="h-4 w-4" aria-hidden /> No structural problems found.
               </p>
@@ -172,6 +180,12 @@ export default function JourneyStudioPage() {
       </div>
     </JourneyLayout>
   );
+}
+
+/** One readable line per validation issue, scoped to its scene/choice. */
+function issueLine(i: { message: string; scene_key?: string; choice_key?: string }) {
+  const where = [i.scene_key, i.choice_key].filter(Boolean).join(' → ');
+  return where ? `${where}: ${i.message}` : i.message;
 }
 
 function ReportList({ label, items, tone }: { label: string; items: string[]; tone: 'blood' | 'gold' }) {
