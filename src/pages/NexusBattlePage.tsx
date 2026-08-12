@@ -5,6 +5,11 @@ import { castAbility, initBattle, placeTower, sellTower, setTowerPriority, start
 import { AbilityKind, BattleState, TargetMode, TowerKind } from '@/lib/nexus/types';
 import { ABILITY_KINDS } from '@/lib/nexus/abilities';
 import { TOWER_KINDS } from '@/lib/nexus/towers';
+import { MISSIONS } from '@/lib/nexus/missions';
+
+// Highest solo mission id — the unlock ceiling (dynamic, so adding sectors
+// doesn't require touching the progression cap).
+const MAX_SOLO_MISSION = Math.max(...MISSIONS.map(m => m.id));
 import { NexusBattleScreen } from '@/components/nexus/NexusBattleScreen';
 import { useAuth } from '@/contexts/AuthContext';
 import { recordNexusRun, useNexusProgress } from '@/hooks/useNexusProgress';
@@ -212,7 +217,7 @@ export default function NexusBattlePage() {
         cores: progress.cores + cores,
       };
       if (!endless && won && mission.id >= progress.highest_mission) {
-        newProgress.highest_mission = Math.min(mission.id + 1, 6);
+        newProgress.highest_mission = Math.min(mission.id + 1, MAX_SOLO_MISSION);
       }
       updateProgress(newProgress);
 

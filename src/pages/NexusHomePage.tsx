@@ -27,7 +27,7 @@ export default function NexusHomePage() {
     ? `PHASE ${opPhase} · ${opAllies} ALL${opAllies === 1 ? 'Y' : 'IES'}`
     : 'STANDBY · NO ACTIVE OP';
 
-  const campaignStatus = `SECTOR I · ${cleared}/${totalMissions} CLEARED`;
+  const campaignStatus = `CAMPAIGN · ${cleared}/${totalMissions} CLEARED`;
   const endlessStatus = 'INFINITE WAVES · LEADERBOARD';
 
   return (
@@ -125,11 +125,11 @@ export default function NexusHomePage() {
         <ModeCard
           to="/nexus/missions"
           title="Solo Campaign"
-          subtitle="Six missions. Escalating waves. One Siege Mech."
+          subtitle="Two sectors. Twelve missions. Twin-boss finale."
           status={campaignStatus}
           icon={<Target className="w-5 h-5" />}
           accent="hsl(var(--nx-cyan))"
-          tags={['Sector I', 'Boss Mission', 'Modifiers']}
+          tags={['2 Sectors', 'Boss Missions', 'Modifiers']}
           tone="solid"
           cta="PLAY"
         />

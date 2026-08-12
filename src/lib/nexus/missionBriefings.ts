@@ -130,7 +130,81 @@ const SOLO_BRIEFINGS: Record<number, MissionBriefing> = {
     objective: 'Survive 3 swarm waves, then break the Siege Mech.',
     enemyTheme: 'Boss · Siege Mech · escort screen',
     difficulty: 5,
-    rewards: { cores: 120, badge: 'sector-i-cleared', note: 'Sector I cleared · Endless unlocked', sigilDrop: true },
+    rewards: { cores: 120, badge: 'sector-i-cleared', note: 'Sector I cleared · Inner Belt unlocked', sigilDrop: true },
+  },
+
+  // ── Sector II · Inner Belt ──
+  7: {
+    missionId: 7,
+    layoutId: 'belt_gauntlet',
+    codename: 'SKYFALL',
+    tagline: 'Gunships take the sky — build anti-air or the lane leaks.',
+    briefing:
+      'The Inner Belt opens with an air assault. Gunships fly straight over your ground towers — only Flak Batteries and Rail Batteries can touch them. Get one up early or the swarm walks in under the guns.',
+    objective: 'Clear 4 waves of mixed air-and-ground assault.',
+    enemyTheme: 'Gunships · sprint drones · walker support',
+    difficulty: 3,
+    rewards: { cores: 90, badge: 'skyfall', note: 'Anti-air proficiency' },
+  },
+  8: {
+    missionId: 8,
+    layoutId: 'belt_horseshoe',
+    codename: 'MENDER',
+    tagline: 'Field medics keep the brutes alive — kill the healers first.',
+    briefing:
+      'Siege Brutes soak enormous punishment, and Menders trailing them top up any damage you deal. Focus the healers down or the heavies will never fall. Set your towers to target Strongest and let the snipers work.',
+    objective: 'Survive 4 waves of healer-backed heavies.',
+    enemyTheme: 'Siege brutes · menders · shielded line',
+    difficulty: 4,
+    rewards: { cores: 100, badge: 'mender', note: 'Focus-fire discipline' },
+  },
+  9: {
+    missionId: 9,
+    layoutId: 'belt_serpent',
+    codename: 'FRACTURE',
+    tagline: 'Splitters burst into runners — splash damage is king.',
+    briefing:
+      'Splitters fracture into a spray of sprint drones the moment they die. On the serpentine, a Mortar or Cryo on the middle sweep catches both the parent and the spawn. Single-target towers will drown here.',
+    objective: 'Hold the serpent lane through 4 swarming waves.',
+    enemyTheme: 'Splitters · runner floods · drone swarm',
+    difficulty: 4,
+    rewards: { cores: 110, badge: 'fracture', note: 'Crowd-control ribbon' },
+  },
+  10: {
+    missionId: 10,
+    layoutId: 'belt_maze',
+    codename: 'BLACKOUT',
+    tagline: 'Cloaked and airborne at once — Rail sees both.',
+    briefing:
+      'Comms are jammed in the maze and the enemy knows it. Stealth infiltrators and gunships push the chicane together — the Rail Battery is the only tower that can paint stealth AND reach the sky. Layer Flak behind it.',
+    objective: 'Detect and hold across 4 dark-corridor waves.',
+    enemyTheme: 'Stealth · gunships · shielded support',
+    difficulty: 5,
+    rewards: { cores: 130, badge: 'blackout', note: 'All-detection certification' },
+  },
+  11: {
+    missionId: 11,
+    layoutId: 'belt_funnel',
+    codename: 'ONSLAUGHT',
+    tagline: 'Every class at once — and the energy is rationed.',
+    briefing:
+      'Supply lines are stretched: you start rich but the trickle is thin. Every enemy class pours the funnel. This is the ultimate combined-arms exam — Amp Nodes to squeeze value, splash for the swarm, snipers for the heavies.',
+    objective: 'Survive a 4-wave, all-class onslaught on a tight economy.',
+    enemyTheme: 'All classes · tight economy',
+    difficulty: 5,
+    rewards: { cores: 150, badge: 'onslaught', note: 'Combined-arms mastery', sigilDrop: true },
+  },
+  12: {
+    missionId: 12,
+    layoutId: 'belt_core',
+    codename: 'LEVIATHAN',
+    tagline: 'Twin Siege Mechs anchor the belt — the campaign finale.',
+    briefing:
+      'The heart of the Inner Belt. Three brutal swarm waves soften your grid, then TWIN Siege Mechs drop with a brute-and-gunship escort — with their hulls hardened. Everything you\'ve learned comes down to this run.',
+    objective: 'Survive the swarm, then break both Siege Mechs.',
+    enemyTheme: 'Twin bosses · hardened · full escort',
+    difficulty: 5,
+    rewards: { cores: 250, badge: 'inner-belt-cleared', note: 'Inner Belt cleared · campaign complete', sigilDrop: true },
   },
 };
 

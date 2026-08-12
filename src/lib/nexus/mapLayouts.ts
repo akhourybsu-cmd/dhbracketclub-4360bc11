@@ -23,6 +23,13 @@ export type MapLayoutId =
   | 'twin_gate'
   | 'reactor_ring'
   | 'final_stand'
+  // Solo campaign — Sector II (Inner Belt)
+  | 'belt_gauntlet'
+  | 'belt_horseshoe'
+  | 'belt_serpent'
+  | 'belt_maze'
+  | 'belt_funnel'
+  | 'belt_core'
   // Endless
   | 'classic_lane'
   | 'split_path'
@@ -144,6 +151,70 @@ export const MAP_LAYOUTS: Record<MapLayoutId, MapLayout> = {
     difficulty: 5,
     preview: { accent: 'hsl(350 85% 62%)', accent2: 'hsl(38 95% 60%)', shape: 'standoff', spawns: 3, cores: 1 },
     tags: ['Boss Mission', 'Convergence', 'Final Wave'],
+  },
+
+  // ──────────────────────────────────────────────────────────────────
+  // SOLO CAMPAIGN — Sector II "Inner Belt" (missions 7–12)
+  // ──────────────────────────────────────────────────────────────────
+  belt_gauntlet: {
+    id: 'belt_gauntlet',
+    name: 'Gauntlet Descent',
+    tagline: 'Switchback ledges down the belt — gunships strafe the lane.',
+    description: 'A descending switchback through the asteroid belt. Enemy gunships take the sky here — bring Flak or Rail or the lane leaks fast.',
+    category: 'solo',
+    difficulty: 3,
+    preview: { accent: 'hsl(300 85% 66%)', accent2: 'hsl(188 92% 56%)', shape: 'corridor', spawns: 1, cores: 1 },
+    tags: ['Anti-Air', 'Switchbacks', 'Inner Belt'],
+  },
+  belt_horseshoe: {
+    id: 'belt_horseshoe',
+    name: 'Medic Horseshoe',
+    tagline: 'A long U-lane — menders keep the heavies alive.',
+    description: 'A long horseshoe around a mining core. Field medics trail the brutes, topping them up — focus the healers first or nothing dies.',
+    category: 'solo',
+    difficulty: 4,
+    preview: { accent: 'hsl(150 80% 60%)', accent2: 'hsl(28 90% 55%)', shape: 'shared', spawns: 1, cores: 1 },
+    tags: ['Healers', 'Brutes', 'Focus Fire'],
+  },
+  belt_serpent: {
+    id: 'belt_serpent',
+    name: 'Serpent Run',
+    tagline: 'A three-sweep serpentine — splitters flood the coils.',
+    description: 'The lane sweeps back across the board three times. Splitters burst into runners on death — park splash towers on the middle sweep for repeat value.',
+    category: 'solo',
+    difficulty: 4,
+    preview: { accent: 'hsl(48 95% 58%)', accent2: 'hsl(90 90% 58%)', shape: 'lane', spawns: 1, cores: 1 },
+    tags: ['Splitters', 'Serpentine', 'AoE Friendly'],
+  },
+  belt_maze: {
+    id: 'belt_maze',
+    name: 'Blackout Maze',
+    tagline: 'A tight chicane in the dark — cloaked and airborne at once.',
+    description: 'Comms are jammed inside the maze. Stealth infiltrators AND gunships push the chicane together — only Rail sees both. A brutal detection test.',
+    category: 'solo',
+    difficulty: 5,
+    preview: { accent: 'hsl(265 80% 70%)', accent2: 'hsl(300 85% 66%)', shape: 'corridor', spawns: 1, cores: 1 },
+    tags: ['Stealth', 'Anti-Air', 'Comms Jammed'],
+  },
+  belt_funnel: {
+    id: 'belt_funnel',
+    name: 'Onslaught Funnel',
+    tagline: 'Every class, tight economy, one narrowing killbox.',
+    description: 'Supply lines are stretched thin — energy is scarce. Every enemy class pours into a narrowing funnel. Make every credit and every upgrade count.',
+    category: 'solo',
+    difficulty: 5,
+    preview: { accent: 'hsl(38 95% 60%)', accent2: 'hsl(350 85% 62%)', shape: 'siege', spawns: 1, cores: 1 },
+    tags: ['All Classes', 'Tight Economy', 'Funnel'],
+  },
+  belt_core: {
+    id: 'belt_core',
+    name: 'The Leviathan',
+    tagline: 'Spiral to the core — twin Siege Mechs anchor the belt.',
+    description: 'The heart of the Inner Belt. Survive escalating swarms on the long spiral, then break TWIN Siege Mechs with a brute-and-gunship escort. The campaign\'s hardest fight.',
+    category: 'solo',
+    difficulty: 5,
+    preview: { accent: 'hsl(350 85% 62%)', accent2: 'hsl(38 95% 60%)', shape: 'ring', spawns: 1, cores: 1 },
+    tags: ['Boss Mission', 'Twin Boss', 'Finale'],
   },
 
   // ──────────────────────────────────────────────────────────────────
@@ -317,6 +388,13 @@ const LAYOUT_TO_PATH_VARIANT: Record<MapLayoutId, EnginePathVariantId> = {
   twin_gate: 'chicane',
   reactor_ring: 'spiral',
   final_stand: 'funnel',
+  // Solo campaign — Sector II (Inner Belt), each a distinct real path
+  belt_gauntlet: 'switchback',
+  belt_horseshoe: 'horseshoe',
+  belt_serpent: 'serpentine',
+  belt_maze: 'chicane',
+  belt_funnel: 'funnel',
+  belt_core: 'spiral',
   // Endless
   classic_lane: 'bend',
   split_path: 'switchback',

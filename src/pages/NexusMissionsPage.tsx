@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Lock, Check, Skull, Users, Infinity as InfinityIcon, ChevronRight, Crosshair } from 'lucide-react';
@@ -49,10 +50,10 @@ export default function NexusMissionsPage() {
           <div className="flex items-center gap-1.5 mb-1">
             <span className="nx-pulse-dot inline-block w-1.5 h-1.5 rounded-full" style={{ background: 'hsl(var(--nx-cyan))', boxShadow: '0 0 6px hsl(var(--nx-cyan))' }} />
             <p className="nx-title text-[9px]" style={{ color: 'hsl(var(--nx-cyan))', letterSpacing: '0.22em' }}>
-              SECTOR I · DEPLOYMENT GRID
+              CAMPAIGN · DEPLOYMENT GRID
             </p>
           </div>
-          <h1 className="text-xl font-black tracking-tight">Outer Rim</h1>
+          <h1 className="text-xl font-black tracking-tight">Outer Rim → Inner Belt</h1>
           <div className="flex items-center gap-2 mt-1.5 text-[10px] font-bold tabular-nums">
             <Crosshair className="w-3 h-3 flex-shrink-0" style={{ color: 'hsl(var(--nx-cyan))' }} />
             <span className="text-foreground/70">{campaign.length} MISSIONS</span>
@@ -147,10 +148,19 @@ export default function NexusMissionsPage() {
           const briefing = getBriefing(m.id);
           const layout = getLayout(briefing?.layoutId);
           const accent = layout?.preview.accent ?? (m.isBoss ? 'hsl(350 85% 62%)' : 'hsl(var(--nx-cyan))');
+          const showSector = idx === 0 || campaign[idx - 1].sector !== m.sector;
 
           return (
+            <Fragment key={m.id}>
+              {showSector && (
+                <div className="flex items-center gap-2 pt-2 pb-0.5 first:pt-0">
+                  <span className="nx-title text-[9px] whitespace-nowrap" style={{ color: 'hsl(var(--nx-cyan))', letterSpacing: '0.2em' }}>
+                    ◢ {m.sector.toUpperCase()}
+                  </span>
+                  <span className="flex-1 h-px" style={{ background: 'linear-gradient(90deg, hsl(var(--nx-cyan) / 0.4), transparent)' }} />
+                </div>
+              )}
             <motion.div
-              key={m.id}
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.04 }}
@@ -282,6 +292,7 @@ export default function NexusMissionsPage() {
                 </div>
               </Link>
             </motion.div>
+            </Fragment>
           );
         })}
       </div>
