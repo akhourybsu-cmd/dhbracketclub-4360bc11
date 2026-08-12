@@ -294,6 +294,7 @@ export function useWorkoutArena(clubId: string | undefined, userId: string | und
     if (activityId.startsWith('opt-')) return;
     const beforeWeek = weekActivities;
     const beforeMine = myActivities;
+    forgetRecent(new Set([activityId]));
     setWeekActivities(prev => prev.filter(a => a.id !== activityId));
     setMyActivities(prev => prev.filter(a => a.id !== activityId));
     const { error: e } = await sb.from('workout_activities').delete().eq('id', activityId);
