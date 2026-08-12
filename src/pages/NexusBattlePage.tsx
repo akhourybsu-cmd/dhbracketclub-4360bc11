@@ -217,7 +217,9 @@ export default function NexusBattlePage() {
         cores: progress.cores + cores,
       };
       if (!endless && won && mission.id >= progress.highest_mission) {
-        newProgress.highest_mission = Math.min(mission.id + 1, MAX_SOLO_MISSION);
+        // Cap one past the last mission so "campaign complete" is detectable
+        // (clearing the finale pushes the pointer to MAX_SOLO_MISSION + 1).
+        newProgress.highest_mission = Math.min(mission.id + 1, MAX_SOLO_MISSION + 1);
       }
       updateProgress(newProgress);
 
