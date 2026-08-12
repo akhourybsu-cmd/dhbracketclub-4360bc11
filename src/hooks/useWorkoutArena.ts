@@ -154,11 +154,12 @@ export function useWorkoutArena(clubId: string | undefined, userId: string | und
         HYDRATE_TIMEOUT_MS, 'workout arena hydrate',
       );
 
+      if (seq !== refreshSeqRef.current) return; // a newer refresh already won
       const [{ data: weRows }, { data: actRows }, { data: ggRows }] = weekBundle as any;
       setWeekExercises((weRows || []).filter((r: any) => r.exercise) as WeekExerciseWithDef[]);
-      setWeekActivities((actRows || []) as WorkoutActivity[]);
+      setWeekActivities(mergeRecent((actRows || []) as WorkoutActivity[]));
       setGroupGoals(((ggRows || []) as GroupGoalWithDef[]).filter(g => g.exercise));
-      setMyActivities((mine || []) as WorkoutActivity[]);
+      setMyActivities(mergeRecent((mine || []) as WorkoutActivity[]));
       setUnlocks(((unlockRows || []) as any[]).map(r => r.achievement_key));
       setPastWeeks((pastRows || []) as WorkoutWeek[]);
       // Profiles are fetched separately — there's no FK embed from
