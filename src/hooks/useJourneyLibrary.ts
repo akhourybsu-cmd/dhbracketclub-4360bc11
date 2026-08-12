@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { withTimeout, QUERY_TIMEOUT_MS } from '@/lib/asyncGuards';
+import { withTimeout, QUERY_TIMEOUT_MS, HYDRATE_TIMEOUT_MS } from '@/lib/asyncGuards';
 import type { CampaignRow, HeroRow, RunRow } from '@/lib/journey/types';
 
 export interface JourneyLibrary {
