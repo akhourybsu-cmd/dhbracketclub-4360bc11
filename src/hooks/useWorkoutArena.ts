@@ -67,6 +67,7 @@ export function useWorkoutArena(clubId: string | undefined, userId: string | und
 
   const refresh = useCallback(async () => {
     if (!clubId || !userId) { setLoading(false); return; }
+    const seq = ++refreshSeqRef.current;
     try {
       // Active week: prefer an explicitly-active row; fall back to one whose
       // window contains now (belt-and-suspenders if status wasn't flipped).
