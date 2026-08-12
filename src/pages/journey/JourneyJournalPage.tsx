@@ -8,7 +8,7 @@ import { NoRun } from './JourneyCharacterPage';
 import type { QuestState } from '@/lib/journey/types';
 
 interface QuestMeta { quest_key: string; title: string; description: string | null; quest_type: string }
-interface HistoryRow { id: string; choice_key: string; scene_key: string; choice_text: string | null; created_at: string }
+interface HistoryRow { id: string; choice_key: string; scene_key: string; choice_text_snapshot: string | null; created_at: string }
 
 /** Quest log + the record of decisions already made. */
 export default function JourneyJournalPage() {
@@ -22,13 +22,14 @@ export default function JourneyJournalPage() {
     if (!run) return;
     let cancelled = false;
     (async () => {
-      const [q, h] = await Promise.all([
-        (supabase as any).from('journey_quests').select('quest_key,title,description,quest_type').eq('campaign_id', run.campaign_id),
-        (supabase as any).from('journey_run_choice_history').select('id,choice_key,scene_key,choice_text,created_at')
+      const [w, h] = await Promise.all([
+        (supabase as any).rpc('journey_get_world', { _run_id: run.id }),
+        (supabase as any).from('journey_run_choice_history')
+          .select('id,choice_key,scene_key,choice_text_snapshot,created_at')
           .eq('run_id', run.id).order('created_at', { ascending: false }).limit(200),
       ]);
       if (cancelled) return;
-      setQuests((q?.data ?? []) as QuestMeta[]);
+      setQuests((w?.data?.quests ?? []) as QuestMeta[]);
       setHistory((h?.data ?? []) as HistoryRow[]);
     })();
     return () => { cancelled = true; };
@@ -97,7 +98,7 @@ export default function JourneyJournalPage() {
             <EmptyNote text="No decisions recorded yet." />
           ) : history.map((h) => (
             <div key={h.id} className="jy-panel p-3">
-              <p className="jy-secondary text-sm">{h.choice_text ?? h.choice_key}</p>
+              <p className="jy-secondary text-sm">{h.choice_text_snapshot ?? h.choice_key}</p>
               <p className="jy-muted mt-1 text-xs">
                 {h.scene_key} · {new Date(h.created_at).toLocaleString()}
               </p>

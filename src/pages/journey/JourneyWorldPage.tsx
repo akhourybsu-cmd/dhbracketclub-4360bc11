@@ -26,15 +26,13 @@ export default function JourneyWorldPage() {
     if (!run) return;
     let cancelled = false;
     (async () => {
-      const [c, l, n] = await Promise.all([
-        (supabase as any).from('journey_codex_entries').select('codex_key,title,category,body').eq('campaign_id', run.campaign_id).order('display_order'),
-        (supabase as any).from('journey_locations').select('location_key,name,region,description').eq('campaign_id', run.campaign_id),
-        (supabase as any).from('journey_npcs').select('npc_key,name,title,description,codex_key').eq('campaign_id', run.campaign_id),
-      ]);
+      // World data comes from the run's pinned campaign version through a
+      // controlled function — content tables are author-only.
+      const { data } = await (supabase as any).rpc('journey_get_world', { _run_id: run.id });
       if (cancelled) return;
-      setCodex((c?.data ?? []) as CodexRow[]);
-      setLocations((l?.data ?? []) as LocRow[]);
-      setNpcs((n?.data ?? []) as NpcRow[]);
+      setCodex((data?.codex ?? []) as CodexRow[]);
+      setLocations((data?.locations ?? []) as LocRow[]);
+      setNpcs((data?.npcs ?? []) as NpcRow[]);
     })();
     return () => { cancelled = true; };
   }, [run]);
