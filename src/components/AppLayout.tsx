@@ -161,11 +161,14 @@ function AppLayoutInner({ children }: { children: ReactNode }) {
   const isPortfolioWars = location.pathname.startsWith('/portfolio-wars');
   const isReadshift = location.pathname.startsWith('/readshift');
   const isForge = location.pathname.startsWith('/workouts');
+  // The Splendid Journey owns the whole viewport on every breakpoint: reading
+  // long-form prose inside the DH frame breaks the immersion the module needs.
+  const isJourney = location.pathname.startsWith('/journey');
   // Draft Arena keeps its own gold HUD, but on desktop it now lives INSIDE the
   // shared DH Club frame (global sidebar + notifications) instead of replacing
   // the whole shell. Mobile behaviour is unchanged: full-bleed game shell.
   // FORGE behaves like Draft Arena: own HUD, keeps the desktop DH frame.
-  const isGameShell = isRuneDelve || isNexus || isPickem || isDrafts || isPortfolioWars || isReadshift || isForge;
+  const isGameShell = isRuneDelve || isNexus || isPickem || isDrafts || isPortfolioWars || isReadshift || isForge || isJourney;
   const isImmersiveShell = isGameShell && !isDrafts && !isForge;
 
 

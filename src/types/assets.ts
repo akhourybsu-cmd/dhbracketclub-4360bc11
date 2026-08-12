@@ -66,6 +66,7 @@ export const NAV_ASSET_SLUGS: Record<string, string> = {
   '/celebrations':    'birthdays-milestones',
   '/narrative':       'narrative-rpg',
   '/workouts':        'workout-competition',
+  '/journey':         'splendid-journey',
 };
 
 export const CATEGORY_META: Record<string, { label: string; color: string }> = {

@@ -88,6 +88,12 @@ const WorkoutPage = lazyWithRetry(() => import("./pages/WorkoutPage"));
 const WorkoutAdminPage = lazyWithRetry(() => import("./pages/WorkoutAdminPage"));
 const WorkoutRecapPage = lazyWithRetry(() => import("./pages/WorkoutRecapPage"));
 const WorkoutLogPage = lazyWithRetry(() => import("./pages/WorkoutLogPage"));
+const JourneyHomePage = lazyWithRetry(() => import("./pages/journey/JourneyHomePage"));
+const JourneyPlayPage = lazyWithRetry(() => import("./pages/journey/JourneyPlayPage"));
+const JourneyCharacterPage = lazyWithRetry(() => import("./pages/journey/JourneyCharacterPage"));
+const JourneyJournalPage = lazyWithRetry(() => import("./pages/journey/JourneyJournalPage"));
+const JourneyWorldPage = lazyWithRetry(() => import("./pages/journey/JourneyWorldPage"));
+const JourneyStudioPage = lazyWithRetry(() => import("./pages/journey/JourneyStudioPage"));
 const NarrativeCampaignsPage = lazyWithRetry(() => import("./pages/NarrativeCampaignsPage"));
 const NarrativeCampaignCreatePage = lazyWithRetry(() => import("./pages/NarrativeCampaignCreatePage"));
 const NarrativeCampaignDetailPage = lazyWithRetry(() => import("./pages/NarrativeCampaignDetailPage"));
@@ -300,6 +306,13 @@ function AnimatedRoutes() {
         <Route path="/workouts/log" element={<ProtectedPage assetSlug="workout-competition"><ForgeLayout><WorkoutLogPage /></ForgeLayout></ProtectedPage>} />
         <Route path="/workouts/admin" element={<ProtectedPage assetSlug="workout-competition"><ClubAdminRoute><ForgeLayout><WorkoutAdminPage /></ForgeLayout></ClubAdminRoute></ProtectedPage>} />
         <Route path="/workouts/recap/:weekId" element={<ProtectedPage assetSlug="workout-competition"><ForgeLayout><WorkoutRecapPage /></ForgeLayout></ProtectedPage>} />
+        {/* The Splendid Journey — studio is admin-only, play surfaces are asset-gated. */}
+        <Route path="/journey" element={<ProtectedPage assetSlug="splendid-journey"><JourneyHomePage /></ProtectedPage>} />
+        <Route path="/journey/play/:runId" element={<ProtectedPage assetSlug="splendid-journey"><JourneyPlayPage /></ProtectedPage>} />
+        <Route path="/journey/character" element={<ProtectedPage assetSlug="splendid-journey"><JourneyCharacterPage /></ProtectedPage>} />
+        <Route path="/journey/journal" element={<ProtectedPage assetSlug="splendid-journey"><JourneyJournalPage /></ProtectedPage>} />
+        <Route path="/journey/world" element={<ProtectedPage assetSlug="splendid-journey"><JourneyWorldPage /></ProtectedPage>} />
+        <Route path="/journey/studio" element={<ProtectedPage><AdminRoute><JourneyStudioPage /></AdminRoute></ProtectedPage>} />
         <Route path="/narrative" element={<ProtectedPage assetSlug="narrative-rpg"><NarrativeCampaignsPage /></ProtectedPage>} />
         <Route path="/narrative/new" element={<ProtectedPage assetSlug="narrative-rpg"><NarrativeCampaignCreatePage /></ProtectedPage>} />
         <Route path="/narrative/:campaignId" element={<ProtectedPage assetSlug="narrative-rpg"><NarrativeCampaignDetailPage /></ProtectedPage>} />
