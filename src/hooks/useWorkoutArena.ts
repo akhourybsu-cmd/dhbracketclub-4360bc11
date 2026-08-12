@@ -189,12 +189,25 @@ export function useWorkoutArena(clubId: string | undefined, userId: string | und
   useEffect(() => { setLoading(true); refresh(); }, [refresh]);
 
   // Live leaderboard/progress: any activity change in this club re-pulls.
+  // Debounced so a burst of quick logs collapses into one snapshot read.
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scheduleRefresh = useCallback(() => {
+    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+    refreshTimerRef.current = setTimeout(() => { refresh(); }, 400);
+  }, [refresh]);
+  useEffect(() => () => { if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current); }, []);
+
   useRealtimeSubscription({
     channelName: `workout-arena-${clubId ?? 'none'}`,
     configs: clubId ? [{ table: 'workout_activities', event: '*', filter: `club_id=eq.${clubId}` }] : [],
-    onPayload: refresh,
+    onPayload: scheduleRefresh,
     enabled: !!clubId,
   });
+
+  /** Forget a locally-tracked write so a snapshot can't resurrect it. */
+  const forgetRecent = (ids: Set<string>) => {
+    recentWritesRef.current = recentWritesRef.current.filter(a => !ids.has(a.id));
+  };
 
   // ─── Mutations (optimistic; reconcile on refresh) ─────────────────
   const logActivity = useCallback(async (input: LogActivityInput) => {
