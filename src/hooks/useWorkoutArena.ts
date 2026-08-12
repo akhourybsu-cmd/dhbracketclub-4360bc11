@@ -45,6 +45,19 @@ export function useWorkoutArena(clubId: string | undefined, userId: string | und
   // Only attempt auto-creation once per (club) per mount, so a failed RPC
   // (e.g. migration not deployed yet) can't spin.
   const ensureAttemptedRef = useRef<string | null>(null);
+  // Every realtime event fires a refresh; responses can land out of order and
+  // an older snapshot would visibly roll totals backwards. Only the newest
+  // in-flight refresh is allowed to write state.
+  const refreshSeqRef = useRef(0);
+  // Rows this client just wrote — merged back in if a snapshot predates them.
+  const recentWritesRef = useRef<WorkoutActivity[]>([]);
+  const mergeRecent = (rows: WorkoutActivity[]): WorkoutActivity[] => {
+    const cutoff = Date.now() - 20_000;
+    recentWritesRef.current = recentWritesRef.current.filter(a => Date.parse(a.logged_at) > cutoff);
+    const ids = new Set(rows.map(r => r.id));
+    const missing = recentWritesRef.current.filter(a => !ids.has(a.id));
+    return missing.length ? [...rows, ...missing] : rows;
+  };
 
   const exercisesById = useMemo(() => {
     const m = new Map<string, WorkoutExercise>();
