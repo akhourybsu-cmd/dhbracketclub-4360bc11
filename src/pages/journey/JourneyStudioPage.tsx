@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, CheckCircle2, Download, FlaskConical, Upload } from 'lucide-react';
+import { AlertTriangle, BookOpen, CheckCircle2, Download, FlaskConical, Upload } from 'lucide-react';
 import { JourneyLayout, JourneyError } from '@/components/journey/JourneyLayout';
 import { useJourneyStudio, exportCampaignPackage } from '@/hooks/useJourneyStudio';
 import { useJourneyLibrary } from '@/hooks/useJourneyLibrary';
@@ -109,6 +109,25 @@ export default function JourneyStudioPage() {
             >
               <FlaskConical className="h-4 w-4" aria-hidden /> Load engine test
             </button>
+            <button
+              className="jy-btn jy-btn-ghost"
+              onClick={async () => {
+                setMessage('Loading The Discovery Below…');
+                try {
+                  const res = await fetch('/campaigns/the-discovery-below.json');
+                  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                  const pkg = (await res.json()) as CampaignPackage;
+                  setRaw(JSON.stringify(pkg, null, 2));
+                  setReport(validateCampaign(pkg));
+                  setMessage('Loaded The Discovery Below. Review the validation, then Import.');
+                } catch (e) {
+                  setMessage(`Could not load the campaign file: ${(e as Error).message}`);
+                }
+              }}
+            >
+              <BookOpen className="h-4 w-4" aria-hidden /> Load The Discovery Below
+            </button>
+
           </div>
           {message && <p className="jy-secondary mt-3 text-sm">{message}</p>}
         </section>
