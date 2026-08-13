@@ -54,6 +54,14 @@ export function JourneyIllustrateSheet({
           url: e.artwork ?? null,
         });
       });
+      (pkg.npcs ?? []).forEach((npc: any) => {
+        next.push({
+          id: `npc:${npc.npc_key}`, target: 'npc_portrait', key: npc.npc_key,
+          label: `Character — ${npc.name ?? npc.npc_key}`,
+          guidance: [npc.title, npc.description].filter(Boolean).join(' · ') || null,
+          url: npc.portrait ?? null,
+        });
+      });
       setSlots(next);
     } catch (e) {
       setError((e as Error).message);
