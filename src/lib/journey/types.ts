@@ -178,7 +178,7 @@ export interface CodexDef { codex_key: string; title: string; category?: string;
 export interface VariableDef { variable_key: string; label?: string; value_type?: 'boolean' | 'integer' | 'decimal' | 'string' | 'enum'; default_value?: unknown; enum_values?: string[]; author_notes?: string }
 export interface FactionDef { faction_key: string; name: string; description?: string; image?: string; author_notes?: string }
 export interface EnemyDef { enemy_key: string; name: string; description?: string; portrait?: string; max_health?: number; armor?: number; attack?: number; abilities?: unknown[]; metadata?: Record<string, unknown>; author_notes?: string }
-export interface EndingDef { ending_key: string; name: string; description?: string; priority?: number; requirements?: Requirement | Requirement[] | null; epilogue_blocks?: { requirements?: Requirement | Requirement[] | null; content: string }[]; spoiler_safe_label?: string; author_notes?: string }
+export interface EndingDef { ending_key: string; name: string; description?: string; priority?: number; requirements?: Requirement | Requirement[] | null; epilogue_blocks?: { requirements?: Requirement | Requirement[] | null; content: string }[]; spoiler_safe_label?: string; artwork?: string; author_notes?: string }
 
 /** The complete machine-readable campaign package. */
 export interface CampaignPackage {
@@ -249,6 +249,7 @@ export interface SceneRow {
   scene_type: string; title: string | null; subtitle: string | null; location_key: string | null;
   background_asset: string | null; ambient_audio: string | null; music_track: string | null;
   entry_effects: Effect[]; entry_conditions: Requirement | null; auto_next_scene_key: string | null;
+  is_routing_node: boolean;
   is_terminal: boolean; ending_key: string | null; display_order: number; tags: string[]; author_notes: string | null;
 }
 
@@ -318,4 +319,62 @@ export interface RuntimeChoice {
   major_decision: boolean;
   available: boolean;
   locked_hint: string | null;
+}
+
+/* ── World metadata (journey_get_world) ───────────────────────── */
+
+export interface WorldCodexEntry { codex_key: string; title: string; category: string | null; body: string | null; image?: string | null }
+export interface WorldLocation { location_key: string; name: string; region: string | null; description: string | null; image?: string | null }
+export interface WorldNpc { npc_key: string; name: string; title: string | null; description: string | null; portrait?: string | null; codex_key?: string | null }
+export interface WorldQuest {
+  quest_key: string; title: string; description: string | null; quest_type: string;
+  objectives: { key: string; text: string }[];
+}
+export interface WorldItem {
+  item_key: string; name: string; description: string | null;
+  icon?: string | null; image?: string | null; item_type?: string | null;
+  rarity?: string | null; quest_item?: boolean;
+}
+export interface WorldFaction { faction_key: string; name: string; description: string | null; image?: string | null }
+
+export interface JourneyWorld {
+  codex: WorldCodexEntry[];
+  locations: WorldLocation[];
+  npcs: WorldNpc[];
+  quests: WorldQuest[];
+  items: WorldItem[];
+  factions: WorldFaction[];
+}
+
+export const EMPTY_WORLD: JourneyWorld = {
+  codex: [], locations: [], npcs: [], quests: [], items: [], factions: [],
+};
+
+/* ── Ending payload (journey_get_ending) ──────────────────────── */
+
+export interface EndingRecord {
+  ending_key: string;
+  name: string;
+  description: string | null;
+  artwork: string | null;
+  spoiler_safe_label: string | null;
+}
+
+export interface EpilogueBlock { content: string; display_order?: number; metadata?: Record<string, unknown> }
+
+export interface RecapEntry {
+  scene_title: string | null;
+  chapter_title: string | null;
+  choice_text: string | null;
+  major_decision: boolean;
+  at: string;
+}
+
+export interface EndingPayload {
+  campaign: { title: string; subtitle: string | null } | null;
+  ending: EndingRecord | null;
+  epilogue_blocks: EpilogueBlock[];
+  recap: RecapEntry[];
+  completed_at: string | null;
+  status: string;
 }
