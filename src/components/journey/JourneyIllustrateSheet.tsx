@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { FolderUp, ImagePlus, Trash2, UploadCloud, X } from 'lucide-react';
+import { Crop, FolderUp, ImagePlus, Trash2, UploadCloud, X } from 'lucide-react';
 import { exportCampaignPackage } from '@/hooks/useJourneyStudio';
 import {
   isImageUrl, parsePortrait, setJourneyAsset, uploadJourneyImage, visualBrief, withCrop,
@@ -374,7 +374,11 @@ function PortraitCropEditor({ url, onCrop }: { url: string; onCrop: (x: number, 
   const position = `${x}% ${y}%`;
   if (!src) return null;
   return (
-    <div className="mt-3 flex items-start gap-3">
+    <div className="mt-3 rounded-sm p-2" style={{ border: '1px solid hsl(var(--jy-border-subtle))', background: 'hsl(var(--jy-bg-primary) / 0.5)' }}>
+      <div className="jy-eyebrow mb-2 flex items-center gap-1.5">
+        <Crop className="h-3 w-3" aria-hidden /> Avatar crop &amp; zoom
+      </div>
+      <div className="flex items-start gap-3">
       <div
         className="relative w-24 shrink-0 cursor-crosshair select-none overflow-hidden rounded-sm"
         style={{ border: '1px solid hsl(var(--jy-border-subtle))' }}
@@ -420,6 +424,7 @@ function PortraitCropEditor({ url, onCrop }: { url: string; onCrop: (x: number, 
           />
         </label>
         <p className="jy-muted mt-1 max-w-[7rem] text-[0.6rem] leading-tight">Click a feature; drag to zoom.</p>
+      </div>
       </div>
     </div>
   );
