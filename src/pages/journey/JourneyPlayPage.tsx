@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Heart, Coins } from 'lucide-react';
 import { JourneyLayout, JourneyError, JourneySkeleton } from '@/components/journey/JourneyLayout';
