@@ -6,7 +6,9 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
-export type AssetTarget = 'scene_background' | 'ending_artwork' | 'npc_portrait' | 'cover_image' | 'hero_image';
+export type AssetTarget =
+  | 'scene_background' | 'ending_artwork' | 'npc_portrait'
+  | 'scene_block_image' | 'cover_image' | 'hero_image';
 
 const BUCKET = 'journey-art';
 

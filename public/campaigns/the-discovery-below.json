@@ -4076,13 +4076,55 @@
       ],
       "blocks": [
         {
-          "block_type": "narration",
+          "block_type": "image",
           "display_order": 1,
+          "metadata": {
+            "asset_key": "S13A",
+            "alt": "The trapped crew carried up through the ventilation cut.",
+            "src": ""
+          },
+          "conditions": {
+            "type": "variable_equals",
+            "key": "RESCUE_STATE",
+            "value": "strong"
+          }
+        },
+        {
+          "block_type": "image",
+          "display_order": 2,
+          "metadata": {
+            "asset_key": "S13B",
+            "alt": "The Edenite ring restored across the broken gallery.",
+            "src": ""
+          },
+          "conditions": {
+            "type": "variable_equals",
+            "key": "RESCUE_STATE",
+            "value": "delegated"
+          }
+        },
+        {
+          "block_type": "image",
+          "display_order": 3,
+          "metadata": {
+            "asset_key": "S13C",
+            "alt": "The grounding route secured, alone, against the incursion.",
+            "src": ""
+          },
+          "conditions": {
+            "type": "variable_equals",
+            "key": "RESCUE_STATE",
+            "value": "delayed"
+          }
+        },
+        {
+          "block_type": "narration",
+          "display_order": 4,
           "content": "Every path reaches the central chamber. Varrik remains behind to hold a failing gate while Theron enters."
         },
         {
           "block_type": "dialogue",
-          "display_order": 2,
+          "display_order": 5,
           "content": "You wanted the cut stopped.",
           "metadata": {
             "speaker_key": "varrik",
@@ -4091,7 +4133,7 @@
         },
         {
           "block_type": "dialogue",
-          "display_order": 3,
+          "display_order": 6,
           "content": "I wanted you to stop it.",
           "metadata": {
             "speaker_key": "theron",
@@ -4100,7 +4142,7 @@
         },
         {
           "block_type": "dialogue",
-          "display_order": 4,
+          "display_order": 7,
           "content": "Take what you can get.",
           "metadata": {
             "speaker_key": "varrik",
@@ -4109,7 +4151,7 @@
         },
         {
           "block_type": "narration",
-          "display_order": 5,
+          "display_order": 8,
           "content": "Most of the lower crew came up through the ventilation cut. Some did not, and nobody had time to learn their names.",
           "conditions": {
             "type": "variable_equals",
@@ -4119,7 +4161,7 @@
         },
         {
           "block_type": "narration",
-          "display_order": 6,
+          "display_order": 9,
           "content": "The rescue was handed to other hands while Theron worked the arc.",
           "conditions": {
             "type": "variable_equals",
@@ -4129,7 +4171,7 @@
         },
         {
           "block_type": "dialogue",
-          "display_order": 7,
+          "display_order": 10,
           "content": "You build doors.",
           "metadata": {
             "speaker_key": "presence",
@@ -4144,7 +4186,7 @@
         },
         {
           "block_type": "dialogue",
-          "display_order": 8,
+          "display_order": 11,
           "content": "Today I'm closing one.",
           "metadata": {
             "speaker_key": "theron",
@@ -4158,21 +4200,21 @@
         },
         {
           "block_type": "divider",
-          "display_order": 9
+          "display_order": 12
         },
         {
           "block_type": "narration",
-          "display_order": 10,
+          "display_order": 13,
           "content": "The chamber is larger than before, because less of the barrier remains."
         },
         {
           "block_type": "narration",
-          "display_order": 11,
+          "display_order": 14,
           "content": "The Presence uses familiar voices in succession: Bethella, Edran, Timinny, then Theron's own."
         },
         {
           "block_type": "dialogue",
-          "display_order": 12,
+          "display_order": 15,
           "content": "They take from you. Open, and be more.",
           "metadata": {
             "speaker_key": "presence",
@@ -4182,7 +4224,7 @@
         },
         {
           "block_type": "dialogue",
-          "display_order": 13,
+          "display_order": 16,
           "content": "I've met important men. You sound just like them.",
           "metadata": {
             "speaker_key": "theron",
@@ -4191,12 +4233,12 @@
         },
         {
           "block_type": "narration",
-          "display_order": 14,
+          "display_order": 17,
           "content": "Theron identifies three surviving ring points. The extracted Edenite in his pack is not enough to rebuild the original barrier, but it can reconnect the remaining structure."
         },
         {
           "block_type": "narration",
-          "display_order": 15,
+          "display_order": 18,
           "content": "The copper path is ready and waiting.",
           "conditions": {
             "type": "variable_equals",
@@ -4206,7 +4248,7 @@
         },
         {
           "block_type": "narration",
-          "display_order": 16,
+          "display_order": 19,
           "content": "One connection has to be improvised with whatever came down in the pack.",
           "conditions": {
             "type": "any",
@@ -4226,7 +4268,7 @@
         },
         {
           "block_type": "narration",
-          "display_order": 17,
+          "display_order": 20,
           "content": "There is no cable left. There is an extraction tool, and there is his body.",
           "conditions": {
             "type": "variable_equals",
@@ -4236,7 +4278,7 @@
         },
         {
           "block_type": "dialogue",
-          "display_order": 18,
+          "display_order": 21,
           "content": "The northern point's higher than where you are. The map was wrong.",
           "metadata": {
             "speaker_key": "edran",
@@ -4245,7 +4287,7 @@
         },
         {
           "block_type": "dialogue",
-          "display_order": 19,
+          "display_order": 22,
           "content": "Your map or theirs?",
           "metadata": {
             "speaker_key": "theron",
@@ -4254,7 +4296,7 @@
         },
         {
           "block_type": "dialogue",
-          "display_order": 20,
+          "display_order": 23,
           "content": "Theirs.",
           "metadata": {
             "speaker_key": "edran",
@@ -4263,7 +4305,7 @@
         },
         {
           "block_type": "dialogue",
-          "display_order": 21,
+          "display_order": 24,
           "content": "I knew there was a reason I liked yours.",
           "metadata": {
             "speaker_key": "theron",
@@ -4272,7 +4314,7 @@
         },
         {
           "block_type": "dialogue",
-          "display_order": 22,
+          "display_order": 25,
           "content": "Don't brace against the force. Give it a path.",
           "metadata": {
             "speaker_key": "timinny",
@@ -4281,7 +4323,7 @@
         },
         {
           "block_type": "dialogue",
-          "display_order": 23,
+          "display_order": 26,
           "content": "A path where?",
           "metadata": {
             "speaker_key": "theron",
@@ -4290,7 +4332,7 @@
         },
         {
           "block_type": "dialogue",
-          "display_order": 24,
+          "display_order": 27,
           "content": "Somewhere that isn't us.",
           "metadata": {
             "speaker_key": "timinny",
@@ -4299,22 +4341,22 @@
         },
         {
           "block_type": "narration",
-          "display_order": 25,
+          "display_order": 28,
           "content": "Theron redirects the circuit through Crownvein's central supports and toward exposed bedrock beyond Sturmvale."
         },
         {
           "block_type": "discovery",
-          "display_order": 26,
+          "display_order": 29,
           "content": "The ring reconnects. Every loose fragment rises from the chamber floor and turns toward the gap. The lesser entities lose shape. The Presence strikes the barrier from below."
         },
         {
           "block_type": "narration",
-          "display_order": 27,
+          "display_order": 30,
           "content": "Theron closes the final connection with his hand. Storm charge passes through his arm, shoulder, and chest. Dark branching marks form beneath his skin. He remains conscious long enough to rotate the last fragment with its grain aligned to the ring."
         },
         {
           "block_type": "narration",
-          "display_order": 28,
+          "display_order": 31,
           "content": "The chamber contracts. The extracted galleries collapse inward, burying Crownvein's richest deposit back into the seal. The storm discharges across uninhabited western stone rather than Sturmvale."
         }
       ],
@@ -4432,8 +4474,17 @@
           "content": "Edran grips his unscarred hand."
         },
         {
-          "block_type": "narration",
+          "block_type": "image",
           "display_order": 4,
+          "metadata": {
+            "asset_key": "S15A",
+            "alt": "Family aftermath: the reunion in a damaged but standing Sturmvale.",
+            "src": ""
+          }
+        },
+        {
+          "block_type": "narration",
+          "display_order": 5,
           "content": "Varrik is carried out with a crushed arm and an expression that dares anyone to comment on it.",
           "conditions": {
             "type": "variable_equals",
@@ -4443,7 +4494,7 @@
         },
         {
           "block_type": "narration",
-          "display_order": 5,
+          "display_order": 6,
           "content": "Varrik does not come up. The last miners through the gate describe a man who did not move from it.",
           "conditions": {
             "type": "variable_equals",
@@ -4453,16 +4504,16 @@
         },
         {
           "block_type": "divider",
-          "display_order": 6
+          "display_order": 7
         },
         {
           "block_type": "narration",
-          "display_order": 7,
+          "display_order": 8,
           "content": "Bethella touches the edge of Theron's scar without touching the darkest lines."
         },
         {
           "block_type": "dialogue",
-          "display_order": 8,
+          "display_order": 9,
           "content": "Does it hurt?",
           "metadata": {
             "speaker_key": "bethella",
@@ -4471,7 +4522,7 @@
         },
         {
           "block_type": "dialogue",
-          "display_order": 9,
+          "display_order": 10,
           "content": "Only when I breathe.",
           "metadata": {
             "speaker_key": "theron",
@@ -4480,7 +4531,7 @@
         },
         {
           "block_type": "dialogue",
-          "display_order": 10,
+          "display_order": 11,
           "content": "Theron.",
           "metadata": {
             "speaker_key": "bethella",
@@ -4489,7 +4540,7 @@
         },
         {
           "block_type": "dialogue",
-          "display_order": 11,
+          "display_order": 12,
           "content": "Yes.",
           "metadata": {
             "speaker_key": "theron",
@@ -4498,7 +4549,7 @@
         },
         {
           "block_type": "dialogue",
-          "display_order": 12,
+          "display_order": 13,
           "content": "Does it hurt?",
           "metadata": {
             "speaker_key": "bethella",
@@ -4507,7 +4558,7 @@
         },
         {
           "block_type": "dialogue",
-          "display_order": 13,
+          "display_order": 14,
           "content": "Yes.",
           "metadata": {
             "speaker_key": "theron",
@@ -4516,17 +4567,17 @@
         },
         {
           "block_type": "narration",
-          "display_order": 14,
+          "display_order": 15,
           "content": "She rests her forehead against his."
         },
         {
           "block_type": "narration",
-          "display_order": 15,
+          "display_order": 16,
           "content": "Timinny goes through Theron's notes. His deepvein treatment took a knock in the disruption, but he is steady enough to keep arguing."
         },
         {
           "block_type": "dialogue",
-          "display_order": 16,
+          "display_order": 17,
           "content": "You rebuilt a continental barrier with mine scrap.",
           "metadata": {
             "speaker_key": "timinny",
@@ -4535,7 +4586,7 @@
         },
         {
           "block_type": "dialogue",
-          "display_order": 17,
+          "display_order": 18,
           "content": "Crownvein scrap.",
           "metadata": {
             "speaker_key": "theron",
@@ -4544,7 +4595,7 @@
         },
         {
           "block_type": "dialogue",
-          "display_order": 18,
+          "display_order": 19,
           "content": "Stolen Crownvein scrap.",
           "metadata": {
             "speaker_key": "timinny",
@@ -4553,7 +4604,7 @@
         },
         {
           "block_type": "dialogue",
-          "display_order": 19,
+          "display_order": 20,
           "content": "It returned itself.",
           "metadata": {
             "speaker_key": "theron",
@@ -4562,16 +4613,16 @@
         },
         {
           "block_type": "divider",
-          "display_order": 20
+          "display_order": 21
         },
         {
           "block_type": "narration",
-          "display_order": 21,
+          "display_order": 22,
           "content": "Orsik meets Theron without the elevation of the hearing chamber."
         },
         {
           "block_type": "dialogue",
-          "display_order": 22,
+          "display_order": 23,
           "content": "The Commission will record an unknown subterranean event and an emergency structural intervention.",
           "metadata": {
             "speaker_key": "orsik",
@@ -4595,7 +4646,7 @@
         },
         {
           "block_type": "dialogue",
-          "display_order": 23,
+          "display_order": 24,
           "content": "You saw what came out.",
           "metadata": {
             "speaker_key": "theron",
@@ -4619,7 +4670,7 @@
         },
         {
           "block_type": "dialogue",
-          "display_order": 24,
+          "display_order": 25,
           "content": "I saw what the public can survive knowing today.",
           "metadata": {
             "speaker_key": "orsik",
@@ -4643,7 +4694,7 @@
         },
         {
           "block_type": "dialogue",
-          "display_order": 25,
+          "display_order": 26,
           "content": "Crownvein failed after unauthorized interference with Commission property.",
           "metadata": {
             "speaker_key": "orsik",
@@ -4667,7 +4718,7 @@
         },
         {
           "block_type": "dialogue",
-          "display_order": 26,
+          "display_order": 27,
           "content": "He saved the city.",
           "metadata": {
             "speaker_key": "edran",
@@ -4691,7 +4742,7 @@
         },
         {
           "block_type": "dialogue",
-          "display_order": 27,
+          "display_order": 28,
           "content": "History requires evidence.",
           "metadata": {
             "speaker_key": "orsik",
@@ -4715,7 +4766,7 @@
         },
         {
           "block_type": "dialogue",
-          "display_order": 28,
+          "display_order": 29,
           "content": "No. Records require evidence. History happens regardless.",
           "metadata": {
             "speaker_key": "theron",
@@ -4739,7 +4790,7 @@
         },
         {
           "block_type": "dialogue",
-          "display_order": 29,
+          "display_order": 30,
           "content": "Put my statement in the record. Theron warned me before the first collapse. I ordered the cut anyway.",
           "metadata": {
             "speaker_key": "varrik",
@@ -4753,7 +4804,7 @@
         },
         {
           "block_type": "narration",
-          "display_order": 30,
+          "display_order": 31,
           "content": "Orsik cannot fully bury the account.",
           "conditions": {
             "type": "variable_equals",
@@ -4763,7 +4814,7 @@
         },
         {
           "block_type": "narration",
-          "display_order": 31,
+          "display_order": 32,
           "content": "Surviving miners repeat both Theron's warning and Varrik's final act, to anyone who will stand still for it.",
           "conditions": {
             "type": "all",
@@ -4783,16 +4834,25 @@
         },
         {
           "block_type": "divider",
-          "display_order": 32
+          "display_order": 33
         },
         {
           "block_type": "narration",
-          "display_order": 33,
+          "display_order": 34,
           "content": "Later, Theron sits in Timinny's workshop with his scarred arm supported in a sling. Edran's ring survey lies beside the three-point tower model. Theron sketches multiple elevated structures connected across a landscape."
         },
         {
+          "block_type": "image",
+          "display_order": 35,
+          "metadata": {
+            "asset_key": "S15B",
+            "alt": "The first tower sketch — a concept, not yet built.",
+            "src": ""
+          }
+        },
+        {
           "block_type": "dialogue",
-          "display_order": 34,
+          "display_order": 36,
           "content": "More seals?",
           "metadata": {
             "speaker_key": "edran",
@@ -4801,7 +4861,7 @@
         },
         {
           "block_type": "dialogue",
-          "display_order": 35,
+          "display_order": 37,
           "content": "Not below.",
           "metadata": {
             "speaker_key": "theron",
@@ -4810,7 +4870,7 @@
         },
         {
           "block_type": "dialogue",
-          "display_order": 36,
+          "display_order": 38,
           "content": "Towers?",
           "metadata": {
             "speaker_key": "timinny",
@@ -4819,7 +4879,7 @@
         },
         {
           "block_type": "dialogue",
-          "display_order": 37,
+          "display_order": 39,
           "content": "Paths. If the storm can be told where to leave one city, maybe it can be told to stay out of the rest.",
           "metadata": {
             "speaker_key": "theron",
@@ -4828,7 +4888,7 @@
         },
         {
           "block_type": "dialogue",
-          "display_order": 38,
+          "display_order": 40,
           "content": "That'll take more Edenite than you can fit in your pocket.",
           "metadata": {
             "speaker_key": "timinny",
@@ -4837,7 +4897,7 @@
         },
         {
           "block_type": "dialogue",
-          "display_order": 39,
+          "display_order": 41,
           "content": "Then I'll need a better pocket.",
           "metadata": {
             "speaker_key": "theron",
@@ -4846,45 +4906,54 @@
         },
         {
           "block_type": "divider",
-          "display_order": 40
-        },
-        {
-          "block_type": "narration",
-          "display_order": 41,
-          "content": "Crownvein was closed. Sturmvale stood. The High Council called the disaster contained."
-        },
-        {
-          "block_type": "narration",
-          "display_order": 42,
-          "content": "Far beyond Fulminary, shepherds watched birds abandon the western sky. Wells warmed in villages that had never heard the word Edenite. Along roads leading east, travelers carried stories of thunder beneath clear weather."
+          "display_order": 42
         },
         {
           "block_type": "narration",
           "display_order": 43,
-          "content": "Theron had closed one wound."
+          "content": "Crownvein was closed. Sturmvale stood. The High Council called the disaster contained."
         },
         {
           "block_type": "narration",
           "display_order": 44,
-          "content": "The land had begun to open elsewhere."
+          "content": "Far beyond Fulminary, shepherds watched birds abandon the western sky. Wells warmed in villages that had never heard the word Edenite. Along roads leading east, travelers carried stories of thunder beneath clear weather."
         },
         {
           "block_type": "narration",
           "display_order": 45,
+          "content": "Theron had closed one wound."
+        },
+        {
+          "block_type": "narration",
+          "display_order": 46,
+          "content": "The land had begun to open elsewhere."
+        },
+        {
+          "block_type": "narration",
+          "display_order": 47,
           "content": "An unnatural storm front moves from west to east across the distant continent."
         },
         {
+          "block_type": "image",
+          "display_order": 48,
+          "metadata": {
+            "asset_key": "S15C",
+            "alt": "Thunder moving east: an unnatural storm front crossing the continent.",
+            "src": ""
+          }
+        },
+        {
           "block_type": "divider",
-          "display_order": 46
+          "display_order": 49
         },
         {
           "block_type": "system_message",
-          "display_order": 47,
+          "display_order": 50,
           "content": "What was carried out of Crownvein"
         },
         {
           "block_type": "system_message",
-          "display_order": 48,
+          "display_order": 51,
           "content": "The seal below Sturmvale holds — locally, and only locally.",
           "conditions": {
             "type": "variable_equals",
@@ -4894,7 +4963,7 @@
         },
         {
           "block_type": "system_message",
-          "display_order": 49,
+          "display_order": 52,
           "content": "Theron carries a stormscar down his arm and shoulder.",
           "conditions": {
             "type": "variable_equals",
@@ -4904,7 +4973,7 @@
         },
         {
           "block_type": "system_message",
-          "display_order": 50,
+          "display_order": 53,
           "content": "Bethella reached shelter and breathes.",
           "conditions": {
             "type": "variable_equals",
@@ -4914,7 +4983,7 @@
         },
         {
           "block_type": "system_message",
-          "display_order": 51,
+          "display_order": 54,
           "content": "Timinny was caught in the open streets when the charge climbed the walls, and reached shelter on his own wheels.",
           "conditions": {
             "type": "variable_equals",
@@ -4924,7 +4993,7 @@
         },
         {
           "block_type": "system_message",
-          "display_order": 52,
+          "display_order": 55,
           "content": "Timinny's treatment was disrupted but he is alive and still arguing.",
           "conditions": {
             "type": "variable_equals",
@@ -4934,7 +5003,7 @@
         },
         {
           "block_type": "system_message",
-          "display_order": 53,
+          "display_order": 56,
           "content": "Varrik lives, one arm crushed.",
           "conditions": {
             "type": "variable_equals",
@@ -4944,7 +5013,7 @@
         },
         {
           "block_type": "system_message",
-          "display_order": 54,
+          "display_order": 57,
           "content": "Varrik did not come up.",
           "conditions": {
             "type": "variable_equals",
@@ -4954,7 +5023,7 @@
         },
         {
           "block_type": "system_message",
-          "display_order": 55,
+          "display_order": 58,
           "content": "The injured miner from the western face recovered.",
           "conditions": {
             "type": "variable_equals",
@@ -4964,7 +5033,7 @@
         },
         {
           "block_type": "system_message",
-          "display_order": 56,
+          "display_order": 59,
           "content": "The injured miner from the western face is in a critical bed, and the ward will not promise anything.",
           "conditions": {
             "type": "variable_equals",
@@ -4974,7 +5043,7 @@
         },
         {
           "block_type": "system_message",
-          "display_order": 57,
+          "display_order": 60,
           "content": "The miner Theron left beneath the brace lost a leg.",
           "conditions": {
             "type": "variable_equals",
@@ -4984,7 +5053,7 @@
         },
         {
           "block_type": "system_message",
-          "display_order": 58,
+          "display_order": 61,
           "content": "The warned crew came up in numbers that surprised everyone.",
           "conditions": {
             "type": "variable_equals",
@@ -4994,7 +5063,7 @@
         },
         {
           "block_type": "system_message",
-          "display_order": 59,
+          "display_order": 62,
           "content": "The crew went down unwarned, and the casualty list is longer than the record will admit.",
           "conditions": {
             "type": "variable_equals",
@@ -5004,7 +5073,7 @@
         },
         {
           "block_type": "system_message",
-          "display_order": 60,
+          "display_order": 63,
           "content": "Theron's measured notes survive.",
           "conditions": {
             "type": "variable_equals",
@@ -5014,7 +5083,7 @@
         },
         {
           "block_type": "system_message",
-          "display_order": 61,
+          "display_order": 64,
           "content": "Only a rescued man's word survives.",
           "conditions": {
             "type": "variable_equals",
@@ -5024,7 +5093,7 @@
         },
         {
           "block_type": "system_message",
-          "display_order": 62,
+          "display_order": 65,
           "content": "Whatever proof there was went down with the galleries.",
           "conditions": {
             "type": "variable_equals",
@@ -5034,7 +5103,7 @@
         },
         {
           "block_type": "system_message",
-          "display_order": 63,
+          "display_order": 66,
           "content": "Edran knows only what a map can be made to say.",
           "conditions": {
             "type": "variable_equals",
@@ -5044,7 +5113,7 @@
         },
         {
           "block_type": "system_message",
-          "display_order": 64,
+          "display_order": 67,
           "content": "Edran knows about the voice in the wall.",
           "conditions": {
             "type": "variable_equals",
@@ -5054,7 +5123,7 @@
         },
         {
           "block_type": "system_message",
-          "display_order": 65,
+          "display_order": 68,
           "content": "Edran knows all of it, theft included.",
           "conditions": {
             "type": "variable_equals",
@@ -5064,7 +5133,7 @@
         },
         {
           "block_type": "system_message",
-          "display_order": 66,
+          "display_order": 69,
           "content": "Timinny trusts Theron completely.",
           "conditions": {
             "type": "variable_equals",
@@ -5074,7 +5143,7 @@
         },
         {
           "block_type": "system_message",
-          "display_order": 67,
+          "display_order": 70,
           "content": "Timinny still checks Theron's work twice.",
           "conditions": {
             "type": "variable_equals",
@@ -5084,7 +5153,7 @@
         },
         {
           "block_type": "system_message",
-          "display_order": 68,
+          "display_order": 71,
           "content": "Timinny has not forgotten what Theron withheld.",
           "conditions": {
             "type": "variable_equals",
@@ -5094,7 +5163,7 @@
         },
         {
           "block_type": "system_message",
-          "display_order": 69,
+          "display_order": 72,
           "content": "Theron's exposure to the seam is minor.",
           "conditions": {
             "type": "variable_maximum",
@@ -5104,7 +5173,7 @@
         },
         {
           "block_type": "system_message",
-          "display_order": 70,
+          "display_order": 73,
           "content": "Theron has been in the charge more often than any body should be. Something in him answers weather now.",
           "conditions": {
             "type": "variable_minimum",
@@ -5114,7 +5183,7 @@
         },
         {
           "block_type": "system_message",
-          "display_order": 71,
+          "display_order": 74,
           "content": "The Commission's record will say the disaster was contained. Far to the east, the land has not read the record.",
           "conditions": {
             "type": "variable_equals",

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ImagePlus, Trash2, UploadCloud, X } from 'lucide-react';
+import { FolderUp, ImagePlus, Trash2, UploadCloud, X } from 'lucide-react';
 import { exportCampaignPackage } from '@/hooks/useJourneyStudio';
 import {
   isImageUrl, setJourneyAsset, uploadJourneyImage, visualBrief, type AssetTarget,
@@ -30,6 +30,9 @@ export function JourneyIllustrateSheet({
   const [slots, setSlots] = useState<Slot[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<Record<string, boolean>>({});
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkReport, setBulkReport] = useState<{ uploaded: string[]; skipped: string[] } | null>(null);
+  const bulkInputRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
     setError(null);
@@ -60,6 +63,20 @@ export function JourneyIllustrateSheet({
           label: `Character — ${npc.name ?? npc.npc_key}`,
           guidance: [npc.title, npc.description].filter(Boolean).join(' · ') || null,
           url: npc.portrait ?? null,
+        });
+      });
+      // Inline scene images (sequential S15 beats, branch-conditional S13
+      // outcomes) live inside a scene as image blocks tagged with an asset_key.
+      (pkg.scenes ?? []).forEach((s: any) => {
+        (s.blocks ?? []).forEach((b: any) => {
+          if (b.block_type === 'image' && b?.metadata?.asset_key) {
+            next.push({
+              id: `block:${b.metadata.asset_key}`, target: 'scene_block_image', key: b.metadata.asset_key,
+              label: `Scene image — ${b.metadata.asset_key} (${s.title ?? s.scene_key})`,
+              guidance: b.metadata.alt ?? null,
+              url: isImageUrl(b.metadata.src) ? b.metadata.src : null,
+            });
+          }
         });
       });
       setSlots(next);
@@ -104,6 +121,29 @@ export function JourneyIllustrateSheet({
     }
   };
 
+  const handleBulk = async (files: FileList) => {
+    if (!slots) return;
+    setError(null);
+    setBulkBusy(true);
+    setBulkReport(null);
+    const uploaded: string[] = [];
+    const skipped: string[] = [];
+    for (const file of Array.from(files)) {
+      const base = (file.name.split('/').pop() || file.name).toLowerCase();
+      const slot = slots.find((s) => { const p = fileMatchPattern(s); return p ? p.test(base) : false; });
+      if (!slot) { skipped.push(file.name); continue; }
+      try {
+        const url = await uploadJourneyImage(file, campaignId, slot.target, slot.key);
+        setSlotUrl(slot.id, url);
+        uploaded.push(slot.label);
+      } catch (e) {
+        skipped.push(`${file.name} — ${(e as Error).message}`);
+      }
+    }
+    setBulkBusy(false);
+    setBulkReport({ uploaded, skipped });
+  };
+
   const filled = slots?.filter((s) => isImageUrl(s.url)).length ?? 0;
 
   return createPortal(
@@ -135,6 +175,47 @@ export function JourneyIllustrateSheet({
             Uploads are saved to this campaign’s draft. <strong>Publish</strong> from the Studio to make the art live for players, and <strong>Export</strong> if you want to save the image links back into the campaign file.
           </p>
 
+          {/* Bulk import — drop a whole folder; files match slots by filename. */}
+          <div className="jy-panel mb-4 p-4">
+            <div className="flex items-center gap-2">
+              <FolderUp className="h-4 w-4" style={{ color: 'hsl(var(--jy-gold))' }} aria-hidden />
+              <span className="jy-display text-sm">Bulk import</span>
+            </div>
+            <p className="jy-muted mt-1 text-xs">
+              Choose all your exported PNGs at once — each is matched to its slot by filename
+              (<code>tdb-scene-&lt;code&gt;</code> → scene, <code>tdb-character-&lt;name&gt;</code> → portrait).
+              Anything it can’t place is listed so you can handle it by hand.
+            </p>
+            <input
+              ref={bulkInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={(e) => { if (e.target.files?.length) void handleBulk(e.target.files); e.target.value = ''; }}
+            />
+            <button
+              className="jy-btn jy-btn-sm jy-btn-primary mt-3"
+              disabled={bulkBusy || !slots}
+              onClick={() => bulkInputRef.current?.click()}
+            >
+              <FolderUp className="h-3.5 w-3.5" aria-hidden /> {bulkBusy ? 'Importing…' : 'Choose files'}
+            </button>
+            {bulkReport && (
+              <div className="mt-3 text-xs">
+                <p style={{ color: 'hsl(150 30% 62%)' }}>Uploaded {bulkReport.uploaded.length} file(s).</p>
+                {bulkReport.skipped.length > 0 && (
+                  <details className="mt-1">
+                    <summary className="jy-muted cursor-pointer">Skipped {bulkReport.skipped.length} (no matching slot)</summary>
+                    <ul className="jy-muted mt-1 space-y-0.5">
+                      {bulkReport.skipped.map((n, i) => <li key={i}>· {n}</li>)}
+                    </ul>
+                  </details>
+                )}
+              </div>
+            )}
+          </div>
+
           {error && (
             <p className="mb-4 text-sm" style={{ color: 'hsl(var(--jy-blood))' }}>{error}</p>
           )}
@@ -159,6 +240,26 @@ export function JourneyIllustrateSheet({
     </div>,
     document.body,
   );
+}
+
+/**
+ * Regex that matches an exported filename to a slot, following the manifest's
+ * naming convention (tdb-scene-<code>-…, tdb-character-<name>-…). Returns null
+ * for slots that have no filename convention (cover / hero / endings), which
+ * are left for manual upload. Theron requires the "canonical" file so the
+ * stormscar variant doesn't claim the portrait slot.
+ */
+function fileMatchPattern(slot: Slot): RegExp | null {
+  const k = slot.key.toLowerCase();
+  if (slot.target === 'scene_background' || slot.target === 'scene_block_image') {
+    return new RegExp(`^tdb-scene-${k}-`);
+  }
+  if (slot.target === 'npc_portrait') {
+    return slot.key === 'theron'
+      ? /^tdb-character-theron-canonical/
+      : new RegExp(`^tdb-character-${k}-`);
+  }
+  return null;
 }
 
 function ImageSlotRow({
