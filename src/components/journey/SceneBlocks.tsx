@@ -94,13 +94,13 @@ function renderBlock(b: RuntimeBlock, beat: Beat) {
     case 'image':
       return md.src ? (
         <Instant skip={beat.skip} onDone={beat.onDone}>
-          <figure className="jy-fade-in">
+          <figure className="jy-fade-in text-center">
             <img
               src={md.src}
               alt={md.alt ?? ''}
               loading="lazy"
               decoding="async"
-              className="w-full rounded-sm"
+              className="mx-auto max-h-[70vh] w-auto max-w-full rounded-sm"
               style={{ border: '1px solid hsl(var(--jy-border-subtle))' }}
             />
             {md.caption && <figcaption className="jy-muted mt-1.5 text-xs">{md.caption}</figcaption>}

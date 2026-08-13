@@ -105,6 +105,34 @@
   background: linear-gradient(90deg, transparent, hsl(var(--jy-border-strong)), transparent);
 }
 
+/* Scene banner — the scene's illustration, shown crisply at the top of the
+   reading column with the story below it (never dimmed behind the text). */
+.jy-scene-banner {
+  position: relative;
+  margin: 0 0 1.25rem;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid hsl(var(--jy-border-subtle));
+  background: hsl(var(--jy-bg-primary));
+  box-shadow: 0 18px 40px -30px hsl(0 0% 0% / 0.9);
+}
+.jy-scene-banner img {
+  display: block;
+  width: 100%;
+  max-height: 56vh;
+  object-fit: cover;
+  object-position: center top;
+}
+/* Gentle fade so the illustration settles into the page rather than ending
+   on a hard edge above the title. */
+.jy-scene-banner::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent 72%, hsl(var(--jy-bg-primary) / 0.6));
+}
+
 /* Campaign cover art — full-bleed at the top of a card, fading into it. */
 .jy-cover { position: relative; }
 .jy-cover img { display: block; }

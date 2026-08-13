@@ -67,10 +67,9 @@ export default function JourneyPlayPage() {
       <SceneAtmosphere
         sceneKey={scene?.scene_key}
         sceneType={scene?.scene_type}
-        // A URL is uploaded scene art (shown behind the text); anything else is
-        // a keyword the atmosphere system turns into a colour gradient.
+        // Ambiance only (colour gradient + drifting motes). Uploaded scene art
+        // is shown crisply as a banner above the text, not dimmed behind it.
         backgroundAsset={isImageUrl(scene?.background_asset) ? undefined : scene?.background_asset}
-        imageSrc={isImageUrl(scene?.background_asset) ? scene?.background_asset : undefined}
       />
       {chapterCurtain && (
         <ChapterInterstitial title={chapterCurtain} onDone={() => setChapterCurtain(null)} />
@@ -86,6 +85,12 @@ export default function JourneyPlayPage() {
         </span>
         {run.is_test_run && <span className="jy-chip jy-chip-blood">Test run</span>}
       </div>
+
+      {isImageUrl(scene?.background_asset) && (
+        <figure className="jy-scene-banner jy-fade-in" key={scene?.scene_key}>
+          <img src={scene!.background_asset!} alt="" loading="lazy" decoding="async" />
+        </figure>
+      )}
 
       <header className="jy-focal mb-6">
         <div className="jy-eyebrow">
