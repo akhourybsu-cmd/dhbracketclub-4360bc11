@@ -82,7 +82,18 @@ export default function JourneyHomePage() {
           </header>
 
           {currentRun && (
-            <section className="jy-panel-raised p-5">
+            <section className="jy-panel-raised overflow-hidden p-5">
+              {campaignById.get(currentRun.campaign_id)?.cover_image && (
+                <div className="jy-cover -mx-5 -mt-5 mb-4">
+                  <img
+                    src={campaignById.get(currentRun.campaign_id)!.cover_image}
+                    alt=""
+                    className="h-40 w-full object-cover"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </div>
+              )}
               <div className="jy-eyebrow">Your journey continues</div>
               <h2 className="jy-display mt-1 text-xl">
                 {campaignById.get(currentRun.campaign_id)?.title ?? 'A journey in progress'}
@@ -113,7 +124,12 @@ export default function JourneyHomePage() {
                 {playable.map((c) => {
                   const run = activeRuns.find((r) => r.campaign_id === c.id);
                   return (
-                    <article key={c.id} className="jy-panel p-4">
+                    <article key={c.id} className="jy-panel overflow-hidden p-4">
+                      {c.cover_image && (
+                        <div className="jy-cover -mx-4 -mt-4 mb-4">
+                          <img src={c.cover_image} alt="" className="h-36 w-full object-cover" loading="lazy" decoding="async" />
+                        </div>
+                      )}
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <h3 className="jy-display text-lg">{c.title}</h3>

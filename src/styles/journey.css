@@ -105,6 +105,17 @@
   background: linear-gradient(90deg, transparent, hsl(var(--jy-border-strong)), transparent);
 }
 
+/* Campaign cover art — full-bleed at the top of a card, fading into it. */
+.jy-cover { position: relative; }
+.jy-cover img { display: block; }
+.jy-cover::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent 50%, hsl(var(--jy-bg-surface) / 0.9));
+}
+
 /* ── Choices ──────────────────────────────────────────────────── */
 .jy-choice {
   display: block;
