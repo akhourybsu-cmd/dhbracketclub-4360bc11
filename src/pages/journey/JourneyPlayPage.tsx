@@ -34,11 +34,8 @@ export default function JourneyPlayPage() {
   const ended = run?.status === 'completed' || Boolean(scene?.is_terminal);
   const { ending, loading: endingLoading } = useJourneyEnding(ended ? runId : undefined, ended);
 
-  // Choices appear once the scene has finished narrating.
+  // Choices appear once the scene has finished narrating its final panel.
   const [told, setTold] = useState(false);
-  // `gate` holds the next choices behind a Continue button when the current
-  // scene was reached by making a choice (i.e. it's a consequence being read).
-  const [gate, setGate] = useState(false);
   // The beat the reader just left, shown above the consequence as context.
   const [prev, setPrev] = useState<PrevBeat | null>(null);
   const prevRef = useRef<PrevBeat | null>(null);
@@ -83,18 +80,16 @@ export default function JourneyPlayPage() {
     };
     prevRef.current = snap;
     setPrev(snap);
-    setGate(true);
     const ok = await chooseChoice(key);
-    if (!ok) { prevRef.current = null; setPrev(null); setGate(false); }
+    if (!ok) { prevRef.current = null; setPrev(null); }
   }, [choices, blocks, chooseChoice]);
 
   const advanceGated = useCallback(async () => {
     const snap: PrevBeat = { blocks, choiceText: '', choiceClass: '' };
     prevRef.current = snap;
     setPrev(snap);
-    setGate(true);
     const ok = await advance();
-    if (!ok) { prevRef.current = null; setPrev(null); setGate(false); }
+    if (!ok) { prevRef.current = null; setPrev(null); }
   }, [blocks, advance]);
 
   if (loading) {
@@ -164,11 +159,7 @@ export default function JourneyPlayPage() {
           {ended ? (
             told && <EndingScreen payload={ending} loading={endingLoading} campaignTitle={campaign?.title} />
           ) : choices.length > 0 ? (
-            told && (gate ? (
-              <ContinueButton busy={busy} label="Continue" onClick={() => setGate(false)} />
-            ) : (
-              <div className="jy-fade-in"><ChoiceList choices={choices} busy={busy} onChoose={onChoose} /></div>
-            ))
+            told && <div className="jy-fade-in"><ChoiceList choices={choices} busy={busy} onChoose={onChoose} /></div>
           ) : scene?.has_auto_next ? (
             told && <ContinueButton busy={busy} label={busy ? 'The tale moves…' : 'Continue'} onClick={() => { void advanceGated(); }} />
           ) : (

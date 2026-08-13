@@ -1,30 +1,48 @@
-import { Fragment, useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { BookOpen, MapPin, Package, ScrollText, Sparkles, Swords } from 'lucide-react';
 import type { RuntimeBlock } from '@/lib/journey/types';
 import { DialogueBlock } from './DialogueBlock';
 import { Instant, Typewriter } from './Typewriter';
 
+/** Split a scene's blocks into panels at every `divider` — each divider marks a
+ *  change of place or time, so it becomes a "Continue" break rather than a rule. */
+function splitPanels(blocks: RuntimeBlock[]): RuntimeBlock[][] {
+  const panels: RuntimeBlock[][] = [];
+  let cur: RuntimeBlock[] = [];
+  for (const b of blocks) {
+    if (b.block_type === 'divider') { panels.push(cur); cur = []; }
+    else cur.push(b);
+  }
+  panels.push(cur);
+  const nonEmpty = panels.filter((p) => p.length > 0);
+  return nonEmpty.length ? nonEmpty : [[]];
+}
+
 /**
- * Renders the ordered narrative blocks of a scene, one beat at a time: text is
- * narrated character by character, and the next block only appears once the
- * previous one has finished. Tapping anywhere reveals the rest immediately.
- * `onDone` fires when the whole scene has been told, so choices can follow.
+ * Renders a scene as a sequence of panels. Within a panel the beats narrate one
+ * at a time (tap to reveal the rest); a change of place or time (a divider) is a
+ * Continue button that carries the reader to the next panel, so a new location
+ * never spills into the one before it. `onDone` fires when the final panel has
+ * finished, so the scene's choices can follow.
  */
 export function SceneBlocks({
   blocks, onDone, instant = false,
 }: { blocks: RuntimeBlock[]; onDone?: () => void; instant?: boolean }) {
+  const panels = useMemo(() => splitPanels(blocks), [blocks]);
+  const [panel, setPanel] = useState(0);
   const [revealed, setRevealed] = useState(0);
   const [skip, setSkip] = useState(false);
   const doneRef = useRef(onDone);
   doneRef.current = onDone;
+  const panelTopRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { setRevealed(0); setSkip(false); }, [blocks]);
+  useEffect(() => { setPanel(0); setRevealed(0); setSkip(false); }, [blocks]);
 
-  // A finished scene shown as scrollback: render every block at once, no typing.
+  // A finished scene shown as scrollback: every block at once, no typing, no breaks.
   if (instant) {
     return (
       <div className="space-y-5">
-        {blocks.map((b, i) => (
+        {blocks.filter((b) => b.block_type !== 'divider').map((b, i) => (
           <Fragment key={`${b.block_type}-${b.display_order}-${i}`}>
             {renderBlock(b, { active: false, skip: true, onDone: () => {} })}
           </Fragment>
@@ -33,25 +51,54 @@ export function SceneBlocks({
     );
   }
 
-  const complete = revealed >= blocks.length;
-  useEffect(() => { if (complete) doneRef.current?.(); }, [complete]);
+  const cur = panels[panel] ?? [];
+  const panelComplete = revealed >= cur.length;
+  const isLast = panel >= panels.length - 1;
+
+  // Only the FINAL panel finishing tells the scene it's done (choices follow).
+  useEffect(() => { if (panelComplete && isLast) doneRef.current?.(); }, [panelComplete, isLast]);
+
+  const advancePanel = () => {
+    setPanel((p) => p + 1);
+    setRevealed(0);
+    setSkip(false);
+    requestAnimationFrame(() => panelTopRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' }));
+  };
 
   return (
-    <div
-      className="space-y-5"
-      onClick={() => { if (!complete) setSkip(true); }}
-    >
-      {blocks.slice(0, revealed + 1).map((b, i) => (
-        <Fragment key={`${b.block_type}-${b.display_order}-${i}`}>
-          {renderBlock(b, {
-            active: i === revealed,
-            skip: skip || i < revealed,
-            onDone: () => setRevealed((n) => Math.max(n, i + 1)),
-          })}
-        </Fragment>
+    <div className="space-y-5">
+      {/* Panels already read — kept as quiet scrollback. */}
+      {panels.slice(0, panel).map((p, idx) => (
+        <div key={`past-${idx}`} className="space-y-5" style={{ opacity: 0.6 }}>
+          {p.map((b, i) => (
+            <Fragment key={`past-${idx}-${i}`}>
+              {renderBlock(b, { active: false, skip: true, onDone: () => {} })}
+            </Fragment>
+          ))}
+          <div className="jy-rule" />
+        </div>
       ))}
-      {!complete && (
+
+      {/* The panel being read now. */}
+      <div ref={panelTopRef} className="space-y-5" onClick={() => { if (!panelComplete) setSkip(true); }}>
+        {cur.slice(0, revealed + 1).map((b, i) => (
+          <Fragment key={`p${panel}-${i}`}>
+            {renderBlock(b, {
+              active: i === revealed,
+              skip: skip || i < revealed,
+              onDone: () => setRevealed((n) => Math.max(n, i + 1)),
+            })}
+          </Fragment>
+        ))}
+      </div>
+
+      {!panelComplete && (
         <div className="jy-muted text-[0.7rem] tracking-wide">tap to continue</div>
+      )}
+      {panelComplete && !isLast && (
+        <div className="jy-fade-in mt-6 text-center">
+          <button type="button" className="jy-btn jy-btn-primary" onClick={advancePanel}>Continue</button>
+        </div>
       )}
     </div>
   );
