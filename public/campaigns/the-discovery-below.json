@@ -201,6 +201,12 @@
       "npc_key": "emc_official",
       "name": "EMC Official",
       "description": "A functionary of the Commission."
+    },
+    {
+      "npc_key": "joren",
+      "name": "Joren Vale",
+      "title": "Crownvein miner",
+      "description": "Twenty-two years underground and three daughters’ worth of luck. Steady, dry, and slow to spook."
     }
   ],
   "factions": [
@@ -607,147 +613,176 @@
       "blocks": [
         {
           "block_type": "narration",
-          "display_order": 1,
-          "content": "The roof always knew the storm before the sky did."
+          "content": "The roof always knew the storm before the sky did.",
+          "display_order": 1
         },
         {
           "block_type": "narration",
-          "display_order": 2,
-          "content": "Its oldest beams complained first, a low wooden groan above the kitchen. Then pale light passed through the Edenite braces Theron had fitted into the western joints last winter."
+          "content": "Its oldest beams complained first, groaning softly over the kitchen as if roused from an uneasy sleep. A breath later a pale blue shimmer moved through the western joints — there and gone so quickly it might have been moonlight, except that dawn had not yet found Sturmvale.",
+          "display_order": 2
         },
         {
           "block_type": "narration",
-          "display_order": 3,
-          "content": "Outside, Sturmvale remained dark and almost peaceful. Chimney smoke rested above the lower streets. The clouds gathered without wind."
+          "content": "Theron looked up from the buckle of his mining satchel.",
+          "display_order": 3
         },
         {
           "block_type": "narration",
-          "display_order": 4,
-          "content": "At the table, Edran had managed to bury breakfast beneath three survey rolls and a badly folded elevation map. Bethella watched both sons while pretending to watch neither."
+          "content": "The house had survived three generations of weather and two of repairs, though survival had left it with little dignity. Its walls were the pale local stone of western Fulminary; its rafters dark timber, smoke-stained and bowed. Where the roof had split the winter before, Theron had packed the seams with mason’s compound mixed with powdered Edenite. Worked into mortar, the precious mineral could scarcely be seen — which was precisely the point. In Sturmvale, Edenite was not ornament. It lived inside bridge piers, retaining walls, infirmary splints, and the bones of old houses whose owners could not afford to rebuild them.",
+          "display_order": 4
+        },
+        {
+          "block_type": "narration",
+          "content": "It was the reason the city still stood beneath its increasingly violent skies. It was also the reason Theron spent most of his waking life underground.",
+          "display_order": 5
         },
         {
           "block_type": "dialogue",
-          "display_order": 5,
-          "content": "The western brace just flashed again.",
+          "content": "The western brace flashed again.",
           "metadata": {
             "speaker_key": "bethella",
             "speaker_name": "Bethella"
-          }
+          },
+          "display_order": 6
+        },
+        {
+          "block_type": "narration",
+          "content": "Bethella was Theron’s mother, though strangers sometimes mistook her for his elder sister. Elves aged slowly, and illness had thinned her without yet making her look old. A wool blanket covered her knees. One hand rested around a cup that had long since stopped steaming; the other lay near the small silver clasp at her collar, where a sliver of Edenite no larger than a fingernail had been set.",
+          "display_order": 7
         },
         {
           "block_type": "dialogue",
-          "display_order": 6,
-          "content": "It likes the attention.",
+          "content": "It likes attention.",
           "metadata": {
             "speaker_key": "theron",
             "speaker_name": "Theron"
-          }
+          },
+          "display_order": 8
         },
         {
           "block_type": "dialogue",
-          "display_order": 7,
-          "content": "You're the one who installed it.",
+          "content": "You installed it.",
           "metadata": {
             "speaker_key": "edran",
             "speaker_name": "Edran"
-          }
+          },
+          "display_order": 9
+        },
+        {
+          "block_type": "narration",
+          "content": "That was Edran, Theron’s younger brother — twenty-four, earnest in all the places Theron had learned to be guarded, and presently losing a battle against three maps, a heel of bread, and an ink pot set much too near his elbow.",
+          "display_order": 10
         },
         {
           "block_type": "dialogue",
-          "display_order": 8,
-          "content": "Which is how I'd know.",
+          "content": "Which is how I know.",
           "metadata": {
             "speaker_key": "theron",
             "speaker_name": "Theron"
-          }
+          },
+          "display_order": 11
         },
         {
           "block_type": "dialogue",
-          "display_order": 9,
-          "content": "You told me it'd last through winter.",
+          "content": "You said it would last through winter.",
           "metadata": {
             "speaker_key": "bethella",
             "speaker_name": "Bethella"
-          }
+          },
+          "display_order": 12
         },
         {
           "block_type": "dialogue",
-          "display_order": 10,
           "content": "It did.",
           "metadata": {
             "speaker_key": "theron",
             "speaker_name": "Theron"
-          }
+          },
+          "display_order": 13
         },
         {
           "block_type": "dialogue",
-          "display_order": 11,
-          "content": "It's summer.",
+          "content": "It is summer.",
           "metadata": {
             "speaker_key": "edran",
             "speaker_name": "Edran"
-          }
+          },
+          "display_order": 14
         },
         {
           "block_type": "dialogue",
-          "display_order": 12,
-          "content": "Then we've exceeded expectations.",
+          "content": "Then we exceeded expectations.",
           "metadata": {
             "speaker_key": "theron",
             "speaker_name": "Theron"
-          }
+          },
+          "display_order": 15
         },
         {
           "block_type": "narration",
-          "display_order": 13,
-          "content": "Bethella's laugh becomes a shallow cough. Theron crosses to her and checks the small Edenite setting in the clasp at her collar. Its light is fading."
+          "content": "His mother’s laugh broke into a cough. It began lightly enough, then caught deep in her chest and would not leave. Theron crossed the kitchen before Edran could rise, steadying her cup with one hand while he touched the setting at her collar with the other. The Edenite was dim.",
+          "display_order": 16
+        },
+        {
+          "block_type": "narration",
+          "content": "Stormlung had begun as a miner’s ailment generations ago, when stone dust and charged air scarred the breath. Now it took people who had never gone down a shaft. Physicians blamed the metallic rain, the pressure, the dust shaken loose whenever thunder rolled under a clear sky. They agreed on little except that properly prepared Edenite eased the spasms — provided one had enough of it.",
+          "display_order": 17
         },
         {
           "block_type": "dialogue",
-          "display_order": 14,
-          "content": "Don't start fussing.",
+          "content": "Do not start fussing.",
           "metadata": {
             "speaker_key": "bethella",
             "speaker_name": "Bethella"
-          }
+          },
+          "display_order": 18
         },
         {
           "block_type": "dialogue",
-          "display_order": 15,
-          "content": "I haven't started. This is just the quiet part, before the fussing.",
+          "content": "I have not started. This is the quiet part, before the fussing.",
           "metadata": {
             "speaker_key": "theron",
             "speaker_name": "Theron"
-          }
+          },
+          "display_order": 19
         },
         {
           "block_type": "dialogue",
-          "display_order": 16,
-          "content": "Timinny's teaching you bad habits.",
+          "content": "Timinny is teaching you bad habits.",
           "metadata": {
             "speaker_key": "bethella",
             "speaker_name": "Bethella"
-          }
+          },
+          "display_order": 20
         },
         {
           "block_type": "dialogue",
-          "display_order": 17,
-          "content": "Timinny taught him to label the bad habits.",
+          "content": "Timinny taught him to label his bad habits.",
           "metadata": {
             "speaker_key": "edran",
             "speaker_name": "Edran"
-          }
+          },
+          "display_order": 21
         },
         {
           "block_type": "narration",
-          "display_order": 18,
-          "content": "Bethella catches Theron studying the fading stone."
+          "content": "Theron tilted the silver clasp toward the stove light. The fine veins within had gone almost colorless. It might last another week. It might fail that afternoon, if the storm broke hard. Bethella watched his face and, as mothers do, found the thought he had hoped to hide.",
+          "display_order": 22
+        },
+        {
+          "block_type": "dialogue",
+          "content": "Well?",
+          "metadata": {
+            "speaker_key": "bethella",
+            "speaker_name": "Bethella"
+          },
+          "display_order": 23
         }
       ],
       "choices": [
         {
           "choice_key": "E01-A",
-          "choice_text": "\"I'll bring home enough for a proper setting this time. No more scraps.\"",
+          "choice_text": "\"I will bring home enough for a proper setting. No scraps this time.\"",
           "short_label": "Reassure her",
           "choice_style": "compassionate",
           "display_order": 1,
@@ -762,7 +797,7 @@
         },
         {
           "choice_key": "E01-B",
-          "choice_text": "\"If the roof does come down, at least Edran's maps can tell us where it landed.\"",
+          "choice_text": "\"If the roof comes down, Edran's maps can tell us where it landed.\"",
           "short_label": "Deflect with humor",
           "choice_style": "dialogue",
           "display_order": 2,
@@ -777,7 +812,7 @@
         },
         {
           "choice_key": "E01-C",
-          "choice_text": "\"The charge is building faster than it should. Do me a favor — stay off the western wall today.\"",
+          "choice_text": "\"The charge is building faster than it should. Stay away from the western wall today.\"",
           "short_label": "Admit concern",
           "choice_style": "dialogue",
           "display_order": 3,
@@ -806,353 +841,403 @@
       "author_notes": "Fixed event: grounding behaviour first observed. Includes the S01 tone payoff, the map setup and the treatment beat. visual_brief: A crowded engineering workshop of bridge models, stone braces, copper leads and mineral samples; Timinny in a rugged self-built wheeled chair; Theron kneeling at a miniature stone arch braced by three blue-white Edenite fragments; storm-dark window backlight. ASSET UNRESOLVED.",
       "blocks": [
         {
-          "block_type": "dialogue",
-          "display_order": 1,
-          "content": "Just bring yourself home. We can negotiate with the roof.",
-          "metadata": {
-            "speaker_key": "bethella",
-            "speaker_name": "Bethella"
-          },
-          "conditions": {
-            "type": "variable_equals",
-            "key": "THERON_TONE",
-            "value": "reassuring"
-          }
+          "block_type": "narration",
+          "content": "Theron released the clasp only after its light steadied. As he straightened, a red wax crest on Edran’s uppermost map caught his eye — a crown divided by a descending line. Beneath it, in precise Commission lettering: CROWNVEIN — LOWER EXPANSION.",
+          "display_order": 1
         },
         {
           "block_type": "dialogue",
-          "display_order": 2,
-          "content": "Approximately.",
-          "metadata": {
-            "speaker_key": "edran",
-            "speaker_name": "Edran"
-          },
-          "conditions": {
-            "type": "variable_equals",
-            "key": "THERON_TONE",
-            "value": "humorous"
-          }
-        },
-        {
-          "block_type": "dialogue",
-          "display_order": 3,
-          "content": "You both got that from someone, and it wasn't me.",
-          "metadata": {
-            "speaker_key": "bethella",
-            "speaker_name": "Bethella"
-          },
-          "conditions": {
-            "type": "variable_equals",
-            "key": "THERON_TONE",
-            "value": "humorous"
-          }
-        },
-        {
-          "block_type": "dialogue",
-          "display_order": 4,
-          "content": "Then just say you're worried. Instructions aren't the same thing.",
-          "metadata": {
-            "speaker_key": "bethella",
-            "speaker_name": "Bethella"
-          },
-          "conditions": {
-            "type": "variable_equals",
-            "key": "THERON_TONE",
-            "value": "candid"
-          }
-        },
-        {
-          "block_type": "dialogue",
-          "display_order": 5,
-          "content": "I'm worried.",
+          "content": "That should not be here.",
           "metadata": {
             "speaker_key": "theron",
             "speaker_name": "Theron"
           },
-          "conditions": {
-            "type": "variable_equals",
-            "key": "THERON_TONE",
-            "value": "candid"
-          }
+          "display_order": 2
+        },
+        {
+          "block_type": "dialogue",
+          "content": "Good morning to you too.",
+          "metadata": {
+            "speaker_key": "edran",
+            "speaker_name": "Edran"
+          },
+          "display_order": 3
+        },
+        {
+          "block_type": "dialogue",
+          "content": "Crownvein surveys do not leave the EMC archive.",
+          "metadata": {
+            "speaker_key": "theron",
+            "speaker_name": "Theron"
+          },
+          "display_order": 4
         },
         {
           "block_type": "narration",
-          "display_order": 6,
-          "content": "Theron notices the crest on Edran's top survey: CROWNVEIN — LOWER EXPANSION."
+          "content": "Everyone in Sturmvale knew the initials. The Edenite Mining Commission licensed every legal shaft in Fulminary, set extraction quotas, and decided which walls were reinforced when the storms damaged more of the city than the season’s supply could mend. Crownvein was its newest undertaking and already its most valuable — a western mine sunk into a formation so rich the High Council had begun measuring its future in cartloads.",
+          "display_order": 5
         },
         {
           "block_type": "dialogue",
-          "display_order": 7,
-          "content": "That shouldn't be here.",
-          "metadata": {
-            "speaker_key": "theron",
-            "speaker_name": "Theron"
-          }
-        },
-        {
-          "block_type": "dialogue",
-          "display_order": 8,
-          "content": "Good morning to you, too.",
+          "content": "It is a training copy. Old measurements. No extraction marks.",
           "metadata": {
             "speaker_key": "edran",
             "speaker_name": "Edran"
-          }
-        },
-        {
-          "block_type": "dialogue",
-          "display_order": 9,
-          "content": "Crownvein surveys don't leave the EMC archive.",
-          "metadata": {
-            "speaker_key": "theron",
-            "speaker_name": "Theron"
-          }
-        },
-        {
-          "block_type": "dialogue",
-          "display_order": 10,
-          "content": "It's a training copy — old measurements, no extraction marks. I've got to reconcile the western descent.",
-          "metadata": {
-            "speaker_key": "edran",
-            "speaker_name": "Edran"
-          }
+          },
+          "display_order": 6
         },
         {
           "block_type": "narration",
-          "display_order": 11,
-          "content": "Theron studies a pale, blank curve inside the lower strata."
+          "content": "Edran worked as a junior stone-cartographer, which meant the Commission trusted him to copy the discoveries of better-paid surveyors without adding any of his own. The work suited his patience. It did not suit his imagination — though Edran had not yet decided whether he possessed one.",
+          "display_order": 7
         },
         {
           "block_type": "dialogue",
-          "display_order": 12,
-          "content": "What's this?",
+          "content": "I have to reconcile the western descent before second bell. Master Selwick says my strata lines wander.",
+          "metadata": {
+            "speaker_key": "edran",
+            "speaker_name": "Edran"
+          },
+          "display_order": 8
+        },
+        {
+          "block_type": "dialogue",
+          "content": "They do wander.",
           "metadata": {
             "speaker_key": "theron",
             "speaker_name": "Theron"
-          }
+          },
+          "display_order": 9
         },
         {
           "block_type": "dialogue",
-          "display_order": 13,
+          "content": "Stone is allowed to.",
+          "metadata": {
+            "speaker_key": "edran",
+            "speaker_name": "Edran"
+          },
+          "display_order": 10
+        },
+        {
+          "block_type": "dialogue",
+          "content": "Cartographers are not.",
+          "metadata": {
+            "speaker_key": "theron",
+            "speaker_name": "Theron"
+          },
+          "display_order": 11
+        },
+        {
+          "block_type": "narration",
+          "content": "Theron leaned over the table. Near the bottom of the survey, the western descent curved around a pale crescent where the contour marks simply ceased. It was too smooth to be spilled ink and too deliberate to be damage.",
+          "display_order": 12
+        },
+        {
+          "block_type": "dialogue",
+          "content": "What is this?",
+          "metadata": {
+            "speaker_key": "theron",
+            "speaker_name": "Theron"
+          },
+          "display_order": 13
+        },
+        {
+          "block_type": "dialogue",
           "content": "Bad ink.",
           "metadata": {
             "speaker_key": "edran",
             "speaker_name": "Edran"
-          }
+          },
+          "display_order": 14
         },
         {
           "block_type": "dialogue",
-          "display_order": 14,
           "content": "Ink usually has the decency to exist.",
           "metadata": {
             "speaker_key": "theron",
             "speaker_name": "Theron"
-          }
+          },
+          "display_order": 15
         },
         {
           "block_type": "dialogue",
-          "display_order": 15,
-          "content": "A copying omission. Every survey's got one.",
+          "content": "A copying omission. Every survey has one.",
           "metadata": {
             "speaker_key": "edran",
             "speaker_name": "Edran"
-          }
+          },
+          "display_order": 16
         },
         {
           "block_type": "dialogue",
-          "display_order": 16,
-          "content": "You'll miss Timinny.",
+          "content": "Not shaped like that.",
           "metadata": {
-            "speaker_key": "bethella",
-            "speaker_name": "Bethella"
-          }
+            "speaker_key": "theron",
+            "speaker_name": "Theron"
+          },
+          "display_order": 17
+        },
+        {
+          "block_type": "dialogue",
+          "content": "You cut stone, Theron. I draw it.",
+          "metadata": {
+            "speaker_key": "edran",
+            "speaker_name": "Edran"
+          },
+          "display_order": 18
+        },
+        {
+          "block_type": "dialogue",
+          "content": "Then draw that.",
+          "metadata": {
+            "speaker_key": "theron",
+            "speaker_name": "Theron"
+          },
+          "display_order": 19
         },
         {
           "block_type": "narration",
-          "display_order": 17,
-          "content": "Theron releases the map."
+          "content": "For a moment Edran said nothing. His fingertip traced the blank curve without touching the parchment. Theron knew the small crease between his brows: his brother had noticed the anomaly before now — he had only lacked a name for it.",
+          "display_order": 20
         },
         {
           "block_type": "dialogue",
-          "display_order": 18,
+          "content": "You will miss Timinny.",
+          "metadata": {
+            "speaker_key": "bethella",
+            "speaker_name": "Bethella"
+          },
+          "display_order": 21
+        },
+        {
+          "block_type": "narration",
+          "content": "Beyond the narrow window the clouds had thickened into a single dark shelf over the western roofs. Timinny disliked tardiness on principle, particularly when Theron was the one practicing it.",
+          "display_order": 22
+        },
+        {
+          "block_type": "dialogue",
           "content": "Keep this one out.",
           "metadata": {
             "speaker_key": "theron",
             "speaker_name": "Theron"
-          }
+          },
+          "display_order": 23
         },
         {
           "block_type": "dialogue",
-          "display_order": 19,
           "content": "Why?",
           "metadata": {
             "speaker_key": "edran",
             "speaker_name": "Edran"
-          }
+          },
+          "display_order": 24
         },
         {
           "block_type": "dialogue",
-          "display_order": 20,
-          "content": "It's got bad ink.",
+          "content": "It has bad ink.",
           "metadata": {
             "speaker_key": "theron",
             "speaker_name": "Theron"
-          }
+          },
+          "display_order": 25
         },
         {
           "block_type": "narration",
-          "display_order": 21,
-          "content": "Theron steps into the cold morning. Somewhere beneath the western streets, something strikes stone three times. He stops. The sound does not repeat."
+          "content": "At the door Theron paused to look back. Bethella had drawn the blanket closer. Edran was already bent over the Crownvein sheet, his breakfast forgotten. Between them stood a house held together by old timber, careful repairs, and trace amounts of the thing Theron was helping tear from the earth. He stepped into the cold morning.",
+          "display_order": 26
+        },
+        {
+          "block_type": "narration",
+          "content": "Sturmvale fell away around him in steep streets and pale terraces, the mining capital rising from the Fulminary foothills like a city braced against an unseen hand. Copper lightning rods crowded the roofs. Drain channels crossed every lane. Far above, the High Council’s towers watched over districts that grew poorer the nearer they came to the mine lifts.",
+          "display_order": 27
+        },
+        {
+          "block_type": "narration",
+          "content": "Somewhere beneath the western street, something struck stone three times. Theron stopped. The blows reached him through the soles of his boots — three, evenly spaced, too measured for settling foundations. A cart rattled around the corner; when it passed, the street was silent again. He waited. The sound did not repeat.",
+          "display_order": 28
         },
         {
           "block_type": "divider",
-          "display_order": 22
+          "display_order": 29
         },
         {
           "block_type": "narration",
-          "display_order": 23,
-          "content": "Timinny's workshop contained three kinds of object: things that worked, things that might work, and things he insisted had been ruined by someone else's measurements."
+          "content": "Timinny’s workshop contained three kinds of object: things that worked, things that might work, and things he insisted had been ruined by someone else’s measurements. Models of bridges hung from ceiling hooks. Copper leads crossed the walls in tangled lines. Stone braces, gear housings, mineral samples, and annotated failures competed for space on tables that had not held food in years. The room smelled of lamp oil, hot metal, and the bitter antiseptic paste Timinny pretended not to need.",
+          "display_order": 30
         },
         {
           "block_type": "narration",
-          "display_order": 24,
-          "content": "Theron finds him beneath a suspended bridge model, tightening a copper contact from his chair."
+          "content": "Theron found the old inventor beneath a suspended bridge model, tightening a copper contact. Timinny was not, in truth, very old for an elf — pain had aged him more efficiently than time. A heavy blanket covered his legs, and his body sat within a rugged wheeled chair of his own design, all dark wood, brass joints, and stubbornly unnecessary improvements. Years earlier an infection called deepvein had entered through a workshop wound and settled into the nerves of his lower body. Edenite treatment had stopped its spread. It had not restored his legs. He had built the chair after dismissing every other model as an insult to wheels — and he had taught Theron that stone could be questioned, provided one learned to recognize its answers.",
+          "display_order": 31
         },
         {
           "block_type": "dialogue",
-          "display_order": 25,
-          "content": "You're late.",
+          "content": "You are late.",
           "metadata": {
             "speaker_key": "timinny",
             "speaker_name": "Timinny"
-          }
+          },
+          "display_order": 32
         },
         {
           "block_type": "dialogue",
-          "display_order": 26,
-          "content": "I'm early for tomorrow.",
+          "content": "I am early for tomorrow.",
           "metadata": {
             "speaker_key": "theron",
             "speaker_name": "Theron"
-          }
+          },
+          "display_order": 33
         },
         {
           "block_type": "dialogue",
-          "display_order": 27,
           "content": "That joke was tired when I still walked.",
           "metadata": {
             "speaker_key": "timinny",
             "speaker_name": "Timinny"
-          }
+          },
+          "display_order": 34
         },
         {
           "block_type": "dialogue",
-          "display_order": 28,
-          "content": "You laughed back then.",
+          "content": "You laughed then.",
           "metadata": {
             "speaker_key": "theron",
             "speaker_name": "Theron"
-          }
+          },
+          "display_order": 35
         },
         {
           "block_type": "dialogue",
-          "display_order": 29,
-          "content": "I could leave the room back then.",
+          "content": "I could leave the room then.",
           "metadata": {
             "speaker_key": "timinny",
             "speaker_name": "Timinny"
-          }
+          },
+          "display_order": 36
         },
         {
           "block_type": "narration",
-          "display_order": 30,
-          "content": "Theron sets a wrapped fragment on the table. Timinny's expression changes when he sees its unusual density."
+          "content": "Theron took a small parcel from the false bottom of his satchel, its cloth singed at one corner, and set it on the clearest part of the bench — which required moving two calipers, a cracked lens, and something that looked distressingly like a mechanical finger. The humor left Timinny’s face the moment the cloth opened. The fragment was nothing like the pale commercial cuts sold to masons and physicians: its blue-white glow was dense enough to cast shadows, and a dark filament ran through its center like ink trapped beneath ice.",
+          "display_order": 37
         },
         {
           "block_type": "dialogue",
-          "display_order": 31,
-          "content": "That's not waste stone.",
+          "content": "That is not waste stone.",
           "metadata": {
             "speaker_key": "timinny",
             "speaker_name": "Timinny"
-          }
+          },
+          "display_order": 38
         },
         {
           "block_type": "dialogue",
-          "display_order": 32,
-          "content": "It was going to be waste.",
+          "content": "It was going to become waste.",
           "metadata": {
             "speaker_key": "theron",
             "speaker_name": "Theron"
-          }
+          },
+          "display_order": 39
         },
         {
           "block_type": "dialogue",
-          "display_order": 33,
           "content": "Everything becomes waste if you steal it badly enough.",
           "metadata": {
             "speaker_key": "timinny",
             "speaker_name": "Timinny"
-          }
+          },
+          "display_order": 40
         },
         {
           "block_type": "narration",
-          "display_order": 34,
-          "content": "Timinny has him set the fragment into a three-point brace around a cracked model tower. A copper vane feeds static down from the workshop roof."
-        },
-        {
-          "block_type": "discovery",
-          "display_order": 35,
-          "content": "The discharge strikes. Instead of merely strengthening the crack, the Edenite pulls the charge sideways. Pale light passes through all three points and grounds into the stone base."
+          "content": "Timinny rolled to the far table and swept a stack of drawings to the floor without apology. A miniature stone tower stood there, split from base to parapet, three shallow housings carved around it.",
+          "display_order": 41
         },
         {
           "block_type": "dialogue",
-          "display_order": 36,
+          "content": "The southern piece first.",
+          "metadata": {
+            "speaker_key": "timinny",
+            "speaker_name": "Timinny"
+          },
+          "display_order": 42
+        },
+        {
+          "block_type": "narration",
+          "content": "Theron divided the fragments and seated them in the housings. Timinny connected each to a copper lead, then raised a vane through the workshop’s roof vent. Static had been gathering over Sturmvale since midnight; it traveled down the wire with a rising whine.",
+          "display_order": 43
+        },
+        {
+          "block_type": "dialogue",
+          "content": "If this explodes, Bethella will blame you.",
+          "metadata": {
+            "speaker_key": "theron",
+            "speaker_name": "Theron"
+          },
+          "display_order": 44
+        },
+        {
+          "block_type": "dialogue",
+          "content": "If it explodes, cultivate the discipline not to tell her.",
+          "metadata": {
+            "speaker_key": "timinny",
+            "speaker_name": "Timinny"
+          },
+          "display_order": 45
+        },
+        {
+          "block_type": "discovery",
+          "content": "The discharge struck. White light snapped across the table — and instead of splitting the cracked model apart, the radiance passed from the first Edenite fragment into the second, then the third, traveling sideways around the break and sinking harmlessly into the base. The fracture remained, but its edges had drawn closer together.",
+          "display_order": 46
+        },
+        {
+          "block_type": "dialogue",
           "content": "It moved.",
           "metadata": {
             "speaker_key": "theron",
             "speaker_name": "Theron"
-          }
+          },
+          "display_order": 47
         },
         {
           "block_type": "dialogue",
-          "display_order": 37,
           "content": "Energy moves.",
           "metadata": {
             "speaker_key": "timinny",
             "speaker_name": "Timinny"
-          }
+          },
+          "display_order": 48
         },
         {
           "block_type": "dialogue",
-          "display_order": 38,
           "content": "Not like that.",
           "metadata": {
             "speaker_key": "theron",
             "speaker_name": "Theron"
-          }
+          },
+          "display_order": 49
         },
         {
           "block_type": "dialogue",
-          "display_order": 39,
           "content": "No. Not like that.",
           "metadata": {
             "speaker_key": "timinny",
             "speaker_name": "Timinny"
-          }
+          },
+          "display_order": 50
         },
         {
           "block_type": "narration",
-          "display_order": 40,
-          "content": "Timinny rotates the fragment with a tool. A dark thread lies within its glow."
+          "content": "For years Fulminary’s engineers had treated Edenite as a substance — crush it into mortar, set it against damaged flesh, place it where the pressure was greatest. What lay on the table suggested something else. The pieces had not acted alone. They had behaved as parts of a single arrangement. A system. Timinny lifted the fragment with padded forceps and turned it toward the window. The dark thread inside seemed to bend toward the storm.",
+          "display_order": 51
         },
         {
           "block_type": "dialogue",
-          "display_order": 41,
           "content": "Where did you get this?",
           "metadata": {
             "speaker_key": "timinny",
             "speaker_name": "Timinny"
-          }
+          },
+          "display_order": 52
         }
       ],
       "choices": [
@@ -1180,7 +1265,7 @@
         },
         {
           "choice_key": "C01-B",
-          "choice_text": "\"A discarded cut. I didn't notice the dark thread until after I'd brought it out.\"",
+          "choice_text": "\"A discarded cut. I noticed the dark thread after I brought it out.\"",
           "short_label": "Partial truth",
           "choice_style": "major_decision",
           "major_decision": true,
@@ -1201,7 +1286,7 @@
         },
         {
           "choice_key": "C01-C",
-          "choice_text": "\"Are we looking at my employment here, or the impossible thing the stone just did?\"",
+          "choice_text": "\"Are we examining my employment, or the impossible thing the stone just did?\"",
           "short_label": "Deflect",
           "choice_style": "major_decision",
           "major_decision": true,
@@ -1242,292 +1327,435 @@
       ],
       "blocks": [
         {
-          "block_type": "dialogue",
-          "display_order": 1,
-          "content": "Stones don't return themselves.",
-          "metadata": {
-            "speaker_key": "timinny",
-            "speaker_name": "Timinny"
-          },
-          "conditions": {
-            "type": "variable_equals",
-            "key": "SECRET_EXPERIMENTS",
-            "value": "shared"
-          }
-        },
-        {
-          "block_type": "dialogue",
-          "display_order": 2,
-          "content": "This one might.",
-          "metadata": {
-            "speaker_key": "theron",
-            "speaker_name": "Theron"
-          },
-          "conditions": {
-            "type": "variable_equals",
-            "key": "SECRET_EXPERIMENTS",
-            "value": "shared"
-          }
-        },
-        {
-          "block_type": "dialogue",
-          "display_order": 3,
-          "content": "Your gift for precision is still unmatched.",
-          "metadata": {
-            "speaker_key": "timinny",
-            "speaker_name": "Timinny"
-          },
-          "conditions": {
-            "type": "variable_equals",
-            "key": "SECRET_EXPERIMENTS",
-            "value": "suspected"
-          }
-        },
-        {
-          "block_type": "dialogue",
-          "display_order": 4,
-          "content": "Both. One of them might kill you before the other does.",
-          "metadata": {
-            "speaker_key": "timinny",
-            "speaker_name": "Timinny"
-          },
-          "conditions": {
-            "type": "variable_equals",
-            "key": "TIMINNY_CONFIDENCE",
-            "value": "guarded"
-          }
-        },
-        {
           "block_type": "narration",
-          "display_order": 5,
-          "content": "Timinny's hand trembles as he checks the Edenite housing beside his hip. Its core is almost colorless."
+          "content": "Timinny returned the fragment to the cloth. As he did, his hand trembled — a small movement he tried to hide against the blanket. Theron’s gaze dropped to the metal housing fixed beside his hip, where a prepared Edenite core fed a low, steady charge into a web of fine contacts beneath his clothes. The treatment quieted the deepvein infection. Without it the pain returned first, then fever, then the slow upward creep of numbness. The core was almost colorless.",
+          "display_order": 1
         },
         {
           "block_type": "dialogue",
-          "display_order": 6,
           "content": "How long?",
           "metadata": {
             "speaker_key": "theron",
             "speaker_name": "Theron"
-          }
+          },
+          "display_order": 2
         },
         {
           "block_type": "dialogue",
-          "display_order": 7,
           "content": "Four days.",
           "metadata": {
             "speaker_key": "timinny",
             "speaker_name": "Timinny"
-          }
+          },
+          "display_order": 3
         },
         {
           "block_type": "dialogue",
-          "display_order": 8,
           "content": "You said ten.",
           "metadata": {
             "speaker_key": "theron",
             "speaker_name": "Theron"
-          }
+          },
+          "display_order": 4
         },
         {
           "block_type": "dialogue",
-          "display_order": 9,
           "content": "I was younger when I said it.",
           "metadata": {
             "speaker_key": "timinny",
             "speaker_name": "Timinny"
-          }
+          },
+          "display_order": 5
         },
         {
           "block_type": "dialogue",
-          "display_order": 10,
           "content": "That was yesterday.",
           "metadata": {
             "speaker_key": "theron",
             "speaker_name": "Theron"
-          }
+          },
+          "display_order": 6
         },
         {
           "block_type": "dialogue",
-          "display_order": 11,
-          "content": "It was a difficult night.",
+          "content": "A difficult night.",
           "metadata": {
             "speaker_key": "timinny",
             "speaker_name": "Timinny"
-          }
+          },
+          "display_order": 7
         },
         {
           "block_type": "narration",
-          "display_order": 12,
-          "content": "Theron separates a small shaving from the fragment and fits it into Timinny's treatment housing, over his objection that the piece is evidence of something they cannot yet name."
+          "content": "Theron took up a narrow chisel.",
+          "display_order": 8
         },
         {
           "block_type": "dialogue",
-          "display_order": 13,
-          "content": "Record everything at the Crown — heat, vibration, position. And don't decide what it means before it happens.",
-          "metadata": {
-            "speaker_key": "timinny",
-            "speaker_name": "Timinny"
-          }
-        },
-        {
-          "block_type": "dialogue",
-          "display_order": 14,
-          "content": "And when Varrik asks why I'm measuring instead of cutting?",
-          "metadata": {
-            "speaker_key": "theron",
-            "speaker_name": "Theron"
-          }
-        },
-        {
-          "block_type": "dialogue",
-          "display_order": 15,
-          "content": "Tell him an engineer ordered it.",
-          "metadata": {
-            "speaker_key": "timinny",
-            "speaker_name": "Timinny"
-          }
-        },
-        {
-          "block_type": "dialogue",
-          "display_order": 16,
-          "content": "Are you an EMC engineer?",
-          "metadata": {
-            "speaker_key": "theron",
-            "speaker_name": "Theron"
-          }
-        },
-        {
-          "block_type": "dialogue",
-          "display_order": 17,
           "content": "No.",
           "metadata": {
             "speaker_key": "timinny",
             "speaker_name": "Timinny"
-          }
-        },
-        {
-          "block_type": "dialogue",
-          "display_order": 18,
-          "content": "Then that's unlikely to help.",
-          "metadata": {
-            "speaker_key": "theron",
-            "speaker_name": "Theron"
-          }
+          },
+          "display_order": 9
         },
         {
           "block_type": "narration",
-          "display_order": 19,
-          "content": "As Theron leaves, the covered fragment flashes in time with thunder that has not yet sounded."
+          "content": "Theron set the blade against the stolen fragment.",
+          "display_order": 10
         },
         {
-          "block_type": "divider",
+          "block_type": "dialogue",
+          "content": "That piece is evidence.",
+          "metadata": {
+            "speaker_key": "timinny",
+            "speaker_name": "Timinny"
+          },
+          "display_order": 11
+        },
+        {
+          "block_type": "dialogue",
+          "content": "Of what?",
+          "metadata": {
+            "speaker_key": "theron",
+            "speaker_name": "Theron"
+          },
+          "display_order": 12
+        },
+        {
+          "block_type": "dialogue",
+          "content": "We do not know yet.",
+          "metadata": {
+            "speaker_key": "timinny",
+            "speaker_name": "Timinny"
+          },
+          "display_order": 13
+        },
+        {
+          "block_type": "dialogue",
+          "content": "I know what happens without it.",
+          "metadata": {
+            "speaker_key": "theron",
+            "speaker_name": "Theron"
+          },
+          "display_order": 14
+        },
+        {
+          "block_type": "narration",
+          "content": "He tapped once. A thin shaving broke free, bright enough to light the lines of his palm. Timinny looked toward the shuttered window, jaw tight — not grateful, never that, because gratitude would mean admitting the necessity. Theron removed the exhausted core and fitted the shaving into its place. Color spread slowly through the contacts, and the tension around Timinny’s mouth eased.",
+          "display_order": 15
+        },
+        {
+          "block_type": "dialogue",
+          "content": "The density is wrong. The Crown fragment carries more charge than its mass permits. Either our instruments are lying, or the stone is drawing strength from somewhere else.",
+          "metadata": {
+            "speaker_key": "timinny",
+            "speaker_name": "Timinny"
+          },
+          "display_order": 16
+        },
+        {
+          "block_type": "dialogue",
+          "content": "From the storm?",
+          "metadata": {
+            "speaker_key": "theron",
+            "speaker_name": "Theron"
+          },
+          "display_order": 17
+        },
+        {
+          "block_type": "dialogue",
+          "content": "Perhaps. Or from the other pieces still in the ground.",
+          "metadata": {
+            "speaker_key": "timinny",
+            "speaker_name": "Timinny"
+          },
+          "display_order": 18
+        },
+        {
+          "block_type": "narration",
+          "content": "Theron looked at the three-point brace around the model tower. Timinny followed his gaze.",
+          "display_order": 19
+        },
+        {
+          "block_type": "dialogue",
+          "content": "A single block strengthens what touches it. An arrangement redirects force across distance. If the underground formations do the same…",
+          "metadata": {
+            "speaker_key": "timinny",
+            "speaker_name": "Timinny"
+          },
           "display_order": 20
         },
         {
           "block_type": "narration",
-          "display_order": 21,
-          "content": "Crownvein Mine was less than a year old and already too important to fail."
-        },
-        {
-          "block_type": "narration",
-          "display_order": 22,
-          "content": "Varrik stands beside the tally board, finding fault with the speed of workers who have not begun."
+          "content": "He left the thought unfinished. Outside, Fulminary was mining those formations faster with every season. Edenite healed lungs, arrested infections, and kept storm walls standing — and each new disaster raised the demand for the very mineral whose absence might be making the disasters worse.",
+          "display_order": 21
         },
         {
           "block_type": "dialogue",
-          "display_order": 23,
+          "content": "Record everything at the Crown. Heat. Vibration. Position. Do not decide what it means before it happens.",
+          "metadata": {
+            "speaker_key": "timinny",
+            "speaker_name": "Timinny"
+          },
+          "display_order": 22
+        },
+        {
+          "block_type": "dialogue",
+          "content": "And if Varrik asks why I am measuring instead of cutting?",
+          "metadata": {
+            "speaker_key": "theron",
+            "speaker_name": "Theron"
+          },
+          "display_order": 23
+        },
+        {
+          "block_type": "dialogue",
+          "content": "Tell him an engineer ordered it.",
+          "metadata": {
+            "speaker_key": "timinny",
+            "speaker_name": "Timinny"
+          },
+          "display_order": 24
+        },
+        {
+          "block_type": "dialogue",
+          "content": "Are you an EMC engineer?",
+          "metadata": {
+            "speaker_key": "theron",
+            "speaker_name": "Theron"
+          },
+          "display_order": 25
+        },
+        {
+          "block_type": "dialogue",
+          "content": "No.",
+          "metadata": {
+            "speaker_key": "timinny",
+            "speaker_name": "Timinny"
+          },
+          "display_order": 26
+        },
+        {
+          "block_type": "dialogue",
+          "content": "Then that seems unlikely to help.",
+          "metadata": {
+            "speaker_key": "theron",
+            "speaker_name": "Theron"
+          },
+          "display_order": 27
+        },
+        {
+          "block_type": "narration",
+          "content": "Timinny handed him a compact gauge made from copper prongs and a scratched glass dial.",
+          "display_order": 28
+        },
+        {
+          "block_type": "dialogue",
+          "content": "Try to be useful enough that he postpones firing you.",
+          "metadata": {
+            "speaker_key": "timinny",
+            "speaker_name": "Timinny"
+          },
+          "display_order": 29
+        },
+        {
+          "block_type": "narration",
+          "content": "At the door Theron glanced back. Timinny had already turned to the model tower, sketching a circle around its three braces; for the first time that morning he looked not ill but alive with a question. The wrapped fragment flashed. Thunder answered several heartbeats later.",
+          "display_order": 30
+        },
+        {
+          "block_type": "divider",
+          "display_order": 31
+        },
+        {
+          "block_type": "narration",
+          "content": "Crownvein Mine was less than a year old and already too important to fail. Its staging floor had been carved into the western ridge beneath Sturmvale — a vaulted cavern crowded with timber lifts, wet rails, hanging lamps, and enough workers to populate a village. Ore carts passed beneath the stamped crest of the Edenite Mining Commission. Clerks weighed every load behind barred windows. From there the stone rose into a city that needed it for medicine, for reinforcement, and for the increasingly difficult business of remaining where it had been built.",
+          "display_order": 32
+        },
+        {
+          "block_type": "narration",
+          "content": "Theron joined the western crew at the tally board.",
+          "display_order": 33
+        },
+        {
+          "block_type": "dialogue",
+          "content": "Your mother breathing any better?",
+          "metadata": {
+            "speaker_key": "joren",
+            "speaker_name": "Joren Vale"
+          },
+          "display_order": 34
+        },
+        {
+          "block_type": "narration",
+          "content": "Joren Vale had spent twenty-two years underground and claimed it gave him seniority over certain mountains. Square-faced and broad through the shoulders, he wore three differently colored threads around his wrist — one for each of his daughters.",
+          "display_order": 35
+        },
+        {
+          "block_type": "dialogue",
+          "content": "On quiet days.",
+          "metadata": {
+            "speaker_key": "theron",
+            "speaker_name": "Theron"
+          },
+          "display_order": 36
+        },
+        {
+          "block_type": "narration",
+          "content": "Joren glanced toward the shaft, where dust trembled from a support beam though no cart was passing.",
+          "display_order": 37
+        },
+        {
+          "block_type": "dialogue",
+          "content": "Let me know if you find one.",
+          "metadata": {
+            "speaker_key": "joren",
+            "speaker_name": "Joren Vale"
+          },
+          "display_order": 38
+        },
+        {
+          "block_type": "narration",
+          "content": "On Theron’s other side, Pell tightened the strap of a new helmet whose leather had not yet learned the shape of his head. It was his third week at Crownvein, and he still checked every buckle twice whenever an experienced miner might be watching.",
+          "display_order": 39
+        },
+        {
+          "block_type": "dialogue",
+          "content": "Western face today. They say the vein is thick as a city wall.",
+          "metadata": {
+            "speaker_key": "injured_miner",
+            "speaker_name": "Pell"
+          },
+          "display_order": 40
+        },
+        {
+          "block_type": "dialogue",
+          "content": "People say many things before descending. Most of it improves on the way back up.",
+          "metadata": {
+            "speaker_key": "joren",
+            "speaker_name": "Joren Vale"
+          },
+          "display_order": 41
+        },
+        {
+          "block_type": "dialogue",
           "content": "Theron.",
           "metadata": {
             "speaker_key": "varrik",
             "speaker_name": "Varrik"
-          }
+          },
+          "display_order": 42
         },
         {
           "block_type": "narration",
-          "display_order": 24,
-          "content": "Theron stops."
+          "content": "The voice crossed the staging floor like a thrown tool. Foreman Varrik stood beside the tally board — a hard-built elf with iron-gray hair cut close to the scalp and a face weathered into permanent disapproval. Crownvein was the largest mine under a single foreman’s authority, a fact he wore less like an honor than a siege assignment. Every missed quota reached the Commission under his name. Every injury did too, though the quotas seemed to trouble him more.",
+          "display_order": 43
+        },
+        {
+          "block_type": "narration",
+          "content": "Theron stopped in front of him. Varrik waited.",
+          "display_order": 44
         },
         {
           "block_type": "dialogue",
-          "display_order": 25,
-          "content": "When a foreman says your name, the answer isn't to stand there like a post.",
-          "metadata": {
-            "speaker_key": "varrik",
-            "speaker_name": "Varrik"
-          }
-        },
-        {
-          "block_type": "dialogue",
-          "display_order": 26,
-          "content": "I didn't want to interrupt.",
+          "content": "Foreman.",
           "metadata": {
             "speaker_key": "theron",
             "speaker_name": "Theron"
-          }
+          },
+          "display_order": 45
         },
         {
           "block_type": "dialogue",
-          "display_order": 27,
-          "content": "You got the western face because someone above me mistook patience for talent. So you'll cut, you'll load, and you'll keep those clever hands out of your pockets.",
+          "content": "When a foreman says a name, the expected answer is not a demonstration of stillness.",
           "metadata": {
             "speaker_key": "varrik",
             "speaker_name": "Varrik"
-          }
+          },
+          "display_order": 46
         },
         {
           "block_type": "dialogue",
-          "display_order": 28,
+          "content": "I did not want to interrupt.",
+          "metadata": {
+            "speaker_key": "theron",
+            "speaker_name": "Theron"
+          },
+          "display_order": 47
+        },
+        {
+          "block_type": "dialogue",
+          "content": "You were assigned to the western face because someone above me mistook patience for talent. You will cut, load, and keep your clever hands out of your pockets.",
+          "metadata": {
+            "speaker_key": "varrik",
+            "speaker_name": "Varrik"
+          },
+          "display_order": 48
+        },
+        {
+          "block_type": "narration",
+          "content": "Theron felt the hidden weight of Timinny’s gauge inside his satchel.",
+          "display_order": 49
+        },
+        {
+          "block_type": "dialogue",
           "content": "In that order?",
           "metadata": {
             "speaker_key": "theron",
             "speaker_name": "Theron"
-          }
+          },
+          "display_order": 50
         },
         {
           "block_type": "dialogue",
-          "display_order": 29,
-          "content": "Quota's doubled before the storm arrives.",
+          "content": "Quota is doubled before the storm arrives.",
           "metadata": {
             "speaker_key": "varrik",
             "speaker_name": "Varrik"
-          }
+          },
+          "display_order": 51
         },
         {
           "block_type": "dialogue",
-          "display_order": 30,
           "content": "Doubled because of the storm?",
           "metadata": {
             "speaker_key": "theron",
             "speaker_name": "Theron"
-          }
+          },
+          "display_order": 52
         },
         {
           "block_type": "dialogue",
-          "display_order": 31,
-          "content": "The retaining walls need reinforcing. The infirmaries need treatment stone. Every frightened councilor has finally worked out what keeps his ceiling over his head.",
+          "content": "The southern retaining walls need reinforcement. The infirmaries need treatment stone. Every frightened councilor has learned what keeps his ceiling above him.",
           "metadata": {
             "speaker_key": "varrik",
             "speaker_name": "Varrik"
-          }
+          },
+          "display_order": 53
         },
         {
           "block_type": "dialogue",
-          "display_order": 32,
-          "content": "And pulling twice as much out from under it?",
+          "content": "And removing twice as much from beneath it?",
           "metadata": {
             "speaker_key": "theron",
             "speaker_name": "Theron"
-          }
+          },
+          "display_order": 54
+        },
+        {
+          "block_type": "narration",
+          "content": "Varrik’s chalk stopped.",
+          "display_order": 55
         },
         {
           "block_type": "dialogue",
-          "display_order": 33,
           "content": "Is the work.",
           "metadata": {
             "speaker_key": "varrik",
             "speaker_name": "Varrik"
-          }
+          },
+          "display_order": 56
         }
       ],
       "choices": [
@@ -1548,7 +1776,7 @@
         },
         {
           "choice_key": "E02-B",
-          "choice_text": "\"The western braces are carrying a vibration that isn't on the load chart.\"",
+          "choice_text": "\"The western braces are carrying a vibration that is not on the load chart.\"",
           "short_label": "Warn him",
           "choice_style": "investigative",
           "display_order": 2,
@@ -1563,7 +1791,7 @@
         },
         {
           "choice_key": "E02-C",
-          "choice_text": "\"If the ceiling comes down, I'll count whatever lands in the carts.\"",
+          "choice_text": "\"If the ceiling comes down, I will count whatever lands in the carts.\"",
           "short_label": "Use humor",
           "choice_style": "dialogue",
           "display_order": 3,
@@ -1599,91 +1827,182 @@
       ],
       "blocks": [
         {
-          "block_type": "dialogue",
-          "display_order": 1,
-          "content": "Then swing between vibrations.",
-          "metadata": {
-            "speaker_key": "varrik",
-            "speaker_name": "Varrik"
-          },
-          "conditions": {
-            "type": "variable_equals",
-            "key": "VARRIK_STANCE",
-            "value": "hostile_alert"
-          }
+          "block_type": "narration",
+          "content": "The cage lift swallowed twelve miners and began its descent. Sturmvale vanished above them one platform at a time — pale constructed walls giving way to black native stone, slick with runoff. The air warmed. Lamps swung from the cage roof, and each gallery opened briefly beyond the bars: workers at pumps, carts on sidings, EMC inspectors in clean coats trying not to touch anything.",
+          "display_order": 1
         },
         {
           "block_type": "dialogue",
-          "display_order": 2,
-          "content": "If the ceiling comes down, your replacement can count it.",
+          "content": "Does the pressure in your ears ever stop?",
           "metadata": {
-            "speaker_key": "varrik",
-            "speaker_name": "Varrik"
+            "speaker_key": "injured_miner",
+            "speaker_name": "Pell"
           },
-          "conditions": {
-            "type": "variable_equals",
-            "key": "VARRIK_STANCE",
-            "value": "personally_hostile"
-          }
+          "display_order": 2
+        },
+        {
+          "block_type": "dialogue",
+          "content": "Yes. Once they burst.",
+          "metadata": {
+            "speaker_key": "joren",
+            "speaker_name": "Joren Vale"
+          },
+          "display_order": 3
         },
         {
           "block_type": "narration",
-          "display_order": 3,
-          "content": "The lift descends. At the western face, Edenite forms a nearly continuous luminous arc through the wall and floor. Theron touches a support. The vibration comes in threes. Varrik signals the cut."
+          "content": "Pell paled.",
+          "display_order": 4
         },
         {
-          "block_type": "narration",
-          "display_order": 4,
-          "content": "The first strike lands. Every lamp dims. Far beyond the exposed face, something answers."
-        },
-        {
-          "block_type": "divider",
+          "block_type": "dialogue",
+          "content": "He is lying.",
+          "metadata": {
+            "speaker_key": "theron",
+            "speaker_name": "Theron"
+          },
           "display_order": 5
         },
         {
-          "block_type": "narration",
-          "display_order": 6,
-          "content": "The quota turns the gallery into noise. Beneath steel, carts, and shouted weights, Theron hears three impacts, a pause, and three more."
+          "block_type": "dialogue",
+          "content": "Mostly.",
+          "metadata": {
+            "speaker_key": "joren",
+            "speaker_name": "Joren Vale"
+          },
+          "display_order": 6
         },
         {
           "block_type": "narration",
-          "display_order": 7,
-          "content": "The sound comes from behind the Edenite."
-        },
-        {
-          "block_type": "narration",
-          "display_order": 8,
-          "content": "An extraction wedge splits the arc. Thunder rolls through the gallery. Only afterward does it sound aboveground."
+          "content": "At the western level they followed new rails into a gallery bright with reflected blue-white light. The Edenite formation surfaced first in scattered seams, then widened until it curved through wall and floor in a nearly continuous arc. It was indeed thick as a city wall. It was also familiar — Theron had seen its shape that morning, in the blank crescent on Edran’s map. The workers mistook his stillness for awe. Varrik mistook it for delay.",
+          "display_order": 7
         },
         {
           "block_type": "dialogue",
-          "display_order": 9,
+          "content": "Positions.",
+          "metadata": {
+            "speaker_key": "varrik",
+            "speaker_name": "Varrik"
+          },
+          "display_order": 8
+        },
+        {
+          "block_type": "narration",
+          "content": "Theron crossed to a support and laid his palm against it. The timber hummed beneath his skin. Three pulses. A pause. Three more. He slipped Timinny’s gauge from his satchel and pressed its copper prongs to the stone; the needle climbed past the final marking and quivered there. Varrik raised one hand. Along the face, miners lifted their tools.",
+          "display_order": 9
+        },
+        {
+          "block_type": "dialogue",
+          "content": "Foreman—",
+          "metadata": {
+            "speaker_key": "theron",
+            "speaker_name": "Theron"
+          },
+          "display_order": 10
+        },
+        {
+          "block_type": "narration",
+          "content": "Varrik dropped his hand. The first strike landed. Every lamp in the gallery dimmed. Far beyond the exposed face, something answered.",
+          "display_order": 11
+        },
+        {
+          "block_type": "divider",
+          "display_order": 12
+        },
+        {
+          "block_type": "narration",
+          "content": "The quota turned the gallery into noise. Steel rang against wedges. Cart wheels shrieked along wet rails. Tallymen shouted weights over the rhythm of a dozen tools biting into stone, and the great Edenite arc caught every spark and returned it as cold blue light. Beneath all of it, Theron heard the knocking. Three impacts. A pause. Three more. Not within the gallery. Behind the Edenite.",
+          "display_order": 13
+        },
+        {
+          "block_type": "narration",
+          "content": "He moved along the face with the gauge concealed against his forearm. The needle swung hardest near the center of the arc, where Pell and Joren were setting an extraction wedge. Theron checked the support spacing, then checked it again. The loads were within Commission limits. The stone said otherwise.",
+          "display_order": 14
+        },
+        {
+          "block_type": "dialogue",
+          "content": "Pell. Leave that one.",
+          "metadata": {
+            "speaker_key": "theron",
+            "speaker_name": "Theron"
+          },
+          "display_order": 15
+        },
+        {
+          "block_type": "narration",
+          "content": "The younger miner looked to Varrik before he looked to Theron. That moment of hesitation was enough. Joren’s hammer struck the wedge. A section of Edenite split from the arc with a sound like ice breaking across a winter lake. Thunder rolled through the floor and up Theron’s bones — and only afterward sounded in the sky above. The hair along every miner’s arms lifted.",
+          "display_order": 16
+        },
+        {
+          "block_type": "dialogue",
           "content": "Stop cutting.",
           "metadata": {
             "speaker_key": "theron",
             "speaker_name": "Theron"
-          }
+          },
+          "display_order": 17
+        },
+        {
+          "block_type": "dialogue",
+          "content": "Hold the line.",
+          "metadata": {
+            "speaker_key": "varrik",
+            "speaker_name": "Varrik"
+          },
+          "display_order": 18
+        },
+        {
+          "block_type": "dialogue",
+          "content": "The charge is coming from below us.",
+          "metadata": {
+            "speaker_key": "theron",
+            "speaker_name": "Theron"
+          },
+          "display_order": 19
+        },
+        {
+          "block_type": "dialogue",
+          "content": "Secure the cut.",
+          "metadata": {
+            "speaker_key": "varrik",
+            "speaker_name": "Varrik"
+          },
+          "display_order": 20
         },
         {
           "block_type": "narration",
-          "display_order": 10,
-          "content": "The next tool head flashes white and fractures. A shard tears across a miner's thigh."
+          "content": "Pell raised his hammer again. The metal head flashed white and burst at the socket. The broken shard spun across the gallery, tore through his thigh, and struck the wall hard enough to spark. He fell without a cry. For half a heartbeat nobody moved. Then blood spread over the pale dust beneath him and touched the raw edge of the exposed vein.",
+          "display_order": 21
         },
         {
           "block_type": "discovery",
-          "display_order": 11,
-          "content": "Blood touches raw Edenite. The wound closes, then opens again along branching lines that do not follow the original cut."
+          "content": "The Edenite brightened. Pell arched from the ground — the gash in his leg drawing itself closed, flesh joining flesh in a smooth line. A murmur of astonishment passed through the crew. Then the wound opened again. Thin red branches spread outward from it, dividing across his skin in patterns that did not follow the path of the shard. His hands clawed at the stone.",
+          "display_order": 22
+        },
+        {
+          "block_type": "dialogue",
+          "content": "It is pulling.",
+          "metadata": {
+            "speaker_key": "injured_miner",
+            "speaker_name": "Pell"
+          },
+          "display_order": 23
         },
         {
           "block_type": "narration",
-          "display_order": 12,
-          "content": "A dark-threaded fragment falls near Theron. The knocking accelerates. The miner begins losing consciousness. Varrik orders the crew to secure the face."
+          "content": "Near Theron’s boot a piece of the broken formation rolled free — a black filament running through its brilliant center, the twin of the fragment in Timinny’s workshop. Behind the wall, the measured knocking accelerated.",
+          "display_order": 24
+        },
+        {
+          "block_type": "narration",
+          "content": "Three needs presented themselves at once: Pell bleeding on the floor, the impossible sample already fading in the dust, and the hidden source of the sound moving closer. Theron had time to choose only one.",
+          "display_order": 25
         }
       ],
       "choices": [
         {
           "choice_key": "C02-A",
-          "choice_text": "Drag the miner away from the vein and bind the original wound.",
+          "choice_text": "Drag Pell away from the vein and bind the original wound.",
           "short_label": "Aid the miner",
           "description": "Theron reaches the wounded man first. The fragment and the fissure will have to wait.",
           "choice_style": "major_decision",
@@ -1712,7 +2031,7 @@
           "choice_key": "C02-B",
           "choice_text": "Wrap the dark-threaded fragment before its glow fades.",
           "short_label": "Preserve the fragment",
-          "description": "Other miners will move the wounded man. The delay will cost him.",
+          "description": "The other miners will move Pell — but the delay will cost him.",
           "choice_style": "major_decision",
           "major_decision": true,
           "display_order": 2,
@@ -1786,81 +2105,86 @@
       "blocks": [
         {
           "block_type": "narration",
-          "display_order": 1,
-          "content": "In the ringing quiet after the collapse, Varrik waves the crew back from the face."
+          "content": "Dust streamed from the ceiling in pale curtains.",
+          "display_order": 1
         },
         {
           "block_type": "dialogue",
-          "display_order": 2,
-          "content": "Away from the face.",
+          "content": "Away from the face!",
           "metadata": {
             "speaker_key": "varrik",
             "speaker_name": "Varrik"
-          }
+          },
+          "display_order": 2
+        },
+        {
+          "block_type": "narration",
+          "content": "The order came late, but it came. Miners abandoned their tools and caught hold of Pell; Joren shouted for a litter. Theron looked toward the lift tunnel — and the hanging lamps between them and the shaft winked out, one after another.",
+          "display_order": 3
         },
         {
           "block_type": "dialogue",
-          "display_order": 3,
           "content": "Order the lift.",
           "metadata": {
             "speaker_key": "theron",
             "speaker_name": "Theron"
-          }
+          },
+          "display_order": 4
         },
         {
           "block_type": "dialogue",
-          "display_order": 4,
-          "content": "You don't give orders.",
+          "content": "You do not give orders.",
           "metadata": {
             "speaker_key": "varrik",
             "speaker_name": "Varrik"
-          }
+          },
+          "display_order": 5
         },
         {
           "block_type": "dialogue",
-          "display_order": 5,
           "content": "Then borrow mine.",
           "metadata": {
             "speaker_key": "theron",
             "speaker_name": "Theron"
-          }
+          },
+          "display_order": 6
         },
         {
           "block_type": "narration",
-          "display_order": 6,
-          "content": "The entire Edenite arc goes dark. Something enormous presses against the other side of the stone. The western face folds inward. Theron falls through blue light and black dust."
+          "content": "The entire Edenite arc went dark. Silence struck the gallery harder than thunder. In the sudden black, something enormous pressed against the far side of the stone, and the wall bowed inward. Miners screamed. Timber supports snapped in sequence. Theron saw Varrik turn toward the crew, saw Joren throw himself across Pell, saw a line of blue fire race through the floor beneath his boots. Then the western face folded. He fell through cold light and black dust; stone struck his shoulder, his lamp vanished, and for several breathless seconds there was no direction — only weight and the roar of a mountain rearranging itself. He hit solid ground, and darkness closed over him.",
+          "display_order": 7
         },
         {
           "block_type": "narration",
-          "display_order": 7,
-          "content": "When he wakes, his lamp burns inside a room with no entrance. Edran's voice whispers through the wall."
+          "content": "When Theron opened his eyes, his lamp was burning several paces away, its flame lighting a low chamber of smooth black stone. No drill marks scored the walls. No timber braced the ceiling. Beyond the wall, very faintly, someone spoke his name.",
+          "display_order": 8
         },
         {
           "block_type": "dialogue",
-          "display_order": 8,
           "content": "Theron?",
           "metadata": {
             "speaker_key": "presence",
             "speaker_name": "Edran's Voice"
-          }
+          },
+          "display_order": 9
         },
         {
           "block_type": "narration",
-          "display_order": 9,
-          "content": "Edran is miles away."
-        },
-        {
-          "block_type": "divider",
+          "content": "It was Edran’s voice exactly — not an imitation, not a stranger with the same pitch. And Edran was miles away, in the EMC archive.",
           "display_order": 10
         },
         {
+          "block_type": "divider",
+          "display_order": 11
+        },
+        {
           "block_type": "narration",
-          "display_order": 11,
+          "display_order": 12,
           "content": "Theron rises in a chamber that should have been solid. The walls are neither cut nor natural. Stone appears to have drawn away from a central emptiness. Scorched veins reach outward, stopping wherever intact Edenite remains."
         },
         {
           "block_type": "discovery",
-          "display_order": 12,
+          "display_order": 13,
           "content": "The wrapped fragment pulls toward the black wall.",
           "conditions": {
             "type": "variable_equals",
@@ -1870,7 +2194,7 @@
         },
         {
           "block_type": "discovery",
-          "display_order": 13,
+          "display_order": 14,
           "content": "Theron immediately recognizes the exposed boundary as the edge he traced.",
           "conditions": {
             "type": "variable_equals",
@@ -1880,7 +2204,7 @@
         },
         {
           "block_type": "discovery",
-          "display_order": 14,
+          "display_order": 15,
           "content": "The wounded miner's words repeat in Theron's memory: something under it.",
           "conditions": {
             "type": "variable_equals",
@@ -1890,12 +2214,12 @@
         },
         {
           "block_type": "narration",
-          "display_order": 15,
+          "display_order": 16,
           "content": "A trapped miner calls from beneath a fallen brace. Another lamp moves in a side hollow."
         },
         {
           "block_type": "dialogue",
-          "display_order": 16,
+          "display_order": 17,
           "content": "Theron. You left me below.",
           "metadata": {
             "speaker_key": "presence",
@@ -1905,7 +2229,7 @@
         },
         {
           "block_type": "dialogue",
-          "display_order": 17,
+          "display_order": 18,
           "content": "Edran doesn't sound that dramatic.",
           "metadata": {
             "speaker_key": "theron",
@@ -1914,12 +2238,12 @@
         },
         {
           "block_type": "narration",
-          "display_order": 18,
+          "display_order": 19,
           "content": "The voice shifts into Bethella's cough."
         },
         {
           "block_type": "narration",
-          "display_order": 19,
+          "display_order": 20,
           "content": "Most of the crew had pulled back from the face before it gave way. Fewer are trapped down here than there might have been.",
           "conditions": {
             "type": "variable_equals",
@@ -1929,7 +2253,7 @@
         },
         {
           "block_type": "narration",
-          "display_order": 20,
+          "display_order": 21,
           "content": "The collapse caught the whole face crew. Somewhere in the dark, the injuries are worse than anything Theron can count from where he stands.",
           "conditions": {
             "type": "variable_equals",
