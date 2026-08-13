@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, BookOpen, CheckCircle2, Download, FlaskConical, Upload } from 'lucide-react';
+import { AlertTriangle, BookOpen, CheckCircle2, Download, FlaskConical, ImagePlus, Upload } from 'lucide-react';
 import { JourneyLayout, JourneyError } from '@/components/journey/JourneyLayout';
+import { JourneyIllustrateSheet } from '@/components/journey/JourneyIllustrateSheet';
 import { useJourneyStudio, exportCampaignPackage } from '@/hooks/useJourneyStudio';
 import { useJourneyLibrary } from '@/hooks/useJourneyLibrary';
 import { validateCampaign } from '@/lib/journey/validate';
@@ -22,6 +23,7 @@ export default function JourneyStudioPage() {
   const [report, setReport] = useState<ReturnType<typeof validateCampaign> | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [illustrate, setIllustrate] = useState<CampaignRow | null>(null);
 
   const parse = (): CampaignPackage | null => {
     try {
@@ -177,6 +179,9 @@ export default function JourneyStudioPage() {
                     <button className="jy-btn jy-btn-sm jy-btn-ghost" onClick={() => playtest(c)} disabled={busy}>
                       <FlaskConical className="h-3.5 w-3.5" aria-hidden /> Playtest
                     </button>
+                    <button className="jy-btn jy-btn-sm jy-btn-ghost" onClick={() => setIllustrate(c)}>
+                      <ImagePlus className="h-3.5 w-3.5" aria-hidden /> Illustrate
+                    </button>
                     {(['draft', 'testing', 'published', 'archived'] as CampaignStatus[])
                       .filter((s) => s !== c.status)
                       .map((s) => (
@@ -197,6 +202,14 @@ export default function JourneyStudioPage() {
           )}
         </section>
       </div>
+
+      {illustrate && (
+        <JourneyIllustrateSheet
+          campaignId={illustrate.id}
+          title={illustrate.title}
+          onClose={() => setIllustrate(null)}
+        />
+      )}
     </JourneyLayout>
   );
 }

@@ -7,6 +7,7 @@ import { ChoiceList } from '@/components/journey/ChoiceList';
 import { SceneAtmosphere } from '@/components/journey/SceneAtmosphere';
 import { ChapterInterstitial } from '@/components/journey/ChapterInterstitial';
 import { useJourneySettings } from '@/components/journey/useJourneySettings';
+import { isImageUrl } from '@/lib/journey/art';
 import { useJourneyRun } from '@/hooks/useJourneyRun';
 import { useJourneyEnding } from '@/hooks/useJourneyEnding';
 import { EndingScreen } from '@/components/journey/EndingScreen';
@@ -66,7 +67,10 @@ export default function JourneyPlayPage() {
       <SceneAtmosphere
         sceneKey={scene?.scene_key}
         sceneType={scene?.scene_type}
-        backgroundAsset={scene?.background_asset}
+        // A URL is uploaded scene art (shown behind the text); anything else is
+        // a keyword the atmosphere system turns into a colour gradient.
+        backgroundAsset={isImageUrl(scene?.background_asset) ? undefined : scene?.background_asset}
+        imageSrc={isImageUrl(scene?.background_asset) ? scene?.background_asset : undefined}
       />
       {chapterCurtain && (
         <ChapterInterstitial title={chapterCurtain} onDone={() => setChapterCurtain(null)} />
