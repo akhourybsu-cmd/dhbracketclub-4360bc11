@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Heart, Coins, Check } from 'lucide-react';
+import { Heart, Coins } from 'lucide-react';
 import { JourneyLayout, JourneyError, JourneySkeleton } from '@/components/journey/JourneyLayout';
 import { SceneBlocks } from '@/components/journey/SceneBlocks';
 import { ChoiceList } from '@/components/journey/ChoiceList';
@@ -11,16 +11,11 @@ import { isImageUrl } from '@/lib/journey/art';
 import { useJourneyRun } from '@/hooks/useJourneyRun';
 import { useJourneyEnding } from '@/hooks/useJourneyEnding';
 import { EndingScreen } from '@/components/journey/EndingScreen';
-import type { RuntimeBlock } from '@/lib/journey/types';
-
-/** Snapshot of the scene the reader just left, kept on screen as they read on. */
-interface PrevBeat { blocks: RuntimeBlock[]; choiceText: string; choiceClass: string }
 
 /**
- * The reading surface. A scene narrates, then offers choices. Choosing does NOT
- * turn the page: the chosen line stays put, the consequence streams in beneath
- * it, and only a Continue button carries the reader onward to the next set of
- * choices — so a decision reads as part of the same unfolding conversation.
+ * The reading surface. A scene narrates in panels — a change of place or time
+ * (a divider) is a Continue button to the next panel — and its choices follow
+ * the final panel. Choosing advances to the next scene.
  */
 export default function JourneyPlayPage() {
   const { runId } = useParams<{ runId: string }>();
@@ -29,16 +24,12 @@ export default function JourneyPlayPage() {
     loading, busy, error, notices, clearNotices, refresh, chooseChoice, advance,
   } = useJourneyRun(runId);
   const topRef = useRef<HTMLDivElement>(null);
-  const dividerRef = useRef<HTMLDivElement>(null);
   const { reducedMotion } = useJourneySettings();
   const ended = run?.status === 'completed' || Boolean(scene?.is_terminal);
   const { ending, loading: endingLoading } = useJourneyEnding(ended ? runId : undefined, ended);
 
   // Choices appear once the scene has finished narrating its final panel.
   const [told, setTold] = useState(false);
-  // The beat the reader just left, shown above the consequence as context.
-  const [prev, setPrev] = useState<PrevBeat | null>(null);
-  const prevRef = useRef<PrevBeat | null>(null);
   useEffect(() => { setTold(false); }, [scene?.scene_key, blocks]);
 
   // Announce a new chapter with a brief cinematic curtain — once per chapter,
@@ -53,11 +44,10 @@ export default function JourneyPlayPage() {
     if (!first) setChapterCurtain(chapterTitle);
   }, [chapterTitle, reducedMotion, ended]);
 
-  // Fresh scene → top of the page. A consequence → land on the seam between the
-  // choice and what it caused, so the reader sees the connection.
+  // Each new scene starts at the top.
   useEffect(() => {
-    if (prevRef.current) dividerRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
-    else { topRef.current?.scrollIntoView({ block: 'start' }); window.scrollTo({ top: 0 }); }
+    topRef.current?.scrollIntoView({ block: 'start' });
+    window.scrollTo({ top: 0 });
   }, [scene?.scene_key]);
 
   useEffect(() => {
@@ -65,32 +55,6 @@ export default function JourneyPlayPage() {
     const t = setTimeout(clearNotices, 4000);
     return () => clearTimeout(t);
   }, [notices, clearNotices]);
-
-  const styleFor = (major?: boolean, style?: string | null) =>
-    major ? 'jy-choice-major'
-      : style === 'skill' ? 'jy-choice-skill'
-      : style === 'secret' ? 'jy-choice-secret' : '';
-
-  const onChoose = useCallback(async (key: string) => {
-    const chosen = choices.find((c) => c.choice_key === key);
-    const snap: PrevBeat = {
-      blocks,
-      choiceText: chosen?.choice_text ?? '',
-      choiceClass: styleFor(chosen?.major_decision, chosen?.choice_style),
-    };
-    prevRef.current = snap;
-    setPrev(snap);
-    const ok = await chooseChoice(key);
-    if (!ok) { prevRef.current = null; setPrev(null); }
-  }, [choices, blocks, chooseChoice]);
-
-  const advanceGated = useCallback(async () => {
-    const snap: PrevBeat = { blocks, choiceText: '', choiceClass: '' };
-    prevRef.current = snap;
-    setPrev(snap);
-    const ok = await advance();
-    if (!ok) { prevRef.current = null; setPrev(null); }
-  }, [blocks, advance]);
 
   if (loading) {
     return <JourneyLayout><div className="pt-6"><JourneySkeleton lines={8} /></div></JourneyLayout>;
@@ -120,48 +84,36 @@ export default function JourneyPlayPage() {
         {run.is_test_run && <span className="jy-chip jy-chip-blood">Test run</span>}
       </div>
 
-      {/* The beat just left: its prose stays, with the chosen line beneath it. */}
-      {prev && (
-        <section aria-hidden className="mb-6" style={{ opacity: 0.7 }}>
-          <SceneBlocks blocks={prev.blocks} instant />
-          {prev.choiceText && (
-            <div className={`jy-choice-chosen mt-5 ${prev.choiceClass}`}>
-              <Check className="h-4 w-4" aria-hidden />
-              <span>{prev.choiceText}</span>
-            </div>
-          )}
-        </section>
-      )}
-      {prev && <div ref={dividerRef} className="jy-rule mb-6" />}
-
       {hasArt && (
         <figure className="jy-scene-banner jy-fade-in" key={scene?.scene_key}>
           <img src={scene!.background_asset!} alt="" loading="lazy" decoding="async" />
         </figure>
       )}
 
-      {/* The scene's own title is shown only when it opens fresh; a consequence
-          being read reads as a continuation, not a new page. */}
-      {!prev && (
-        <header className="jy-focal mb-6">
-          <div className="jy-eyebrow">
-            {[campaign?.title, chapterTitle, locationName].filter(Boolean).join(' · ')}
-          </div>
-          {scene?.title && <h1 className="jy-title mt-1">{scene.title}</h1>}
-          {scene?.subtitle && <p className="jy-secondary text-sm italic">{scene.subtitle}</p>}
-        </header>
-      )}
+      <header className="jy-focal mb-6">
+        <div className="jy-eyebrow">
+          {[campaign?.title, chapterTitle, locationName].filter(Boolean).join(' · ')}
+        </div>
+        {scene?.title && <h1 className="jy-title mt-1">{scene.title}</h1>}
+        {scene?.subtitle && <p className="jy-secondary text-sm italic">{scene.subtitle}</p>}
+      </header>
 
       {scene ? (
         <>
-          <SceneBlocks blocks={blocks} onDone={() => setTold(true)} />
+          <SceneBlocks key={scene.scene_key} blocks={blocks} onDone={() => setTold(true)} />
 
           {ended ? (
             told && <EndingScreen payload={ending} loading={endingLoading} campaignTitle={campaign?.title} />
           ) : choices.length > 0 ? (
-            told && <div className="jy-fade-in"><ChoiceList choices={choices} busy={busy} onChoose={onChoose} /></div>
+            told && <div className="jy-fade-in"><ChoiceList choices={choices} busy={busy} onChoose={chooseChoice} /></div>
           ) : scene?.has_auto_next ? (
-            told && <ContinueButton busy={busy} label={busy ? 'The tale moves…' : 'Continue'} onClick={() => { void advanceGated(); }} />
+            told && (
+              <div className="jy-fade-in mt-8 text-center">
+                <button type="button" className="jy-btn jy-btn-primary" disabled={busy} onClick={() => { void advance(); }}>
+                  {busy ? 'The tale moves…' : 'Continue'}
+                </button>
+              </div>
+            )
           ) : (
             told && (
               <div className="jy-panel mt-8 p-4 text-center">
@@ -185,15 +137,5 @@ export default function JourneyPlayPage() {
         </div>
       )}
     </JourneyLayout>
-  );
-}
-
-function ContinueButton({ label, busy, onClick }: { label: string; busy: boolean; onClick: () => void }) {
-  return (
-    <div className="jy-fade-in mt-8 text-center">
-      <button type="button" className="jy-btn jy-btn-primary" disabled={busy} onClick={onClick}>
-        {label}
-      </button>
-    </div>
   );
 }
