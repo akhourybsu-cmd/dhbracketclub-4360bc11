@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, MessageSquareText, CalendarDays, Swords, Newspaper,
   User, Trophy, BarChart3, MessageCircle, Bookmark, Link2, ScrollText,
-  Lock, FileText, Sparkles, Shield, Settings, LogOut, Brackets as BracketsIcon, TrendingUp, Cake, BookOpen, BookMarked,
+  Lock, FileText, Sparkles, Shield, Settings, LogOut, Brackets as BracketsIcon, TrendingUp, Cake, BookOpen, BookMarked, Flame, Compass, LayoutGrid,
 } from 'lucide-react';
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -12,6 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useClub } from '@/contexts/ClubContext';
 import { useSoundEffect } from '@/hooks/useSoundEffect';
 import { useClubAssets } from '@/hooks/useClubAssets';
+import { NAV_ASSET_SLUGS } from '@/types/assets';
 import dhMonogram from '@/assets/dh-monogram.png';
 
 type NavEntry = { path: string; label: string; icon: any; badge?: number };
@@ -28,7 +29,7 @@ export function AppDrawer({ open, onOpenChange, unreadChatCount = 0 }: AppDrawer
   const { user, signOut } = useAuth();
   const { club, isClubAdmin, isPlatformOwner, isAppAdmin } = useClub();
   const { play } = useSoundEffect();
-  const { filterNavPaths } = useClubAssets();
+  const { filterNavPaths, installedAssets, isVisible } = useClubAssets();
 
   // Close on route change
   useEffect(() => { if (open) onOpenChange(false); /* eslint-disable-next-line */ }, [location.pathname]);
@@ -57,12 +58,14 @@ export function AppDrawer({ open, onOpenChange, unreadChatCount = 0 }: AppDrawer
         { path: '/portfolio-wars', label: 'Portfolio Wars', icon: TrendingUp },
         { path: '/lockbox', label: 'Lockbox', icon: Lock },
         { path: '/readshift', label: 'READSHIFT', icon: BookMarked },
+        { path: '/workouts', label: 'FORGE', icon: Flame },
       ],
     },
     {
       label: 'Community',
       items: [
         { path: '/narrative', label: 'Narrative RPG', icon: BookOpen },
+        { path: '/journey', label: 'The Splendid Journey', icon: Compass },
         { path: '/polls', label: 'Polls', icon: MessageCircle },
         { path: '/rankings', label: 'Rankings', icon: BarChart3 },
         { path: '/posts', label: 'Posts', icon: FileText },
@@ -81,6 +84,19 @@ export function AppDrawer({ open, onOpenChange, unreadChatCount = 0 }: AppDrawer
     ...sec,
     items: sec.items.filter(item => filterNavPaths([item.path]).length > 0),
   })).filter(sec => sec.items.length > 0);
+
+  // Catch-all: any installed + visible asset that has a route but isn't
+  // hardcoded above still shows up, so newly added plugins never go missing.
+  const listedPaths = new Set(rawSections.flatMap(s => s.items.map(i => i.path)));
+  const extras: NavEntry[] = (Object.entries(NAV_ASSET_SLUGS) as [string, string][])
+    .filter(([path, slug]) => !listedPaths.has(path) && isVisible(slug))
+    .map(([path, slug]) => ({
+      path,
+      label: installedAssets.find(ia => ia.asset?.slug === slug)?.asset?.name ?? slug,
+      icon: LayoutGrid,
+    }));
+  if (extras.length > 0) sections.push({ label: 'More Apps', items: extras });
+
 
   if (isClubAdmin || isPlatformOwner || isAppAdmin) {
     sections.push({
