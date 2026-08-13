@@ -4,6 +4,7 @@ import { BookOpen, Feather, Play, Plus, RotateCcw } from 'lucide-react';
 import { JourneyLayout, JourneyError, JourneySkeleton } from '@/components/journey/JourneyLayout';
 import { StoryIntroduction } from '@/components/journey/StoryIntroduction';
 import { prologueFor } from '@/lib/journey/prologues';
+import { protagonistFor } from '@/lib/journey/protagonists';
 import { useJourneyLibrary } from '@/hooks/useJourneyLibrary';
 import type { CampaignRow, HeroRow } from '@/lib/journey/types';
 
@@ -28,6 +29,22 @@ export default function JourneyHomePage() {
 
   const begin = async (campaign: CampaignRow, hero: HeroRow) => {
     setStarting(true);
+    const run = await startRun(campaign.id, hero.id);
+    setStarting(false);
+    if (run) navigate(`/journey/play/${run.id}`);
+  };
+
+  // Campaigns written around an authored protagonist skip hero creation
+  // entirely: the player steps straight into that character.
+  const launch = async (campaign: CampaignRow) => {
+    const fixed = protagonistFor(campaign.slug);
+    if (!fixed) { setPicking(campaign); return; }
+    setStarting(true);
+    const existing = heroes.find((h) => h.name.toLowerCase() === fixed.name.toLowerCase());
+    const hero = existing ?? await createHero({
+      name: fixed.name, pronouns: fixed.pronouns, origin: fixed.origin,
+    });
+    if (!hero) { setStarting(false); return; }
     const run = await startRun(campaign.id, hero.id);
     setStarting(false);
     if (run) navigate(`/journey/play/${run.id}`);
@@ -89,6 +106,9 @@ export default function JourneyHomePage() {
                         {c.status === 'testing' && <span className="jy-chip shrink-0">Testing</span>}
                       </div>
                       {c.description && <p className="jy-prose mt-2 text-sm">{c.description}</p>}
+                      {protagonistFor(c.slug) && (
+                        <p className="jy-secondary mt-2 text-sm italic">{protagonistFor(c.slug)!.blurb}</p>
+                      )}
                       <div className="jy-muted mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs">
                         {c.author && <span>By {c.author}</span>}
                         {c.estimated_length && <span>{c.estimated_length}</span>}
@@ -103,8 +123,8 @@ export default function JourneyHomePage() {
                             <Play className="h-4 w-4" aria-hidden /> Resume
                           </button>
                         ) : (
-                          <button className="jy-btn jy-btn-primary" onClick={() => setPicking(c)}>
-                            <Play className="h-4 w-4" aria-hidden /> Begin
+                          <button className="jy-btn jy-btn-primary" disabled={starting} onClick={() => { void launch(c); }}>
+                            <Play className="h-4 w-4" aria-hidden /> {starting ? 'Beginning…' : 'Begin'}
                           </button>
                         )}
                         {prologueFor(c.slug) && (
@@ -113,7 +133,7 @@ export default function JourneyHomePage() {
                           </button>
                         )}
                         {run && (
-                          <button className="jy-btn jy-btn-ghost" onClick={() => setPicking(c)}>
+                          <button className="jy-btn jy-btn-ghost" disabled={starting} onClick={() => { void launch(c); }}>
                             <RotateCcw className="h-4 w-4" aria-hidden /> New run
                           </button>
                         )}
@@ -148,7 +168,7 @@ export default function JourneyHomePage() {
             setIntro(null);
             const run = activeRuns.find((r) => r.campaign_id === c.id);
             if (run) navigate(`/journey/play/${run.id}`);
-            else setPicking(c);
+            else void launch(c);
           }}
         />
       )}
