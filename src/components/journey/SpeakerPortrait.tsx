@@ -11,7 +11,7 @@ export function SpeakerPortrait({
   name, portrait, size = 44, speaking = false,
 }: { name: string; portrait?: string | null; size?: number; speaking?: boolean }) {
   const hue = speakerHue(name || 'unknown');
-  const { src, position } = parsePortrait(portrait);
+  const { src, position, zoom } = parsePortrait(portrait);
   return (
     <div
       className="jy-portrait shrink-0"
@@ -31,7 +31,11 @@ export function SpeakerPortrait({
           loading="lazy"
           decoding="async"
           className="h-full w-full object-cover"
-          style={{ objectPosition: position }}
+          style={{
+            objectPosition: position,
+            transform: zoom > 1 ? `scale(${zoom})` : undefined,
+            transformOrigin: position,
+          }}
         />
       ) : (
         <span className="jy-portrait-initials">{speakerInitials(name || '?')}</span>

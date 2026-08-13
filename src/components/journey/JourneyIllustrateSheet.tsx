@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { FolderUp, ImagePlus, Trash2, UploadCloud, X } from 'lucide-react';
 import { exportCampaignPackage } from '@/hooks/useJourneyStudio';
 import {
-  isImageUrl, parsePortrait, setJourneyAsset, uploadJourneyImage, visualBrief, withFocus,
+  isImageUrl, parsePortrait, setJourneyAsset, uploadJourneyImage, visualBrief, withCrop,
   type AssetTarget,
 } from '@/lib/journey/art';
 import type { CampaignPackage } from '@/lib/journey/types';
@@ -122,10 +122,10 @@ export function JourneyIllustrateSheet({
     }
   };
 
-  // Re-point a portrait's focal point (percent coords) without re-uploading.
-  const handleFocus = async (slot: Slot, x: number, y: number) => {
+  // Re-frame a portrait (focal point + zoom) without re-uploading.
+  const handleCrop = async (slot: Slot, x: number, y: number, zoom: number) => {
     if (!slot.url) return;
-    const url = withFocus(slot.url, x, y);
+    const url = withCrop(slot.url, x, y, zoom);
     setSlotUrl(slot.id, url);
     try {
       await setJourneyAsset(campaignId, slot.target, slot.key, url);
@@ -244,7 +244,7 @@ export function JourneyIllustrateSheet({
                   busy={!!busy[slot.id]}
                   onUpload={(f) => handleUpload(slot, f)}
                   onClear={() => handleClear(slot)}
-                  onFocus={slot.target === 'npc_portrait' ? (x, y) => handleFocus(slot, x, y) : undefined}
+                  onCrop={slot.target === 'npc_portrait' ? (x, y, z) => handleCrop(slot, x, y, z) : undefined}
                 />
               ))}
             </div>
@@ -277,11 +277,11 @@ function fileMatchPattern(slot: Slot): RegExp | null {
 }
 
 function ImageSlotRow({
-  slot, busy, onUpload, onClear, onFocus,
+  slot, busy, onUpload, onClear, onCrop,
 }: {
   slot: Slot; busy: boolean;
   onUpload: (f: File) => void; onClear: () => void;
-  onFocus?: (x: number, y: number) => void;
+  onCrop?: (x: number, y: number, zoom: number) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const has = isImageUrl(slot.url);
@@ -326,49 +326,100 @@ function ImageSlotRow({
             </button>
           )}
         </div>
-        {onFocus && has && <PortraitFocusEditor url={slot.url as string} onFocus={onFocus} />}
+        {onCrop && has && <PortraitCropEditor url={slot.url as string} onCrop={onCrop} />}
       </div>
     </article>
   );
 }
 
 /**
- * Crop control for a character portrait: click the character's face on the tall
- * reference and the round avatar re-centers on that point. The live medallion
- * preview shows exactly how it will read in dialogue.
+ * Zoom + crop for a character portrait. Click a feature on the tall reference to
+ * center the avatar there, drag the zoom slider to tighten in on it. A dashed
+ * box on the reference shows exactly what the round avatar will use, and the
+ * live medallion preview shows how it reads in dialogue. Saves as you adjust.
  */
-function PortraitFocusEditor({ url, onFocus }: { url: string; onFocus: (x: number, y: number) => void }) {
-  const { src, position } = parsePortrait(url);
-  const [x, y] = position.replace(/%/g, '').split(' ').map(Number);
+function PortraitCropEditor({ url, onCrop }: { url: string; onCrop: (x: number, y: number, zoom: number) => void }) {
+  const parsed = parsePortrait(url);
+  const [x, setX] = useState(parsed.x);
+  const [y, setY] = useState(parsed.y);
+  const [zoom, setZoom] = useState(parsed.zoom);
+  const [aspect, setAspect] = useState(0.8); // width/height, refined on image load
+  const src = parsed.src;
+
+  useEffect(() => {
+    const p = parsePortrait(url);
+    setX(p.x); setY(p.y); setZoom(p.zoom);
+  }, [url]);
 
   const pick = (e: React.MouseEvent<HTMLDivElement>) => {
     const r = e.currentTarget.getBoundingClientRect();
     const nx = Math.min(100, Math.max(0, ((e.clientX - r.left) / r.width) * 100));
     const ny = Math.min(100, Math.max(0, ((e.clientY - r.top) / r.height) * 100));
-    onFocus(nx, ny);
+    setX(nx); setY(ny);
+    onCrop(nx, ny, zoom);
   };
 
+  const onZoom = (z: number) => { setZoom(z); onCrop(x, y, z); };
+
+  // What the square avatar covers on the reference (object-fit cover + zoom).
+  const baseH = aspect >= 1 ? 1 / aspect : 1;
+  const baseV = aspect >= 1 ? 1 : aspect;
+  const vfH = Math.min(1, baseH / zoom);
+  const vfV = Math.min(1, baseV / zoom);
+  const boxW = vfH * 100;
+  const boxH = vfV * 100;
+  const boxL = (x / 100) * (100 - boxW);
+  const boxT = (y / 100) * (100 - boxH);
+
+  const position = `${x}% ${y}%`;
   if (!src) return null;
   return (
     <div className="mt-3 flex items-start gap-3">
       <div
-        className="relative w-24 shrink-0 cursor-crosshair overflow-hidden rounded-sm"
+        className="relative w-24 shrink-0 cursor-crosshair select-none overflow-hidden rounded-sm"
         style={{ border: '1px solid hsl(var(--jy-border-subtle))' }}
         onClick={pick}
         role="button"
-        aria-label="Click the face to set the avatar focus"
+        aria-label="Click a feature to center the avatar"
       >
-        <img src={src} alt="" className="block w-full" draggable={false} />
+        <img
+          src={src}
+          alt=""
+          className="block w-full"
+          draggable={false}
+          onLoad={(e) => {
+            const im = e.currentTarget;
+            if (im.naturalWidth && im.naturalHeight) setAspect(im.naturalWidth / im.naturalHeight);
+          }}
+        />
+        {/* Dashed box = exactly the region the round avatar uses. */}
         <span
-          className="pointer-events-none absolute h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full"
-          style={{ left: `${x}%`, top: `${y}%`, border: '2px solid hsl(var(--jy-gold))', boxShadow: '0 0 0 2px hsl(28 14% 4% / 0.8)' }}
+          className="pointer-events-none absolute"
+          style={{
+            left: `${boxL}%`, top: `${boxT}%`, width: `${boxW}%`, height: `${boxH}%`,
+            border: '1.5px dashed hsl(var(--jy-gold))', boxShadow: '0 0 0 100vmax hsl(28 14% 4% / 0.45)',
+          }}
         />
       </div>
-      <div>
-        <div className="jy-portrait" style={{ width: 56, height: 56 }} aria-hidden>
-          <img src={src} alt="" className="h-full w-full object-cover" style={{ objectPosition: position }} />
+
+      <div className="min-w-0">
+        <div className="jy-portrait" style={{ width: 60, height: 60 }} aria-hidden>
+          <img
+            src={src}
+            alt=""
+            className="h-full w-full object-cover"
+            style={{ objectPosition: position, transform: zoom > 1 ? `scale(${zoom})` : undefined, transformOrigin: position }}
+          />
         </div>
-        <p className="jy-muted mt-1 max-w-[7rem] text-[0.65rem] leading-tight">Click the face to center the avatar.</p>
+        <label className="mt-2 block">
+          <span className="jy-muted text-[0.65rem]">Zoom {zoom.toFixed(1)}×</span>
+          <input
+            type="range" min={1} max={3} step={0.1} value={zoom}
+            className="mt-0.5 block w-28"
+            onChange={(e) => onZoom(Number(e.target.value))}
+          />
+        </label>
+        <p className="jy-muted mt-1 max-w-[7rem] text-[0.6rem] leading-tight">Click a feature; drag to zoom.</p>
       </div>
     </div>
   );

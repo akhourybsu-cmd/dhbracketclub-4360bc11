@@ -50,30 +50,47 @@ export function isImageUrl(value?: string | null): boolean {
   return !!value && /^https?:\/\//.test(value);
 }
 
+export interface PortraitCrop {
+  src: string | null;
+  /** Focal point, 0–100. */
+  x: number;
+  y: number;
+  /** Zoom factor; 1 = cover baseline, higher tightens on the focal point. */
+  zoom: number;
+  /** CSS object-position string for the focal point. */
+  position: string;
+}
+
 /**
- * A portrait URL may carry a focal point in its fragment (#fx=50&fy=25) so a
- * tall character reference crops to the face inside the small round avatar.
- * Returns the bare image src plus a CSS object-position string.
+ * A portrait URL may carry a crop in its fragment (#fx=50&fy=25&z=1.5) so a tall
+ * character reference frames to a feature inside the small round avatar: fx/fy
+ * pan the focal point, z zooms in on it. Returns the bare src plus the parts.
  */
-export function parsePortrait(url?: string | null): { src: string | null; position: string } {
-  if (!url) return { src: null, position: '50% 25%' };
+export function parsePortrait(url?: string | null): PortraitCrop {
+  const fallback: PortraitCrop = { src: null, x: 50, y: 25, zoom: 1, position: '50% 25%' };
+  if (!url) return fallback;
   const [src, frag] = url.split('#');
   let x = 50;
   let y = 25;
+  let zoom = 1;
   if (frag) {
     const p = new URLSearchParams(frag);
     const fx = Number(p.get('fx'));
     const fy = Number(p.get('fy'));
-    if (Number.isFinite(fx)) x = fx;
-    if (Number.isFinite(fy)) y = fy;
+    const fz = Number(p.get('z'));
+    if (Number.isFinite(fx)) x = Math.min(100, Math.max(0, fx));
+    if (Number.isFinite(fy)) y = Math.min(100, Math.max(0, fy));
+    if (Number.isFinite(fz)) zoom = Math.min(4, Math.max(1, fz));
   }
-  return { src, position: `${x}% ${y}%` };
+  return { src, x, y, zoom, position: `${x}% ${y}%` };
 }
 
-/** Attach a focal point to a portrait URL (percent coordinates, 0–100). */
-export function withFocus(url: string, x: number, y: number): string {
+/** Attach a crop (focal point + zoom) to a portrait URL. */
+export function withCrop(url: string, x: number, y: number, zoom: number): string {
   const base = url.split('#')[0];
-  return `${base}#fx=${Math.round(x)}&fy=${Math.round(y)}`;
+  const parts = [`fx=${Math.round(x)}`, `fy=${Math.round(y)}`];
+  if (zoom && zoom > 1.01) parts.push(`z=${zoom.toFixed(2)}`);
+  return `${base}#${parts.join('&')}`;
 }
 
 /** Pull the human "visual_brief" guidance out of a scene's author notes. */
