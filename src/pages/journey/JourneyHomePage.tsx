@@ -1,9 +1,12 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Feather, Play, Plus, RotateCcw } from 'lucide-react';
+import { BookOpen, Feather, Play, Plus, RotateCcw } from 'lucide-react';
 import { JourneyLayout, JourneyError, JourneySkeleton } from '@/components/journey/JourneyLayout';
+import { StoryIntroduction } from '@/components/journey/StoryIntroduction';
+import { prologueFor } from '@/lib/journey/prologues';
 import { useJourneyLibrary } from '@/hooks/useJourneyLibrary';
 import type { CampaignRow, HeroRow } from '@/lib/journey/types';
+
 
 /** The campaign hall: continue an existing journey, or begin a new one. */
 export default function JourneyHomePage() {
