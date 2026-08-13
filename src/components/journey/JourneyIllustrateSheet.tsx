@@ -3,7 +3,8 @@ import { createPortal } from 'react-dom';
 import { FolderUp, ImagePlus, Trash2, UploadCloud, X } from 'lucide-react';
 import { exportCampaignPackage } from '@/hooks/useJourneyStudio';
 import {
-  isImageUrl, setJourneyAsset, uploadJourneyImage, visualBrief, type AssetTarget,
+  isImageUrl, parsePortrait, setJourneyAsset, uploadJourneyImage, visualBrief, withFocus,
+  type AssetTarget,
 } from '@/lib/journey/art';
 import type { CampaignPackage } from '@/lib/journey/types';
 
@@ -121,6 +122,18 @@ export function JourneyIllustrateSheet({
     }
   };
 
+  // Re-point a portrait's focal point (percent coords) without re-uploading.
+  const handleFocus = async (slot: Slot, x: number, y: number) => {
+    if (!slot.url) return;
+    const url = withFocus(slot.url, x, y);
+    setSlotUrl(slot.id, url);
+    try {
+      await setJourneyAsset(campaignId, slot.target, slot.key, url);
+    } catch (e) {
+      setError(`${slot.label}: ${(e as Error).message}`);
+    }
+  };
+
   const handleBulk = async (files: FileList) => {
     if (!slots) return;
     setError(null);
@@ -231,6 +244,7 @@ export function JourneyIllustrateSheet({
                   busy={!!busy[slot.id]}
                   onUpload={(f) => handleUpload(slot, f)}
                   onClear={() => handleClear(slot)}
+                  onFocus={slot.target === 'npc_portrait' ? (x, y) => handleFocus(slot, x, y) : undefined}
                 />
               ))}
             </div>
@@ -263,10 +277,15 @@ function fileMatchPattern(slot: Slot): RegExp | null {
 }
 
 function ImageSlotRow({
-  slot, busy, onUpload, onClear,
-}: { slot: Slot; busy: boolean; onUpload: (f: File) => void; onClear: () => void }) {
+  slot, busy, onUpload, onClear, onFocus,
+}: {
+  slot: Slot; busy: boolean;
+  onUpload: (f: File) => void; onClear: () => void;
+  onFocus?: (x: number, y: number) => void;
+}) {
   const inputRef = useRef<HTMLInputElement>(null);
   const has = isImageUrl(slot.url);
+  const thumb = parsePortrait(slot.url);
 
   return (
     <article className="jy-panel flex gap-3 p-3">
@@ -275,7 +294,7 @@ function ImageSlotRow({
         style={{ border: '1px solid hsl(var(--jy-border-subtle))', background: 'hsl(var(--jy-bg-primary))' }}
       >
         {has ? (
-          <img src={slot.url as string} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
+          <img src={thumb.src as string} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
         ) : (
           <div className="grid h-full w-full place-items-center">
             <ImagePlus className="h-5 w-5" style={{ color: 'hsl(var(--jy-text-muted))' }} aria-hidden />
@@ -307,7 +326,50 @@ function ImageSlotRow({
             </button>
           )}
         </div>
+        {onFocus && has && <PortraitFocusEditor url={slot.url as string} onFocus={onFocus} />}
       </div>
     </article>
+  );
+}
+
+/**
+ * Crop control for a character portrait: click the character's face on the tall
+ * reference and the round avatar re-centers on that point. The live medallion
+ * preview shows exactly how it will read in dialogue.
+ */
+function PortraitFocusEditor({ url, onFocus }: { url: string; onFocus: (x: number, y: number) => void }) {
+  const { src, position } = parsePortrait(url);
+  const [x, y] = position.replace(/%/g, '').split(' ').map(Number);
+
+  const pick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    const nx = Math.min(100, Math.max(0, ((e.clientX - r.left) / r.width) * 100));
+    const ny = Math.min(100, Math.max(0, ((e.clientY - r.top) / r.height) * 100));
+    onFocus(nx, ny);
+  };
+
+  if (!src) return null;
+  return (
+    <div className="mt-3 flex items-start gap-3">
+      <div
+        className="relative w-24 shrink-0 cursor-crosshair overflow-hidden rounded-sm"
+        style={{ border: '1px solid hsl(var(--jy-border-subtle))' }}
+        onClick={pick}
+        role="button"
+        aria-label="Click the face to set the avatar focus"
+      >
+        <img src={src} alt="" className="block w-full" draggable={false} />
+        <span
+          className="pointer-events-none absolute h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full"
+          style={{ left: `${x}%`, top: `${y}%`, border: '2px solid hsl(var(--jy-gold))', boxShadow: '0 0 0 2px hsl(28 14% 4% / 0.8)' }}
+        />
+      </div>
+      <div>
+        <div className="jy-portrait" style={{ width: 56, height: 56 }} aria-hidden>
+          <img src={src} alt="" className="h-full w-full object-cover" style={{ objectPosition: position }} />
+        </div>
+        <p className="jy-muted mt-1 max-w-[7rem] text-[0.65rem] leading-tight">Click the face to center the avatar.</p>
+      </div>
+    </div>
   );
 }

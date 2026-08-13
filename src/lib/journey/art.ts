@@ -50,6 +50,32 @@ export function isImageUrl(value?: string | null): boolean {
   return !!value && /^https?:\/\//.test(value);
 }
 
+/**
+ * A portrait URL may carry a focal point in its fragment (#fx=50&fy=25) so a
+ * tall character reference crops to the face inside the small round avatar.
+ * Returns the bare image src plus a CSS object-position string.
+ */
+export function parsePortrait(url?: string | null): { src: string | null; position: string } {
+  if (!url) return { src: null, position: '50% 25%' };
+  const [src, frag] = url.split('#');
+  let x = 50;
+  let y = 25;
+  if (frag) {
+    const p = new URLSearchParams(frag);
+    const fx = Number(p.get('fx'));
+    const fy = Number(p.get('fy'));
+    if (Number.isFinite(fx)) x = fx;
+    if (Number.isFinite(fy)) y = fy;
+  }
+  return { src, position: `${x}% ${y}%` };
+}
+
+/** Attach a focal point to a portrait URL (percent coordinates, 0–100). */
+export function withFocus(url: string, x: number, y: number): string {
+  const base = url.split('#')[0];
+  return `${base}#fx=${Math.round(x)}&fy=${Math.round(y)}`;
+}
+
 /** Pull the human "visual_brief" guidance out of a scene's author notes. */
 export function visualBrief(authorNotes?: string | null): string | null {
   if (!authorNotes) return null;

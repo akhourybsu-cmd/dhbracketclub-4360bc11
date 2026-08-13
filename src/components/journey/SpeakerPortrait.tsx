@@ -1,4 +1,5 @@
 import { speakerHue, speakerInitials } from '@/lib/journey/atmosphere';
+import { parsePortrait } from '@/lib/journey/art';
 
 /**
  * Portrait medallion for a speaking character. Uses authored artwork when the
@@ -10,6 +11,7 @@ export function SpeakerPortrait({
   name, portrait, size = 44, speaking = false,
 }: { name: string; portrait?: string | null; size?: number; speaking?: boolean }) {
   const hue = speakerHue(name || 'unknown');
+  const { src, position } = parsePortrait(portrait);
   return (
     <div
       className="jy-portrait shrink-0"
@@ -22,8 +24,15 @@ export function SpeakerPortrait({
       }}
       aria-hidden
     >
-      {portrait ? (
-        <img src={portrait} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
+      {src ? (
+        <img
+          src={src}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          className="h-full w-full object-cover"
+          style={{ objectPosition: position }}
+        />
       ) : (
         <span className="jy-portrait-initials">{speakerInitials(name || '?')}</span>
       )}
