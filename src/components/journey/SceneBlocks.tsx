@@ -11,14 +11,27 @@ import { Instant, Typewriter } from './Typewriter';
  * `onDone` fires when the whole scene has been told, so choices can follow.
  */
 export function SceneBlocks({
-  blocks, onDone,
-}: { blocks: RuntimeBlock[]; onDone?: () => void }) {
+  blocks, onDone, instant = false,
+}: { blocks: RuntimeBlock[]; onDone?: () => void; instant?: boolean }) {
   const [revealed, setRevealed] = useState(0);
   const [skip, setSkip] = useState(false);
   const doneRef = useRef(onDone);
   doneRef.current = onDone;
 
   useEffect(() => { setRevealed(0); setSkip(false); }, [blocks]);
+
+  // A finished scene shown as scrollback: render every block at once, no typing.
+  if (instant) {
+    return (
+      <div className="space-y-5">
+        {blocks.map((b, i) => (
+          <Fragment key={`${b.block_type}-${b.display_order}-${i}`}>
+            {renderBlock(b, { active: false, skip: true, onDone: () => {} })}
+          </Fragment>
+        ))}
+      </div>
+    );
+  }
 
   const complete = revealed >= blocks.length;
   useEffect(() => { if (complete) doneRef.current?.(); }, [complete]);

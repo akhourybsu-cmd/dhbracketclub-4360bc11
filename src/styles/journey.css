@@ -170,6 +170,23 @@
 .jy-choice-skill { border-left-color: hsl(var(--jy-arcane)); }
 .jy-choice-secret { border-left-color: hsl(var(--jy-forest)); }
 
+/* The option the reader chose — kept on screen, marked, no longer interactive. */
+.jy-choice-chosen {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.9rem 1rem;
+  border: 1px solid hsl(var(--jy-gold) / 0.4);
+  border-left: 2px solid hsl(var(--jy-gold));
+  border-radius: 3px;
+  background: linear-gradient(180deg, hsl(var(--jy-gold) / 0.12), hsl(var(--jy-gold) / 0.04));
+  color: hsl(42 40% 82%);
+  font-family: var(--jy-body);
+  font-style: italic;
+}
+.jy-choice-chosen svg { margin-top: 0.15rem; flex: 0 0 auto; color: hsl(var(--jy-gold)); }
+
 /* ── Buttons ──────────────────────────────────────────────────── */
 .jy-btn {
   display: inline-flex;
