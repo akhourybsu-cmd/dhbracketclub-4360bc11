@@ -2487,7 +2487,7 @@
         {
           "block_type": "dialogue",
           "display_order": 2,
-          "content": "The EMC messenger said it was equipment failure.",
+          "content": "The messenger from the EMC called it equipment failure.",
           "metadata": {
             "speaker_key": "bethella",
             "speaker_name": "Bethella"
@@ -2790,7 +2790,7 @@
         {
           "block_type": "dialogue",
           "display_order": 15,
-          "content": "It was ore. That's what makes this difficult. A thing can be useful and still have had a purpose before we ever touched it.",
+          "content": "It was ore. That is what makes it hard — a thing can be useful and still have had a purpose long before we touched it.",
           "metadata": {
             "speaker_key": "timinny",
             "speaker_name": "Timinny"
