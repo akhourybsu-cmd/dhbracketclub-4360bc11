@@ -28,7 +28,7 @@ export function AppDrawer({ open, onOpenChange, unreadChatCount = 0 }: AppDrawer
   const { user, signOut } = useAuth();
   const { club, isClubAdmin, isPlatformOwner, isAppAdmin } = useClub();
   const { play } = useSoundEffect();
-  const { filterNavPaths } = useClubAssets();
+  const { filterNavPaths, installedAssets, isVisible } = useClubAssets();
 
   // Close on route change
   useEffect(() => { if (open) onOpenChange(false); /* eslint-disable-next-line */ }, [location.pathname]);
