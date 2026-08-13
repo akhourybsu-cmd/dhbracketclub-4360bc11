@@ -1097,7 +1097,7 @@
         {
           "block_type": "narration",
           "display_order": 34,
-          "content": "Timinny directs Theron to place the fragment into a three-point brace around a cracked model tower. A copper vane carries static from the workshop roof."
+          "content": "Timinny has him set the fragment into a three-point brace around a cracked model tower. A copper vane feeds static down from the workshop roof."
         },
         {
           "block_type": "discovery",
@@ -1787,7 +1787,7 @@
         {
           "block_type": "narration",
           "display_order": 1,
-          "content": "The C02 aftermath: Varrik orders everyone away from the face."
+          "content": "In the ringing quiet after the collapse, Varrik waves the crew back from the face."
         },
         {
           "block_type": "dialogue",
@@ -1920,7 +1920,7 @@
         {
           "block_type": "narration",
           "display_order": 19,
-          "content": "Miners had already withdrawn from the immediate face before the collapse; the chamber contains fewer trapped workers.",
+          "content": "Most of the crew had pulled back from the face before it gave way. Fewer are trapped down here than there might have been.",
           "conditions": {
             "type": "variable_equals",
             "key": "MINE_ALERT",
@@ -1930,7 +1930,7 @@
         {
           "block_type": "narration",
           "display_order": 20,
-          "content": "The collapse caught the full face crew. The injuries in the dark are worse than anything Theron can count from here.",
+          "content": "The collapse caught the whole face crew. Somewhere in the dark, the injuries are worse than anything Theron can count from where he stands.",
           "conditions": {
             "type": "variable_equals",
             "key": "MINE_ALERT",
@@ -2418,7 +2418,7 @@
         {
           "block_type": "narration",
           "display_order": 10,
-          "content": "He has already recreated Theron's observations and begins as a full collaborator.",
+          "content": "He has already reproduced Theron's results on his own, and steps in as a full partner without being asked.",
           "conditions": {
             "type": "variable_equals",
             "key": "TIMINNY_CONFIDENCE",
@@ -2428,7 +2428,7 @@
         {
           "block_type": "narration",
           "display_order": 11,
-          "content": "He asks Theron to demonstrate each claimed behavior before accepting the ring model.",
+          "content": "He makes Theron reproduce each claim in front of him before he will accept the ring model.",
           "conditions": {
             "type": "variable_equals",
             "key": "TIMINNY_CONFIDENCE",
@@ -2438,7 +2438,7 @@
         {
           "block_type": "narration",
           "display_order": 12,
-          "content": "He confronts Theron for withholding the fragment's origin before agreeing to continue.",
+          "content": "He calls Theron out for hiding where the fragment came from, and only then agrees to go on.",
           "conditions": {
             "type": "variable_equals",
             "key": "TIMINNY_CONFIDENCE",
@@ -2475,7 +2475,7 @@
         {
           "block_type": "narration",
           "display_order": 16,
-          "content": "Edran has left the copied map but is absent.",
+          "content": "Edran has left his copied map on the bench, but not himself — he is nowhere in sight.",
           "conditions": {
             "type": "variable_equals",
             "key": "EDRAN_TRUST",
@@ -2703,7 +2703,7 @@
         {
           "block_type": "narration",
           "display_order": 9,
-          "content": "A miner corroborates the impossible wall, then becomes uncertain under questioning.",
+          "content": "A miner backs up the account of the impossible wall, then loses his nerve under questioning.",
           "conditions": {
             "type": "all",
             "conditions": [
@@ -2723,7 +2723,7 @@
         {
           "block_type": "narration",
           "display_order": 10,
-          "content": "The fragment reacts to the chamber's stored Edenite. Orsik frames it as contaminated stolen material.",
+          "content": "The fragment stirs in answer to the Edenite stored in the chamber, and Orsik turns even that against him: contaminated, stolen material, nothing more.",
           "conditions": {
             "type": "variable_equals",
             "key": "EVIDENCE",
@@ -2733,7 +2733,7 @@
         {
           "block_type": "narration",
           "display_order": 11,
-          "content": "Theron presents his sketches and Edran's map. Officials call them interpretations rather than proof.",
+          "content": "Theron lays out his sketches and Edran's map. The officials call them interpretations, not proof.",
           "conditions": {
             "type": "variable_equals",
             "key": "EVIDENCE",
@@ -2753,7 +2753,7 @@
         {
           "block_type": "narration",
           "display_order": 13,
-          "content": "Theron discloses the experiments himself, before Orsik can unveil them for dramatic advantage.",
+          "content": "Theron admits to the experiments himself, before Orsik can spring them for effect.",
           "conditions": {
             "type": "variable_equals",
             "key": "SECRET_EXPERIMENTS",
@@ -2763,7 +2763,7 @@
         {
           "block_type": "narration",
           "display_order": 14,
-          "content": "Orsik reveals the custody discrepancy without warning and takes control of the hearing.",
+          "content": "Orsik produces the custody discrepancy with no warning, and the room belongs to him after that.",
           "conditions": {
             "type": "any",
             "conditions": [
@@ -2793,7 +2793,7 @@
         {
           "block_type": "narration",
           "display_order": 16,
-          "content": "Orsik cites the man's condition as evidence that Theron delayed the rescue or mishandled the scene.",
+          "content": "Orsik points to the man's condition as proof that Theron delayed the rescue, or mishandled the scene, or both.",
           "conditions": {
             "type": "any",
             "conditions": [
@@ -2882,7 +2882,7 @@
         {
           "block_type": "narration",
           "display_order": 24,
-          "content": "Varrik or an EMC clerk presents the custody discrepancy."
+          "content": "The custody discrepancy is laid on the table."
         },
         {
           "block_type": "dialogue",
@@ -2950,7 +2950,7 @@
         {
           "block_type": "narration",
           "display_order": 32,
-          "content": "Orsik refuses a shutdown. Extraction will continue under EMC inspection."
+          "content": "Orsik refuses to order a shutdown. Extraction will continue — now under EMC inspection."
         }
       ],
       "choices": [
@@ -3056,7 +3056,7 @@
         {
           "block_type": "narration",
           "display_order": 2,
-          "content": "Edran arrives with the completed ring survey and forces a clerk to compare it to fresh subsidence reports.",
+          "content": "Edran turns up with the finished ring survey and will not leave until a clerk sets it beside the fresh subsidence reports.",
           "conditions": {
             "type": "variable_equals",
             "key": "EDRAN_TRUST",
@@ -3186,7 +3186,7 @@
         {
           "block_type": "narration",
           "display_order": 6,
-          "content": "Varrik remembers Theron's earlier warning and pauses the deepest crew, while publicly condemning him for the bell.",
+          "content": "Varrik remembers the earlier warning and quietly holds the deepest crew back — even as he curses Theron aloud for ringing the bell.",
           "conditions": {
             "type": "variable_equals",
             "key": "VARRIK_STANCE",
@@ -3509,7 +3509,7 @@
         {
           "block_type": "narration",
           "display_order": 4,
-          "content": "Varrik remains antagonistic, but the miners who liked Theron's humor make space for him anyway.",
+          "content": "Varrik stays hostile, but the miners who always liked Theron's mouth make room for him anyway.",
           "conditions": {
             "type": "variable_equals",
             "key": "VARRIK_STANCE",
@@ -4198,7 +4198,7 @@
         {
           "block_type": "narration",
           "display_order": 15,
-          "content": "Timinny examines Theron's notes. His deepvein treatment weakened during the disruption, but he remains stable enough to continue."
+          "content": "Timinny goes through Theron's notes. His deepvein treatment took a knock in the disruption, but he is steady enough to keep arguing."
         },
         {
           "block_type": "dialogue",
