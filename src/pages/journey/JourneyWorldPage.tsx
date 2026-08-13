@@ -1,14 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
-import { BookOpen, MapPin, Users } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { useMemo, useState } from 'react';
+import { BookOpen, MapPin, Users, Flag } from 'lucide-react';
 import { JourneyLayout, JourneySkeleton } from '@/components/journey/JourneyLayout';
 import { useJourneyLibrary } from '@/hooks/useJourneyLibrary';
 import { useJourneyRun } from '@/hooks/useJourneyRun';
+import { useJourneyWorld } from '@/hooks/useJourneyWorld';
 import { NoRun } from './JourneyCharacterPage';
 
-interface CodexRow { codex_key: string; title: string; category: string | null; body: string | null }
-interface LocRow { location_key: string; name: string; region: string | null; description: string | null }
-interface NpcRow { npc_key: string; name: string; title: string | null; description: string | null; codex_key: string | null }
 
 /**
  * The Codex. Only shows what the player has actually discovered — unlocked
@@ -17,25 +14,11 @@ interface NpcRow { npc_key: string; name: string; title: string | null; descript
 export default function JourneyWorldPage() {
   const { currentRun, loading } = useJourneyLibrary();
   const { run, state, loading: runLoading } = useJourneyRun(currentRun?.id);
-  const [codex, setCodex] = useState<CodexRow[]>([]);
-  const [locations, setLocations] = useState<LocRow[]>([]);
-  const [npcs, setNpcs] = useState<NpcRow[]>([]);
   const [open, setOpen] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!run) return;
-    let cancelled = false;
-    (async () => {
-      // World data comes from the run's pinned campaign version through a
-      // controlled function — content tables are author-only.
-      const { data } = await (supabase as any).rpc('journey_get_world', { _run_id: run.id });
-      if (cancelled) return;
-      setCodex((data?.codex ?? []) as CodexRow[]);
-      setLocations((data?.locations ?? []) as LocRow[]);
-      setNpcs((data?.npcs ?? []) as NpcRow[]);
-    })();
-    return () => { cancelled = true; };
-  }, [run]);
+  // World data comes from the run's pinned campaign version through a
+  // controlled function — content tables are author-only.
+  const { world } = useJourneyWorld(currentRun?.id);
+  const { codex, locations, npcs, factions } = world;
 
   const unlockedCodex = useMemo(
     () => codex.filter((c) => (state.codex ?? []).includes(c.codex_key)),
@@ -44,6 +27,10 @@ export default function JourneyWorldPage() {
   const visited = useMemo(
     () => locations.filter((l) => (state.visited_locations ?? []).includes(l.location_key)),
     [locations, state.visited_locations],
+  );
+  const known = useMemo(
+    () => factions.filter((f) => (state.factions ?? {})[f.faction_key] !== undefined),
+    [factions, state.factions],
   );
   const met = useMemo(
     () => npcs.filter((n) => Boolean((state.npc_status ?? {})[n.npc_key]) || (state.relationships ?? {})[n.npc_key] !== undefined),
@@ -55,8 +42,8 @@ export default function JourneyWorldPage() {
   }
   if (!currentRun) return <JourneyLayout><NoRun /></JourneyLayout>;
 
-  const total = codex.length + locations.length + npcs.length;
-  const found = unlockedCodex.length + visited.length + met.length;
+  const total = codex.length + locations.length + npcs.length + factions.length;
+  const found = unlockedCodex.length + visited.length + met.length + known.length;
 
   return (
     <JourneyLayout>
@@ -105,6 +92,20 @@ export default function JourneyWorldPage() {
             body={n.description}
             open={open === n.npc_key}
             onToggle={() => setOpen(open === n.npc_key ? null : n.npc_key)}
+          />
+        ))}
+      </Group>
+
+      <Group title="Powers" icon={Flag} empty="No faction has taken notice of you.">
+        {known.map((f) => (
+          <Entry
+            key={f.faction_key}
+            id={f.faction_key}
+            title={f.name}
+            meta={(state.factions ?? {})[f.faction_key] > 0 ? `+${(state.factions ?? {})[f.faction_key]}` : String((state.factions ?? {})[f.faction_key])}
+            body={f.description}
+            open={open === f.faction_key}
+            onToggle={() => setOpen(open === f.faction_key ? null : f.faction_key)}
           />
         ))}
       </Group>
