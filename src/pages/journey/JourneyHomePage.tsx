@@ -138,6 +138,21 @@ export default function JourneyHomePage() {
           onPick={(hero) => begin(picking, hero)}
         />
       )}
+
+      {intro && prologueFor(intro.slug) && (
+        <StoryIntroduction
+          prologue={prologueFor(intro.slug)!}
+          onClose={() => setIntro(null)}
+          onLaunch={() => {
+            const c = intro;
+            setIntro(null);
+            const run = activeRuns.find((r) => r.campaign_id === c.id);
+            if (run) navigate(`/journey/play/${run.id}`);
+            else setPicking(c);
+          }}
+        />
+      )}
+
     </JourneyLayout>
   );
 }
