@@ -105,12 +105,18 @@ export default function JourneyHomePage() {
                             <Play className="h-4 w-4" aria-hidden /> Begin
                           </button>
                         )}
+                        {prologueFor(c.slug) && (
+                          <button className="jy-btn jy-btn-ghost" onClick={() => setIntro(c)}>
+                            <BookOpen className="h-4 w-4" aria-hidden /> Story introduction
+                          </button>
+                        )}
                         {run && (
                           <button className="jy-btn jy-btn-ghost" onClick={() => setPicking(c)}>
                             <RotateCcw className="h-4 w-4" aria-hidden /> New run
                           </button>
                         )}
                       </div>
+
                     </article>
                   );
                 })}
