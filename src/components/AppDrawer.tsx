@@ -12,6 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useClub } from '@/contexts/ClubContext';
 import { useSoundEffect } from '@/hooks/useSoundEffect';
 import { useClubAssets } from '@/hooks/useClubAssets';
+import { NAV_ASSET_SLUGS } from '@/types/assets';
 import dhMonogram from '@/assets/dh-monogram.png';
 
 type NavEntry = { path: string; label: string; icon: any; badge?: number };
@@ -87,7 +88,7 @@ export function AppDrawer({ open, onOpenChange, unreadChatCount = 0 }: AppDrawer
   // Catch-all: any installed + visible asset that has a route but isn't
   // hardcoded above still shows up, so newly added plugins never go missing.
   const listedPaths = new Set(rawSections.flatMap(s => s.items.map(i => i.path)));
-  const extras: NavEntry[] = Object.entries(NAV_ASSET_SLUGS)
+  const extras: NavEntry[] = (Object.entries(NAV_ASSET_SLUGS) as [string, string][])
     .filter(([path, slug]) => !listedPaths.has(path) && isVisible(slug))
     .map(([path, slug]) => ({
       path,
