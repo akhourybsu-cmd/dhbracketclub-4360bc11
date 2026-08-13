@@ -81,7 +81,7 @@ export default function JourneyJournalPage() {
                     {(q.objectives ?? []).length > 0 && (
                       <ul className="mt-2 space-y-1">
                         {(q.objectives ?? []).map((o) => {
-                          const done = st.status === 'completed' || (st.completed_steps ?? []).includes(o.key);
+                          const done = st.status === 'completed';
                           return (
                             <li key={o.key} className="jy-secondary flex items-start gap-1.5 text-xs">
                               <span aria-hidden style={{ color: done ? 'hsl(150 30% 60%)' : 'hsl(var(--jy-gold))' }}>
