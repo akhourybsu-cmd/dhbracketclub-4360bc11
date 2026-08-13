@@ -1177,7 +1177,33 @@
         { "block_type": "narration", "display_order": 42, "content": "Far beyond Fulminary, shepherds watched birds abandon the western sky. Wells warmed in villages that had never heard the word Edenite. Along roads leading east, travelers carried stories of thunder beneath clear weather." },
         { "block_type": "narration", "display_order": 43, "content": "Theron had closed one wound." },
         { "block_type": "narration", "display_order": 44, "content": "The land had begun to open elsewhere." },
-        { "block_type": "narration", "display_order": 45, "content": "An unnatural storm front moves from west to east across the distant continent." }
+        { "block_type": "narration", "display_order": 45, "content": "An unnatural storm front moves from west to east across the distant continent." },
+        { "block_type": "divider", "display_order": 46 },
+        { "block_type": "system_message", "display_order": 47, "content": "What was carried out of Crownvein" },
+        { "block_type": "system_message", "display_order": 48, "content": "The seal below Sturmvale holds — locally, and only locally.", "conditions": { "type": "variable_equals", "key": "SEAL_STATE", "value": "restored_local" } },
+        { "block_type": "system_message", "display_order": 49, "content": "Theron carries a stormscar down his arm and shoulder.", "conditions": { "type": "variable_equals", "key": "THERON_INJURY", "value": "stormscar" } },
+        { "block_type": "system_message", "display_order": 50, "content": "Bethella reached shelter and breathes.", "conditions": { "type": "variable_equals", "key": "BETHELLA_STATE", "value": "sheltered" } },
+        { "block_type": "system_message", "display_order": 51, "content": "Timinny's treatment was disrupted but he is alive and still arguing.", "conditions": { "type": "variable_equals", "key": "TIMINNY_FATE", "value": "alive" } },
+        { "block_type": "system_message", "display_order": 52, "content": "Varrik lives, one arm crushed.", "conditions": { "type": "variable_equals", "key": "VARRIK_FATE", "value": "alive_injured" } },
+        { "block_type": "system_message", "display_order": 53, "content": "Varrik did not come up.", "conditions": { "type": "variable_equals", "key": "VARRIK_FATE", "value": "dead" } },
+        { "block_type": "system_message", "display_order": 54, "content": "The injured miner from the western face recovered.", "conditions": { "type": "variable_equals", "key": "WOUNDED_MINER", "value": "alive" } },
+        { "block_type": "system_message", "display_order": 55, "content": "The injured miner from the western face is in a critical bed, and the ward will not promise anything.", "conditions": { "type": "variable_equals", "key": "WOUNDED_MINER", "value": "critical" } },
+        { "block_type": "system_message", "display_order": 56, "content": "The miner Theron left beneath the brace lost a leg.", "conditions": { "type": "variable_equals", "key": "WOUNDED_MINER", "value": "maimed" } },
+        { "block_type": "system_message", "display_order": 57, "content": "The warned crew came up in numbers that surprised everyone.", "conditions": { "type": "variable_equals", "key": "CREW_PREPAREDNESS", "value": "high" } },
+        { "block_type": "system_message", "display_order": 58, "content": "The crew went down unwarned, and the casualty list is longer than the record will admit.", "conditions": { "type": "variable_equals", "key": "CREW_PREPAREDNESS", "value": "low" } },
+        { "block_type": "system_message", "display_order": 59, "content": "Theron's measured notes survive.", "conditions": { "type": "variable_equals", "key": "PROOF_STATE", "value": "strong_notes" } },
+        { "block_type": "system_message", "display_order": 60, "content": "Only a rescued man's word survives.", "conditions": { "type": "variable_equals", "key": "PROOF_STATE", "value": "limited" } },
+        { "block_type": "system_message", "display_order": 61, "content": "Whatever proof there was went down with the galleries.", "conditions": { "type": "variable_equals", "key": "PROOF_STATE", "value": "destroyed_by_collapse" } },
+        { "block_type": "system_message", "display_order": 62, "content": "Edran knows only what a map can be made to say.", "conditions": { "type": "variable_equals", "key": "EDRAN_TRUST", "value": "guarded" } },
+        { "block_type": "system_message", "display_order": 63, "content": "Edran knows about the voice in the wall.", "conditions": { "type": "variable_equals", "key": "EDRAN_TRUST", "value": "trusted" } },
+        { "block_type": "system_message", "display_order": 64, "content": "Edran knows all of it, theft included.", "conditions": { "type": "variable_equals", "key": "EDRAN_TRUST", "value": "full_confidence" } },
+        { "block_type": "system_message", "display_order": 65, "content": "Timinny trusts Theron completely.", "conditions": { "type": "variable_equals", "key": "TIMINNY_CONFIDENCE", "value": "high" } },
+        { "block_type": "system_message", "display_order": 66, "content": "Timinny still checks Theron's work twice.", "conditions": { "type": "variable_equals", "key": "TIMINNY_CONFIDENCE", "value": "normal" } },
+        { "block_type": "system_message", "display_order": 67, "content": "Timinny has not forgotten what Theron withheld.", "conditions": { "type": "variable_equals", "key": "TIMINNY_CONFIDENCE", "value": "guarded" } },
+        { "block_type": "system_message", "display_order": 68, "content": "Theron's exposure to the seam is minor.", "conditions": { "type": "variable_maximum", "key": "EXPOSURE", "value": 1 } },
+        { "block_type": "system_message", "display_order": 69, "content": "Theron has been in the charge more often than any body should be. Something in him answers weather now.", "conditions": { "type": "variable_minimum", "key": "EXPOSURE", "value": 2 } },
+        { "block_type": "system_message", "display_order": 70, "content": "The Commission's record will say the disaster was contained. Far to the east, the land has not read the record.", "conditions": { "type": "variable_equals", "key": "THERON_SURVIVES", "value": "true" } }
+
       ]
     }
   ]
