@@ -47,6 +47,13 @@ const REQ_KEY_BUCKET: Record<string, 'flag' | 'item' | 'quest' | 'npc' | 'codex'
   variable_minimum: 'variable', variable_maximum: 'variable',
   faction_reputation_minimum: 'faction', faction_reputation_maximum: 'faction',
   previous_choice: 'choice',
+  // Checks that reference no declared package entity (stat/trait/ability/level/
+  // health/world-state keys are runtime state, not authored rows) → null bucket
+  // means "valid type, skip key-existence check". Mirrors the engine's runtime.
+  stat_minimum: null, stat_maximum: null,
+  has_trait: null, has_ability: null,
+  level_minimum: null, health_minimum: null,
+  world_state_equals: null,
 };
 
 const EFFECT_KEY_BUCKET: Record<string, 'flag' | 'item' | 'quest' | 'npc' | 'codex' | 'location' | 'variable' | 'faction' | null> = {
@@ -58,6 +65,13 @@ const EFFECT_KEY_BUCKET: Record<string, 'flag' | 'item' | 'quest' | 'npc' | 'cod
   unlock_codex: 'codex', unlock_location: 'location', visit_location: 'location',
   set_variable: 'variable', increment_variable: 'variable', decrement_variable: 'variable',
   increase_faction_reputation: 'faction', decrease_faction_reputation: 'faction',
+  // Resource / stat / world effects reference runtime state, not authored rows
+  // → null bucket = valid type, no key-existence check. Mirrors the engine.
+  gain_gold: null, lose_gold: null, gain_xp: null,
+  increase_stat: null, decrease_stat: null,
+  unlock_trait: null, unlock_ability: null,
+  damage_player: null, heal_player: null,
+  change_world_state: null,
 };
 
 export function validateCampaign(pkg: CampaignPackage): ValidationResult {
