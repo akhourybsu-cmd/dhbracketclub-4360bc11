@@ -1,11 +1,13 @@
 import { useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Heart, Coins, Sparkles } from 'lucide-react';
+import { Heart, Coins } from 'lucide-react';
 import { JourneyLayout, JourneyError, JourneySkeleton } from '@/components/journey/JourneyLayout';
 import { SceneBlocks } from '@/components/journey/SceneBlocks';
 import { ChoiceList } from '@/components/journey/ChoiceList';
 import { SceneAtmosphere } from '@/components/journey/SceneAtmosphere';
 import { useJourneyRun } from '@/hooks/useJourneyRun';
+import { useJourneyEnding } from '@/hooks/useJourneyEnding';
+import { EndingScreen } from '@/components/journey/EndingScreen';
 
 /** The reading surface: scene prose, then choices. Everything else is elsewhere. */
 export default function JourneyPlayPage() {
@@ -15,6 +17,8 @@ export default function JourneyPlayPage() {
     loading, busy, error, notices, clearNotices, refresh, chooseChoice, advance,
   } = useJourneyRun(runId);
   const topRef = useRef<HTMLDivElement>(null);
+  const ended = run?.status === 'completed' || Boolean(scene?.is_terminal);
+  const { ending, loading: endingLoading } = useJourneyEnding(ended ? runId : undefined, ended);
 
   // Each new scene starts at the top — mid-scene scroll position carrying
   // over made long chapters feel broken on mobile.
@@ -35,8 +39,6 @@ export default function JourneyPlayPage() {
   if (error || !run) {
     return <JourneyLayout><div className="pt-6"><JourneyError message={error ?? 'This journey could not be loaded.'} onRetry={refresh} /></div></JourneyLayout>;
   }
-
-  const ended = run.status === 'completed' || scene?.is_terminal;
 
   return (
     <JourneyLayout>
@@ -71,14 +73,7 @@ export default function JourneyPlayPage() {
           <SceneBlocks blocks={blocks} />
 
           {ended ? (
-            <div className="jy-panel-raised mt-8 p-5 text-center">
-              <Sparkles className="mx-auto mb-2 h-5 w-5" style={{ color: 'hsl(var(--jy-gold))' }} aria-hidden />
-              <h2 className="jy-display text-xl">Here the tale rests</h2>
-              <p className="jy-secondary mt-1 text-sm">
-                {run.ending_key ? `Ending reached: ${run.ending_key}` : 'This chapter of your journey is complete.'}
-              </p>
-              <Link className="jy-btn jy-btn-primary mt-4" to="/journey">Return to the campaign hall</Link>
-            </div>
+            <EndingScreen payload={ending} loading={endingLoading} campaignTitle={campaign?.title} />
           ) : (
             <ChoiceList choices={choices} busy={busy} onChoose={chooseChoice} />
           )}
