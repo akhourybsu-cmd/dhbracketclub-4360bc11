@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Feather, Play, Plus, RotateCcw } from 'lucide-react';
+import { BookOpen, Feather, Play, Plus, RotateCcw, PenTool } from 'lucide-react';
 import { JourneyLayout, JourneyError, JourneySkeleton } from '@/components/journey/JourneyLayout';
 import { StoryIntroduction } from '@/components/journey/StoryIntroduction';
 import { prologueFor } from '@/lib/journey/prologues';
 import { protagonistFor } from '@/lib/journey/protagonists';
 import { useJourneyLibrary } from '@/hooks/useJourneyLibrary';
+import { useClub } from '@/contexts/ClubContext';
 import type { CampaignRow, HeroRow } from '@/lib/journey/types';
 
 
@@ -13,6 +14,8 @@ import type { CampaignRow, HeroRow } from '@/lib/journey/types';
 export default function JourneyHomePage() {
   const navigate = useNavigate();
   const { campaigns, runs, heroes, loading, error, refresh, createHero, startRun, currentRun } = useJourneyLibrary();
+  const { isAppAdmin, isPlatformOwner } = useClub();
+  const canAuthor = isAppAdmin || isPlatformOwner;
   const [picking, setPicking] = useState<CampaignRow | null>(null);
   const [intro, setIntro] = useState<CampaignRow | null>(null);
   const [starting, setStarting] = useState(false);
@@ -59,9 +62,22 @@ export default function JourneyHomePage() {
       ) : (
         <div className="space-y-8">
           <header className="pt-2">
-            <div className="jy-eyebrow">Mesoplasia awaits</div>
-            <h1 className="jy-display mt-1 text-3xl">The Splendid Journey</h1>
-            <p className="jy-secondary mt-1 text-sm italic">of Unimaginable Consequence</p>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="jy-eyebrow">Mesoplasia awaits</div>
+                <h1 className="jy-display mt-1 text-3xl">The Splendid Journey</h1>
+                <p className="jy-secondary mt-1 text-sm italic">of Unimaginable Consequence</p>
+              </div>
+              {canAuthor && (
+                <button
+                  className="jy-btn jy-btn-ghost jy-btn-sm shrink-0"
+                  onClick={() => navigate('/journey/studio')}
+                  title="Author, import & publish campaigns"
+                >
+                  <PenTool className="h-4 w-4" aria-hidden /> Studio
+                </button>
+              )}
+            </div>
             <div className="jy-rule mt-4" />
           </header>
 
