@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Heart, Coins } from 'lucide-react';
 import { JourneyLayout, JourneyError, JourneySkeleton } from '@/components/journey/JourneyLayout';
@@ -19,6 +19,9 @@ export default function JourneyPlayPage() {
   const topRef = useRef<HTMLDivElement>(null);
   const ended = run?.status === 'completed' || Boolean(scene?.is_terminal);
   const { ending, loading: endingLoading } = useJourneyEnding(ended ? runId : undefined, ended);
+  // Choices only appear once the scene has finished being narrated.
+  const [told, setTold] = useState(false);
+  useEffect(() => { setTold(false); }, [scene?.scene_key, blocks]);
 
   // Each new scene starts at the top — mid-scene scroll position carrying
   // over made long chapters feel broken on mobile.
@@ -70,15 +73,15 @@ export default function JourneyPlayPage() {
 
       {scene ? (
         <>
-          <SceneBlocks blocks={blocks} />
+          <SceneBlocks blocks={blocks} onDone={() => setTold(true)} />
 
           {ended ? (
-            <EndingScreen payload={ending} loading={endingLoading} campaignTitle={campaign?.title} />
+            told && <EndingScreen payload={ending} loading={endingLoading} campaignTitle={campaign?.title} />
           ) : (
-            <ChoiceList choices={choices} busy={busy} onChoose={chooseChoice} />
+            told && <div className="jy-fade-in"><ChoiceList choices={choices} busy={busy} onChoose={chooseChoice} /></div>
           )}
 
-          {!ended && choices.length === 0 && scene?.has_auto_next && (
+          {told && !ended && choices.length === 0 && scene?.has_auto_next && (
             <div className="mt-8 text-center">
               <button
                 type="button"
@@ -91,7 +94,7 @@ export default function JourneyPlayPage() {
             </div>
           )}
 
-          {!ended && choices.length === 0 && !scene?.has_auto_next && (
+          {told && !ended && choices.length === 0 && !scene?.has_auto_next && (
             <div className="jy-panel mt-8 p-4 text-center">
               <p className="jy-secondary text-sm">
                 No path leads onward from here yet. This is an authoring gap, not your doing.
