@@ -102,12 +102,24 @@ export function validateCampaign(pkg: CampaignPackage): ValidationResult {
   scenes.forEach((s) => collectEffects(s.entry_effects));
   allChoices.forEach(({ choice }) => collectEffects(choice.effects));
 
-  // Duplicate choice keys
-  const seenChoice = new Set<string>();
+  // Choice keys must be unique WITHIN a scene (the runtime resolves a choice by
+  // scene_key + choice_key), not across the whole campaign — reusing
+  // "continue" in every scene is legal and idiomatic.
+  const seenChoice = new Set<string>();          // all keys, for combat outcome refs
+  const perScene = new Map<string, Set<string>>();
   allChoices.forEach(({ scene, choice }) => {
-    if (!choice.choice_key) add('error', 'choice_missing_key', 'A choice has no choice_key.', scene.scene_key);
-    else if (seenChoice.has(choice.choice_key)) add('error', 'duplicate_choice_key', `Duplicate choice key "${choice.choice_key}".`, scene.scene_key, choice.choice_key);
-    else seenChoice.add(choice.choice_key);
+    if (!choice.choice_key) {
+      add('error', 'choice_missing_key', 'A choice has no choice_key.', scene.scene_key);
+      return;
+    }
+    seenChoice.add(choice.choice_key);
+    const bucket = perScene.get(scene.scene_key) ?? new Set<string>();
+    if (bucket.has(choice.choice_key)) {
+      add('error', 'duplicate_choice_key', `Duplicate choice key "${choice.choice_key}" within scene "${scene.scene_key}".`, scene.scene_key, choice.choice_key);
+    } else {
+      bucket.add(choice.choice_key);
+      perScene.set(scene.scene_key, bucket);
+    }
   });
 
   const checkRefs = (
@@ -150,7 +162,30 @@ export function validateCampaign(pkg: CampaignPackage): ValidationResult {
     }
 
     const dests: string[] = [];
-    if (s.auto_next_scene_key) dests.push(s.auto_next_scene_key);
+    if (s.auto_next_scene_key) {
+      if (!sceneKeys.has(s.auto_next_scene_key)) {
+        add('error', 'invalid_destination', `Automatic transition on "${s.scene_key}" points at missing scene "${s.auto_next_scene_key}".`, s.scene_key);
+      } else {
+        dests.push(s.auto_next_scene_key);
+      }
+    }
+
+    // Routing nodes are invisible: the engine chains straight through them, so
+    // they must have an automatic destination and can never end a run.
+    if (s.is_routing_node) {
+      if (!s.auto_next_scene_key) {
+        add('error', 'routing_node_no_destination', `Routing node "${s.scene_key}" has no auto_next_scene_key.`, s.scene_key);
+      }
+      if (s.is_terminal) {
+        add('error', 'routing_node_terminal', `Routing node "${s.scene_key}" cannot be terminal — routing nodes are never displayed.`, s.scene_key);
+      }
+      if ((s.choices ?? []).length) {
+        add('warning', 'routing_node_choices', `Routing node "${s.scene_key}" has choices that will never be shown.`, s.scene_key);
+      }
+      if ((s.blocks ?? []).length) {
+        add('warning', 'routing_node_blocks', `Routing node "${s.scene_key}" has narrative blocks that will never be shown.`, s.scene_key);
+      }
+    }
     (s.choices ?? []).forEach((c) => {
       checkRefs(flatten(c.requirements), c.effects ?? [], s.scene_key, c.choice_key);
       if (!c.next_scene_key) {
@@ -175,7 +210,7 @@ export function validateCampaign(pkg: CampaignPackage): ValidationResult {
     if (s.is_terminal && dests.length > 0) {
       add('warning', 'terminal_with_exits', `Terminal scene "${s.scene_key}" still has outgoing choices.`, s.scene_key);
     }
-    if (!(s.blocks ?? []).length) {
+    if (!(s.blocks ?? []).length && !s.is_routing_node) {
       add('warning', 'empty_scene', `Scene "${s.scene_key}" has no narrative blocks.`, s.scene_key);
     }
     (s.blocks ?? []).forEach((b) => {

@@ -4,17 +4,18 @@ import { supabase } from '@/integrations/supabase/client';
 import { JourneyLayout, JourneySkeleton } from '@/components/journey/JourneyLayout';
 import { useJourneyLibrary } from '@/hooks/useJourneyLibrary';
 import { useJourneyRun } from '@/hooks/useJourneyRun';
+import { useJourneyWorld } from '@/hooks/useJourneyWorld';
 import { NoRun } from './JourneyCharacterPage';
 import type { QuestState } from '@/lib/journey/types';
 
-interface QuestMeta { quest_key: string; title: string; description: string | null; quest_type: string }
 interface HistoryRow { id: string; choice_key: string; scene_key: string; choice_text_snapshot: string | null; created_at: string }
 
 /** Quest log + the record of decisions already made. */
 export default function JourneyJournalPage() {
   const { currentRun, loading } = useJourneyLibrary();
   const { run, state, loading: runLoading } = useJourneyRun(currentRun?.id);
-  const [quests, setQuests] = useState<QuestMeta[]>([]);
+  const { world, objectiveText } = useJourneyWorld(currentRun?.id);
+  const quests = world.quests;
   const [history, setHistory] = useState<HistoryRow[]>([]);
   const [tab, setTab] = useState<'quests' | 'decisions'>('quests');
 
@@ -22,14 +23,10 @@ export default function JourneyJournalPage() {
     if (!run) return;
     let cancelled = false;
     (async () => {
-      const [w, h] = await Promise.all([
-        (supabase as any).rpc('journey_get_world', { _run_id: run.id }),
-        (supabase as any).from('journey_run_choice_history')
-          .select('id,choice_key,scene_key,choice_text_snapshot,created_at')
-          .eq('run_id', run.id).order('created_at', { ascending: false }).limit(200),
-      ]);
+      const h = await (supabase as any).from('journey_run_choice_history')
+        .select('id,choice_key,scene_key,choice_text_snapshot,created_at')
+        .eq('run_id', run.id).order('created_at', { ascending: false }).limit(200);
       if (cancelled) return;
-      setQuests((w?.data?.quests ?? []) as QuestMeta[]);
       setHistory((h?.data ?? []) as HistoryRow[]);
     })();
     return () => { cancelled = true; };
@@ -81,10 +78,29 @@ export default function JourneyJournalPage() {
                   <div className="min-w-0">
                     <h2 className="jy-display text-base">{q.title}</h2>
                     {q.description && <p className="jy-prose mt-1 text-sm">{q.description}</p>}
+                    {(q.objectives ?? []).length > 0 && (
+                      <ul className="mt-2 space-y-1">
+                        {(q.objectives ?? []).map((o) => {
+                          const done = st.status === 'completed';
+                          return (
+                            <li key={o.key} className="jy-secondary flex items-start gap-1.5 text-xs">
+                              <span aria-hidden style={{ color: done ? 'hsl(150 30% 60%)' : 'hsl(var(--jy-gold))' }}>
+                                {done ? '✓' : '•'}
+                              </span>
+                              <span className={done ? 'line-through opacity-70' : undefined}>{o.text}</span>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
                     <div className="mt-2 flex flex-wrap gap-2">
                       <span className="jy-chip">{q.quest_type}</span>
                       <span className="jy-chip">{st.status}</span>
-                      {st.step && <span className="jy-chip jy-chip-gold">{st.step}</span>}
+                      {st.step && (
+                        <span className="jy-chip jy-chip-gold">
+                          {objectiveText(q.quest_key, st.step) ?? st.step}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>

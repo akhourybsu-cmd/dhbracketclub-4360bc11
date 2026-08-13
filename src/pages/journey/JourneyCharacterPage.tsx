@@ -4,6 +4,7 @@ import { Heart, Package, Shield, Users } from 'lucide-react';
 import { JourneyLayout, JourneySkeleton } from '@/components/journey/JourneyLayout';
 import { useJourneyLibrary } from '@/hooks/useJourneyLibrary';
 import { useJourneyRun } from '@/hooks/useJourneyRun';
+import { useJourneyWorld } from '@/hooks/useJourneyWorld';
 import { EMPTY_RUN_STATE } from '@/lib/journey/types';
 
 /** Hero sheet for the active run: stats, health, inventory, bonds. */
@@ -15,6 +16,7 @@ export default function JourneyCharacterPage() {
     [heroes, run?.character_id, currentRun?.character_id],
   );
   const s = run ? state : EMPTY_RUN_STATE;
+  const { items, itemName, npcs, npcName, factions, factionName } = useJourneyWorld(currentRun?.id);
 
   if (loading || runLoading) {
     return <JourneyLayout><div className="pt-6"><JourneySkeleton lines={6} /></div></JourneyLayout>;
@@ -23,7 +25,7 @@ export default function JourneyCharacterPage() {
 
   const inventory = Object.entries(s.inventory ?? {}).filter(([, qty]) => qty > 0);
   const bonds = Object.entries(s.relationships ?? {});
-  const factions = Object.entries(s.factions ?? {});
+  const factionStanding = Object.entries(s.factions ?? {});
 
   return (
     <JourneyLayout>
@@ -59,30 +61,63 @@ export default function JourneyCharacterPage() {
       </section>
 
       <Panel title="Inventory" icon={Package} empty="You carry nothing of note." show={inventory.length > 0}>
-        <ul className="space-y-1.5">
-          {inventory.map(([key, qty]) => (
-            <li key={key} className="jy-secondary flex justify-between text-sm">
-              <span>{key}</span>{qty > 1 && <span className="jy-muted">×{qty}</span>}
-            </li>
-          ))}
+        <ul className="space-y-2.5">
+          {inventory.map(([key, qty]) => {
+            const meta = items[key];
+            return (
+              <li key={key} className="flex items-start gap-2.5">
+                {meta?.image ? (
+                  <img src={meta.image} alt="" aria-hidden className="h-8 w-8 rounded object-cover" loading="lazy" decoding="async" />
+                ) : (
+                  <span className="jy-chip shrink-0" aria-hidden>{meta?.icon ?? '◆'}</span>
+                )}
+                <div className="min-w-0 flex-1">
+                  <div className="jy-secondary flex justify-between gap-2 text-sm">
+                    <span>{itemName(key)}</span>
+                    {qty > 1 && <span className="jy-muted">×{qty}</span>}
+                  </div>
+                  {meta?.description && <p className="jy-muted mt-0.5 text-xs">{meta.description}</p>}
+                  {meta?.quest_item && <span className="jy-chip jy-chip-gold mt-1 inline-flex">Quest item</span>}
+                </div>
+              </li>
+            );
+          })}
         </ul>
       </Panel>
 
       <Panel title="Bonds" icon={Users} empty="No bonds forged yet." show={bonds.length > 0}>
-        <ul className="space-y-1.5">
-          {bonds.map(([key, value]) => (
-            <li key={key} className="jy-secondary flex justify-between text-sm">
-              <span>{key}</span><span className="jy-muted">{value > 0 ? `+${value}` : value}</span>
-            </li>
-          ))}
+        <ul className="space-y-2.5">
+          {bonds.map(([key, value]) => {
+            const meta = npcs[key];
+            return (
+              <li key={key} className="flex items-center gap-2.5">
+                {meta?.portrait && (
+                  <img src={meta.portrait} alt="" aria-hidden className="h-8 w-8 rounded-full object-cover" loading="lazy" decoding="async" />
+                )}
+                <div className="min-w-0 flex-1">
+                  <div className="jy-secondary flex justify-between gap-2 text-sm">
+                    <span>{npcName(key)}</span>
+                    <span className="jy-muted">{value > 0 ? `+${value}` : value}</span>
+                  </div>
+                  {meta?.title && <p className="jy-muted mt-0.5 text-xs">{meta.title}</p>}
+                </div>
+              </li>
+            );
+          })}
         </ul>
       </Panel>
 
-      <Panel title="Standing" icon={Shield} empty="No faction has taken notice of you." show={factions.length > 0}>
+      <Panel title="Standing" icon={Shield} empty="No faction has taken notice of you." show={factionStanding.length > 0}>
         <ul className="space-y-1.5">
-          {factions.map(([key, value]) => (
-            <li key={key} className="jy-secondary flex justify-between text-sm">
-              <span>{key}</span><span className="jy-muted">{value > 0 ? `+${value}` : value}</span>
+          {factionStanding.map(([key, value]) => (
+            <li key={key} className="text-sm">
+              <div className="jy-secondary flex justify-between gap-2">
+                <span>{factionName(key)}</span>
+                <span className="jy-muted">{value > 0 ? `+${value}` : value}</span>
+              </div>
+              {factions[key]?.description && (
+                <p className="jy-muted mt-0.5 text-xs">{factions[key]?.description}</p>
+              )}
             </li>
           ))}
         </ul>
