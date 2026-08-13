@@ -638,7 +638,7 @@
         },
         {
           "block_type": "dialogue",
-          "content": "The western brace flashed again.",
+          "content": "The western brace just flashed again.",
           "metadata": {
             "speaker_key": "bethella",
             "speaker_name": "Bethella"
@@ -652,7 +652,7 @@
         },
         {
           "block_type": "dialogue",
-          "content": "It likes attention.",
+          "content": "It likes the attention.",
           "metadata": {
             "speaker_key": "theron",
             "speaker_name": "Theron"
@@ -661,7 +661,7 @@
         },
         {
           "block_type": "dialogue",
-          "content": "You installed it.",
+          "content": "You're the one who installed it.",
           "metadata": {
             "speaker_key": "edran",
             "speaker_name": "Edran"
@@ -675,7 +675,7 @@
         },
         {
           "block_type": "dialogue",
-          "content": "Which is how I know.",
+          "content": "Which is how I'd know.",
           "metadata": {
             "speaker_key": "theron",
             "speaker_name": "Theron"
@@ -684,7 +684,7 @@
         },
         {
           "block_type": "dialogue",
-          "content": "You said it would last through winter.",
+          "content": "You told me it'd last through winter.",
           "metadata": {
             "speaker_key": "bethella",
             "speaker_name": "Bethella"
@@ -702,7 +702,7 @@
         },
         {
           "block_type": "dialogue",
-          "content": "It is summer.",
+          "content": "It's summer.",
           "metadata": {
             "speaker_key": "edran",
             "speaker_name": "Edran"
@@ -711,7 +711,7 @@
         },
         {
           "block_type": "dialogue",
-          "content": "Then we exceeded expectations.",
+          "content": "Then we've exceeded expectations.",
           "metadata": {
             "speaker_key": "theron",
             "speaker_name": "Theron"
@@ -730,7 +730,7 @@
         },
         {
           "block_type": "dialogue",
-          "content": "Do not start fussing.",
+          "content": "Don't start fussing.",
           "metadata": {
             "speaker_key": "bethella",
             "speaker_name": "Bethella"
@@ -739,7 +739,7 @@
         },
         {
           "block_type": "dialogue",
-          "content": "I have not started. This is the quiet part, before the fussing.",
+          "content": "I haven't started. This is just the quiet part — before the fussing.",
           "metadata": {
             "speaker_key": "theron",
             "speaker_name": "Theron"
@@ -748,7 +748,7 @@
         },
         {
           "block_type": "dialogue",
-          "content": "Timinny is teaching you bad habits.",
+          "content": "Timinny's teaching you bad habits.",
           "metadata": {
             "speaker_key": "bethella",
             "speaker_name": "Bethella"
@@ -757,7 +757,7 @@
         },
         {
           "block_type": "dialogue",
-          "content": "Timinny taught him to label his bad habits.",
+          "content": "Timinny taught him to label the bad habits.",
           "metadata": {
             "speaker_key": "edran",
             "speaker_name": "Edran"
@@ -782,7 +782,7 @@
       "choices": [
         {
           "choice_key": "E01-A",
-          "choice_text": "\"I will bring home enough for a proper setting. No scraps this time.\"",
+          "choice_text": "\"I'll bring home enough for a proper setting this time. No more scraps.\"",
           "short_label": "Reassure her",
           "choice_style": "compassionate",
           "display_order": 1,
@@ -797,7 +797,7 @@
         },
         {
           "choice_key": "E01-B",
-          "choice_text": "\"If the roof comes down, Edran's maps can tell us where it landed.\"",
+          "choice_text": "\"If the roof does come down, at least Edran's maps can tell us where it landed.\"",
           "short_label": "Deflect with humor",
           "choice_style": "dialogue",
           "display_order": 2,
@@ -812,7 +812,7 @@
         },
         {
           "choice_key": "E01-C",
-          "choice_text": "\"The charge is building faster than it should. Stay away from the western wall today.\"",
+          "choice_text": "\"The charge is building faster than it should. Do me a favor — stay off the western wall today.\"",
           "short_label": "Admit concern",
           "choice_style": "dialogue",
           "display_order": 3,
@@ -847,7 +847,7 @@
         },
         {
           "block_type": "dialogue",
-          "content": "That should not be here.",
+          "content": "That shouldn't be here.",
           "metadata": {
             "speaker_key": "theron",
             "speaker_name": "Theron"
@@ -856,7 +856,7 @@
         },
         {
           "block_type": "dialogue",
-          "content": "Good morning to you too.",
+          "content": "Good morning to you, too.",
           "metadata": {
             "speaker_key": "edran",
             "speaker_name": "Edran"
@@ -865,7 +865,7 @@
         },
         {
           "block_type": "dialogue",
-          "content": "Crownvein surveys do not leave the EMC archive.",
+          "content": "Crownvein surveys don't leave the EMC archive.",
           "metadata": {
             "speaker_key": "theron",
             "speaker_name": "Theron"
@@ -879,7 +879,7 @@
         },
         {
           "block_type": "dialogue",
-          "content": "It is a training copy. Old measurements. No extraction marks.",
+          "content": "It's a training copy. Old measurements, no extraction marks.",
           "metadata": {
             "speaker_key": "edran",
             "speaker_name": "Edran"
@@ -893,7 +893,7 @@
         },
         {
           "block_type": "dialogue",
-          "content": "I have to reconcile the western descent before second bell. Master Selwick says my strata lines wander.",
+          "content": "I've got to reconcile the western descent before second bell. Master Selwick says my strata lines wander.",
           "metadata": {
             "speaker_key": "edran",
             "speaker_name": "Edran"
@@ -911,7 +911,7 @@
         },
         {
           "block_type": "dialogue",
-          "content": "Stone is allowed to.",
+          "content": "Stone's allowed to.",
           "metadata": {
             "speaker_key": "edran",
             "speaker_name": "Edran"
@@ -920,7 +920,7 @@
         },
         {
           "block_type": "dialogue",
-          "content": "Cartographers are not.",
+          "content": "Cartographers aren't.",
           "metadata": {
             "speaker_key": "theron",
             "speaker_name": "Theron"
@@ -934,7 +934,7 @@
         },
         {
           "block_type": "dialogue",
-          "content": "What is this?",
+          "content": "What's this?",
           "metadata": {
             "speaker_key": "theron",
             "speaker_name": "Theron"
@@ -961,7 +961,7 @@
         },
         {
           "block_type": "dialogue",
-          "content": "A copying omission. Every survey has one.",
+          "content": "A copying omission. Every survey's got one.",
           "metadata": {
             "speaker_key": "edran",
             "speaker_name": "Edran"
@@ -1002,7 +1002,7 @@
         },
         {
           "block_type": "dialogue",
-          "content": "You will miss Timinny.",
+          "content": "You'll miss Timinny.",
           "metadata": {
             "speaker_key": "bethella",
             "speaker_name": "Bethella"
@@ -1034,7 +1034,7 @@
         },
         {
           "block_type": "dialogue",
-          "content": "It has bad ink.",
+          "content": "It's got bad ink.",
           "metadata": {
             "speaker_key": "theron",
             "speaker_name": "Theron"
@@ -1072,7 +1072,7 @@
         },
         {
           "block_type": "dialogue",
-          "content": "You are late.",
+          "content": "You're late.",
           "metadata": {
             "speaker_key": "timinny",
             "speaker_name": "Timinny"
@@ -1081,7 +1081,7 @@
         },
         {
           "block_type": "dialogue",
-          "content": "I am early for tomorrow.",
+          "content": "I'm early for tomorrow.",
           "metadata": {
             "speaker_key": "theron",
             "speaker_name": "Theron"
@@ -1099,7 +1099,7 @@
         },
         {
           "block_type": "dialogue",
-          "content": "You laughed then.",
+          "content": "You laughed back then.",
           "metadata": {
             "speaker_key": "theron",
             "speaker_name": "Theron"
@@ -1108,7 +1108,7 @@
         },
         {
           "block_type": "dialogue",
-          "content": "I could leave the room then.",
+          "content": "I could leave the room back then.",
           "metadata": {
             "speaker_key": "timinny",
             "speaker_name": "Timinny"
@@ -1122,7 +1122,7 @@
         },
         {
           "block_type": "dialogue",
-          "content": "That is not waste stone.",
+          "content": "That's not waste stone.",
           "metadata": {
             "speaker_key": "timinny",
             "speaker_name": "Timinny"
@@ -1131,7 +1131,7 @@
         },
         {
           "block_type": "dialogue",
-          "content": "It was going to become waste.",
+          "content": "It was going to be waste.",
           "metadata": {
             "speaker_key": "theron",
             "speaker_name": "Theron"
@@ -1168,7 +1168,7 @@
         },
         {
           "block_type": "dialogue",
-          "content": "If this explodes, Bethella will blame you.",
+          "content": "If this explodes, Bethella's going to blame you.",
           "metadata": {
             "speaker_key": "theron",
             "speaker_name": "Theron"
@@ -1265,7 +1265,7 @@
         },
         {
           "choice_key": "C01-B",
-          "choice_text": "\"A discarded cut. I noticed the dark thread after I brought it out.\"",
+          "choice_text": "\"A discarded cut. I didn't notice the dark thread until after I'd brought it out.\"",
           "short_label": "Partial truth",
           "choice_style": "major_decision",
           "major_decision": true,
@@ -1286,7 +1286,7 @@
         },
         {
           "choice_key": "C01-C",
-          "choice_text": "\"Are we examining my employment, or the impossible thing the stone just did?\"",
+          "choice_text": "\"Are we looking at my employment here, or the impossible thing the stone just did?\"",
           "short_label": "Deflect",
           "choice_style": "major_decision",
           "major_decision": true,
@@ -1378,7 +1378,7 @@
         },
         {
           "block_type": "dialogue",
-          "content": "A difficult night.",
+          "content": "It was a difficult night.",
           "metadata": {
             "speaker_key": "timinny",
             "speaker_name": "Timinny"
@@ -1424,7 +1424,7 @@
         },
         {
           "block_type": "dialogue",
-          "content": "We do not know yet.",
+          "content": "We don't know yet.",
           "metadata": {
             "speaker_key": "timinny",
             "speaker_name": "Timinny"
@@ -1447,7 +1447,7 @@
         },
         {
           "block_type": "dialogue",
-          "content": "The density is wrong. The Crown fragment carries more charge than its mass permits. Either our instruments are lying, or the stone is drawing strength from somewhere else.",
+          "content": "The density's wrong. The Crown fragment carries more charge than its mass should allow. Either our instruments are lying, or the stone's drawing strength from somewhere else.",
           "metadata": {
             "speaker_key": "timinny",
             "speaker_name": "Timinny"
@@ -1493,7 +1493,7 @@
         },
         {
           "block_type": "dialogue",
-          "content": "Record everything at the Crown. Heat. Vibration. Position. Do not decide what it means before it happens.",
+          "content": "Record everything at the Crown. Heat, vibration, position. And don't decide what it means before it happens.",
           "metadata": {
             "speaker_key": "timinny",
             "speaker_name": "Timinny"
@@ -1502,7 +1502,7 @@
         },
         {
           "block_type": "dialogue",
-          "content": "And if Varrik asks why I am measuring instead of cutting?",
+          "content": "And when Varrik asks why I'm measuring instead of cutting?",
           "metadata": {
             "speaker_key": "theron",
             "speaker_name": "Theron"
@@ -1538,7 +1538,7 @@
         },
         {
           "block_type": "dialogue",
-          "content": "Then that seems unlikely to help.",
+          "content": "Then that's unlikely to help.",
           "metadata": {
             "speaker_key": "theron",
             "speaker_name": "Theron"
@@ -1622,7 +1622,7 @@
         },
         {
           "block_type": "dialogue",
-          "content": "Western face today. They say the vein is thick as a city wall.",
+          "content": "Western face today. They say the vein's thick as a city wall.",
           "metadata": {
             "speaker_key": "injured_miner",
             "speaker_name": "Pell"
@@ -1668,7 +1668,7 @@
         },
         {
           "block_type": "dialogue",
-          "content": "When a foreman says a name, the expected answer is not a demonstration of stillness.",
+          "content": "When a foreman says your name, the answer isn't to stand there like a post.",
           "metadata": {
             "speaker_key": "varrik",
             "speaker_name": "Varrik"
@@ -1677,7 +1677,7 @@
         },
         {
           "block_type": "dialogue",
-          "content": "I did not want to interrupt.",
+          "content": "Didn't want to interrupt.",
           "metadata": {
             "speaker_key": "theron",
             "speaker_name": "Theron"
@@ -1686,7 +1686,7 @@
         },
         {
           "block_type": "dialogue",
-          "content": "You were assigned to the western face because someone above me mistook patience for talent. You will cut, load, and keep your clever hands out of your pockets.",
+          "content": "You got the western face because someone above me mistook patience for talent. So you'll cut, you'll load, and you'll keep your clever hands out of your pockets.",
           "metadata": {
             "speaker_key": "varrik",
             "speaker_name": "Varrik"
@@ -1709,7 +1709,7 @@
         },
         {
           "block_type": "dialogue",
-          "content": "Quota is doubled before the storm arrives.",
+          "content": "Quota's doubled before the storm arrives.",
           "metadata": {
             "speaker_key": "varrik",
             "speaker_name": "Varrik"
@@ -1727,7 +1727,7 @@
         },
         {
           "block_type": "dialogue",
-          "content": "The southern retaining walls need reinforcement. The infirmaries need treatment stone. Every frightened councilor has learned what keeps his ceiling above him.",
+          "content": "The retaining walls need reinforcing. The infirmaries need treatment stone. Every frightened councilor's finally learned what keeps his ceiling over his head.",
           "metadata": {
             "speaker_key": "varrik",
             "speaker_name": "Varrik"
@@ -1736,7 +1736,7 @@
         },
         {
           "block_type": "dialogue",
-          "content": "And removing twice as much from beneath it?",
+          "content": "And pulling twice as much out from under it?",
           "metadata": {
             "speaker_key": "theron",
             "speaker_name": "Theron"
@@ -1776,7 +1776,7 @@
         },
         {
           "choice_key": "E02-B",
-          "choice_text": "\"The western braces are carrying a vibration that is not on the load chart.\"",
+          "choice_text": "\"The western braces are carrying a vibration that isn't on the load chart.\"",
           "short_label": "Warn him",
           "choice_style": "investigative",
           "display_order": 2,
@@ -1791,7 +1791,7 @@
         },
         {
           "choice_key": "E02-C",
-          "choice_text": "\"If the ceiling comes down, I will count whatever lands in the carts.\"",
+          "choice_text": "\"If the ceiling comes down, I'll count whatever lands in the carts.\"",
           "short_label": "Use humor",
           "choice_style": "dialogue",
           "display_order": 3,
@@ -1856,7 +1856,7 @@
         },
         {
           "block_type": "dialogue",
-          "content": "He is lying.",
+          "content": "He's lying.",
           "metadata": {
             "speaker_key": "theron",
             "speaker_name": "Theron"
@@ -1981,7 +1981,7 @@
         },
         {
           "block_type": "dialogue",
-          "content": "It is pulling.",
+          "content": "It's pulling.",
           "metadata": {
             "speaker_key": "injured_miner",
             "speaker_name": "Pell"
@@ -2133,7 +2133,7 @@
         },
         {
           "block_type": "dialogue",
-          "content": "You do not give orders.",
+          "content": "You don't give orders.",
           "metadata": {
             "speaker_key": "varrik",
             "speaker_name": "Varrik"
