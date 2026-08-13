@@ -33,7 +33,7 @@ const DEFAULTS: JourneySettings = {
   textSize: 'md',
   textSpeed: 'normal',
   reducedMotion: false,
-  music: false,
+  music: true,
   soundEffects: true,
   ambientAudio: false,
   dialogueAnimation: true,

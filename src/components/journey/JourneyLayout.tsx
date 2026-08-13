@@ -1,9 +1,12 @@
-import { ReactNode, useState } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { BookOpen, Compass, LogOut, ScrollText, Settings2, Shield, User } from 'lucide-react';
+import { BookOpen, Compass, LogOut, ScrollText, Settings2, Shield, User, Volume2, VolumeX } from 'lucide-react';
 import '@/styles/journey.css';
 import { useJourneySettings } from './useJourneySettings';
 import { JourneyReadingSettings } from './JourneyReadingSettings';
+import {
+  journeyEnter, journeyLeave, playSelect, playSoft, setMusicEnabled, setSfxEnabled, unlockAudio,
+} from '@/lib/journey/audio';
 
 /**
  * Full-screen standalone shell for The Splendid Journey. Applies the `.jy-mode`
@@ -12,12 +15,42 @@ import { JourneyReadingSettings } from './JourneyReadingSettings';
  * while any /journey/* route is active.
  */
 export function JourneyLayout({ children, chrome = true }: { children: ReactNode; chrome?: boolean }) {
-  const { textSize, reducedMotion } = useJourneySettings();
+  const { textSize, reducedMotion, music, soundEffects, update } = useJourneySettings();
   const { pathname } = useLocation();
   const [settingsOpen, setSettingsOpen] = useState(false);
 
+  // Keep the ambient pad alive across journey screens; tear down on exit.
+  useEffect(() => { journeyEnter(); return () => journeyLeave(); }, []);
+
+  // Sync the synth with the reader's audio preferences.
+  useEffect(() => { setMusicEnabled(music); }, [music]);
+  useEffect(() => { setSfxEnabled(soundEffects); }, [soundEffects]);
+
+  // Audio may only begin after a real gesture — unlock on the first one.
+  useEffect(() => {
+    const unlock = () => unlockAudio();
+    window.addEventListener('pointerdown', unlock, { once: true });
+    window.addEventListener('keydown', unlock, { once: true });
+    return () => {
+      window.removeEventListener('pointerdown', unlock);
+      window.removeEventListener('keydown', unlock);
+    };
+  }, []);
+
+  // One delegated handler gives every button its fantasy voice: a flourish for
+  // story choices, a soft note for everything else.
+  const onPressSound = (e: React.MouseEvent) => {
+    const el = (e.target as HTMLElement).closest('.jy-choice, .jy-btn');
+    if (!el || el.hasAttribute('disabled') || el.getAttribute('aria-disabled') === 'true') return;
+    if (el.classList.contains('jy-choice')) playSelect();
+    else playSoft();
+  };
+
   return (
-    <div className={`jy-mode jy-shell jy-text-${textSize} ${reducedMotion ? 'jy-reduced-motion' : ''}`}>
+    <div
+      className={`jy-mode jy-shell jy-text-${textSize} ${reducedMotion ? 'jy-reduced-motion' : ''}`}
+      onClick={onPressSound}
+    >
       {chrome && (
         <header
           className="sticky top-0 z-30 backdrop-blur-sm"
@@ -32,6 +65,16 @@ export function JourneyLayout({ children, chrome = true }: { children: ReactNode
               <div className="jy-eyebrow truncate">The Splendid Journey</div>
               <div className="jy-display truncate text-[0.9rem] jy-secondary">of Unimaginable Consequence</div>
             </Link>
+            <button
+              type="button"
+              className="jy-btn jy-btn-ghost jy-btn-sm"
+              onClick={() => update('music', !music)}
+              aria-label={music ? 'Mute music' : 'Play music'}
+              aria-pressed={music}
+              title={music ? 'Mute music' : 'Play music'}
+            >
+              {music ? <Volume2 className="h-3.5 w-3.5" aria-hidden /> : <VolumeX className="h-3.5 w-3.5" aria-hidden />}
+            </button>
             <button
               type="button"
               className="jy-btn jy-btn-ghost jy-btn-sm"

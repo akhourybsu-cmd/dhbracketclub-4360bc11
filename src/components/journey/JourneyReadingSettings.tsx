@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Gauge, Type, Wind, X } from 'lucide-react';
+import { Gauge, Music, Type, Volume2, Wind, X } from 'lucide-react';
 import { Typewriter } from './Typewriter';
 import {
   TEXT_SPEEDS, useJourneySettings,
@@ -24,7 +24,7 @@ const SAMPLE =
  * any transformed ancestor and still reads in the fantasy design system.
  */
 export function JourneyReadingSettings({ onClose }: { onClose: () => void }) {
-  const { textSize, textSpeed, reducedMotion, update } = useJourneySettings();
+  const { textSize, textSpeed, reducedMotion, music, soundEffects, update } = useJourneySettings();
   // Bump a key so the preview restarts its animation on every speed change.
   const [previewKey, setPreviewKey] = useState(0);
 
@@ -126,6 +126,37 @@ export function JourneyReadingSettings({ onClose }: { onClose: () => void }) {
               </span>
             </span>
             <span className={`jy-toggle ${reducedMotion ? '' : 'jy-toggle-on'}`} aria-hidden />
+          </button>
+        </section>
+
+        {/* Sound */}
+        <section className="mt-5">
+          <h3 className="jy-eyebrow flex items-center gap-1.5">
+            <Volume2 className="h-3.5 w-3.5" aria-hidden /> Sound
+          </h3>
+          <button
+            type="button"
+            className={`jy-choice mt-2 flex items-center justify-between ${music ? 'jy-choice-skill' : ''}`}
+            aria-pressed={music}
+            onClick={() => update('music', !music)}
+          >
+            <span className="min-w-0">
+              <span className="flex items-center gap-1.5"><Music className="h-3.5 w-3.5" aria-hidden /> Ambient music</span>
+              <span className="jy-muted block text-xs italic">A mellow fantasy score beneath the story</span>
+            </span>
+            <span className={`jy-toggle ${music ? 'jy-toggle-on' : ''}`} aria-hidden />
+          </button>
+          <button
+            type="button"
+            className={`jy-choice mt-2 flex items-center justify-between ${soundEffects ? 'jy-choice-skill' : ''}`}
+            aria-pressed={soundEffects}
+            onClick={() => update('soundEffects', !soundEffects)}
+          >
+            <span className="min-w-0">
+              <span className="block">Selection sounds</span>
+              <span className="jy-muted block text-xs italic">A soft flourish when you choose</span>
+            </span>
+            <span className={`jy-toggle ${soundEffects ? 'jy-toggle-on' : ''}`} aria-hidden />
           </button>
         </section>
       </div>
