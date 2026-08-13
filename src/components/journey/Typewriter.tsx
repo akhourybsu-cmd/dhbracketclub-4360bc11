@@ -1,27 +1,34 @@
 import { useEffect, useRef, useState } from 'react';
-import { useJourneySettings } from './useJourneySettings';
+import { TEXT_SPEEDS, useJourneySettings } from './useJourneySettings';
 
 /**
  * Narrated text: characters appear over time, the way a storyteller speaks a
- * line rather than handing you a page. Honours the player's motion settings —
- * with animation off (or reduced motion) the full text is shown at once.
+ * line rather than handing you a page. The pace follows the reader's chosen
+ * Text speed setting, and honours the player's motion settings — with the
+ * Instant speed, animation off, or reduced motion, the full text is shown at
+ * once.
  *
  * `skip` immediately completes the text; `onDone` fires once the text is fully
- * visible so the caller can reveal the next beat.
+ * visible so the caller can reveal the next beat. An explicit `speed` prop
+ * overrides the reader's setting for special cases.
  */
 export function Typewriter({
-  text, active = true, skip = false, speed = 18, className, onDone,
+  text, active = true, skip = false, speed, className, onDone,
 }: {
   text: string;
   active?: boolean;
   skip?: boolean;
-  /** Milliseconds per character. */
+  /** Milliseconds per reveal step. Overrides the reader's Text-speed setting. */
   speed?: number;
   className?: string;
   onDone?: () => void;
 }) {
-  const { dialogueAnimation, reducedMotion } = useJourneySettings();
-  const animate = active && !skip && dialogueAnimation && !reducedMotion;
+  const { dialogueAnimation, reducedMotion, textSpeed } = useJourneySettings();
+  const tier = TEXT_SPEEDS[textSpeed] ?? TEXT_SPEEDS.normal;
+  const instant = textSpeed === 'instant';
+  const animate = active && !skip && dialogueAnimation && !reducedMotion && !instant;
+  const stepMs = speed ?? tier.stepMs;
+  const chunk = Math.max(1, tier.chunk);
   const [count, setCount] = useState(animate ? 0 : text.length);
   const doneRef = useRef(onDone);
   doneRef.current = onDone;
@@ -34,9 +41,9 @@ export function Typewriter({
     if (count >= text.length) { doneRef.current?.(); return; }
     if (!animate) return;
     // Type in small chunks so long passages stay readable and cheap.
-    const id = window.setTimeout(() => setCount((c) => Math.min(text.length, c + 2)), speed);
+    const id = window.setTimeout(() => setCount((c) => Math.min(text.length, c + chunk)), stepMs);
     return () => window.clearTimeout(id);
-  }, [count, text, animate, speed]);
+  }, [count, text, animate, stepMs, chunk]);
 
   const shown = text.slice(0, count);
   const typing = count < text.length;

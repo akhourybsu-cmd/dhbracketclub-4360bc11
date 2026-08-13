@@ -1,8 +1,9 @@
-import { ReactNode } from 'react';
+import { ReactNode, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { BookOpen, Compass, LogOut, ScrollText, Shield, User } from 'lucide-react';
+import { BookOpen, Compass, LogOut, ScrollText, Settings2, Shield, User } from 'lucide-react';
 import '@/styles/journey.css';
 import { useJourneySettings } from './useJourneySettings';
+import { JourneyReadingSettings } from './JourneyReadingSettings';
 
 /**
  * Full-screen standalone shell for The Splendid Journey. Applies the `.jy-mode`
@@ -13,6 +14,7 @@ import { useJourneySettings } from './useJourneySettings';
 export function JourneyLayout({ children, chrome = true }: { children: ReactNode; chrome?: boolean }) {
   const { textSize, reducedMotion } = useJourneySettings();
   const { pathname } = useLocation();
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
     <div className={`jy-mode jy-shell jy-text-${textSize} ${reducedMotion ? 'jy-reduced-motion' : ''}`}>
@@ -30,6 +32,15 @@ export function JourneyLayout({ children, chrome = true }: { children: ReactNode
               <div className="jy-eyebrow truncate">The Splendid Journey</div>
               <div className="jy-display truncate text-[0.9rem] jy-secondary">of Unimaginable Consequence</div>
             </Link>
+            <button
+              type="button"
+              className="jy-btn jy-btn-ghost jy-btn-sm"
+              onClick={() => setSettingsOpen(true)}
+              aria-label="Reading settings"
+            >
+              <Settings2 className="h-3.5 w-3.5" aria-hidden />
+              <span className="hidden sm:inline">Reading</span>
+            </button>
             <Link to="/dashboard" className="jy-btn jy-btn-ghost jy-btn-sm" aria-label="Exit to DH Club">
               <LogOut className="h-3.5 w-3.5" aria-hidden />
               <span className="hidden sm:inline">Exit</span>
@@ -46,6 +57,7 @@ export function JourneyLayout({ children, chrome = true }: { children: ReactNode
       </main>
 
       {chrome && <JourneyNav pathname={pathname} />}
+      {settingsOpen && <JourneyReadingSettings onClose={() => setSettingsOpen(false)} />}
     </div>
   );
 }

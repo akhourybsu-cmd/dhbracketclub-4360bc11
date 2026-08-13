@@ -5,6 +5,8 @@ import { JourneyLayout, JourneyError, JourneySkeleton } from '@/components/journ
 import { SceneBlocks } from '@/components/journey/SceneBlocks';
 import { ChoiceList } from '@/components/journey/ChoiceList';
 import { SceneAtmosphere } from '@/components/journey/SceneAtmosphere';
+import { ChapterInterstitial } from '@/components/journey/ChapterInterstitial';
+import { useJourneySettings } from '@/components/journey/useJourneySettings';
 import { useJourneyRun } from '@/hooks/useJourneyRun';
 import { useJourneyEnding } from '@/hooks/useJourneyEnding';
 import { EndingScreen } from '@/components/journey/EndingScreen';
@@ -17,11 +19,26 @@ export default function JourneyPlayPage() {
     loading, busy, error, notices, clearNotices, refresh, chooseChoice, advance,
   } = useJourneyRun(runId);
   const topRef = useRef<HTMLDivElement>(null);
+  const { reducedMotion } = useJourneySettings();
   const ended = run?.status === 'completed' || Boolean(scene?.is_terminal);
   const { ending, loading: endingLoading } = useJourneyEnding(ended ? runId : undefined, ended);
   // Choices only appear once the scene has finished being narrated.
   const [told, setTold] = useState(false);
   useEffect(() => { setTold(false); }, [scene?.scene_key, blocks]);
+
+  // Announce a new chapter with a brief cinematic curtain — once per chapter,
+  // never on reduced motion, and never before the ending.
+  const [chapterCurtain, setChapterCurtain] = useState<string | null>(null);
+  const seenChapterRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (reducedMotion || ended || !chapterTitle) return;
+    if (seenChapterRef.current === chapterTitle) return;
+    const first = seenChapterRef.current === null;
+    seenChapterRef.current = chapterTitle;
+    // Skip the curtain on the very first scene of a run — let the story open
+    // directly — but raise it on every chapter turn thereafter.
+    if (!first) setChapterCurtain(chapterTitle);
+  }, [chapterTitle, reducedMotion, ended]);
 
   // Each new scene starts at the top — mid-scene scroll position carrying
   // over made long chapters feel broken on mobile.
@@ -51,6 +68,9 @@ export default function JourneyPlayPage() {
         sceneType={scene?.scene_type}
         backgroundAsset={scene?.background_asset}
       />
+      {chapterCurtain && (
+        <ChapterInterstitial title={chapterCurtain} onDone={() => setChapterCurtain(null)} />
+      )}
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <span className="jy-chip">
