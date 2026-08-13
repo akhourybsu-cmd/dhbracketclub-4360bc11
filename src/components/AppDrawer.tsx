@@ -57,12 +57,14 @@ export function AppDrawer({ open, onOpenChange, unreadChatCount = 0 }: AppDrawer
         { path: '/portfolio-wars', label: 'Portfolio Wars', icon: TrendingUp },
         { path: '/lockbox', label: 'Lockbox', icon: Lock },
         { path: '/readshift', label: 'READSHIFT', icon: BookMarked },
+        { path: '/workouts', label: 'FORGE', icon: Flame },
       ],
     },
     {
       label: 'Community',
       items: [
         { path: '/narrative', label: 'Narrative RPG', icon: BookOpen },
+        { path: '/journey', label: 'The Splendid Journey', icon: Compass },
         { path: '/polls', label: 'Polls', icon: MessageCircle },
         { path: '/rankings', label: 'Rankings', icon: BarChart3 },
         { path: '/posts', label: 'Posts', icon: FileText },
