@@ -97,7 +97,6 @@
     { "variable_key": "THERON_INJURY", "label": "Theron's injury", "value_type": "string", "default_value": "none" },
     { "variable_key": "VARRIK_FATE", "label": "Varrik's fate", "value_type": "string", "default_value": "unresolved" },
     { "variable_key": "TIMINNY_FATE", "label": "Timinny's fate", "value_type": "string", "default_value": "alive" },
-    { "variable_key": "FINAL_LEGACY", "label": "Final legacy", "value_type": "string", "default_value": "unresolved" },
     { "variable_key": "WITNESS_AVAILABLE", "label": "Witness available", "value_type": "string", "default_value": "false" },
     { "variable_key": "THERON_GUILT", "label": "Theron's guilt", "value_type": "string", "default_value": "normal" },
     { "variable_key": "EXPERIMENT_RECORD", "label": "Experiment record", "value_type": "string", "default_value": "unset" },
@@ -117,7 +116,7 @@
         { "content": "Varrik gave his statement with one arm strapped across his chest and no softness anywhere in it. He had ordered the cut. He said so twice, so no clerk could mishear it." },
         { "content": "Theron's warning entered the record beside the order that ignored it. It changed nothing that had already happened, and everything that could be argued afterward." }
       ],
-      "author_notes": "FINAL_LEGACY = reluctant_savior."
+      "author_notes": "Legacy: the reluctant savior. Resolved by ending priority, not by a state variable."
     },
     {
       "ending_key": "legacy_secret_witness",
@@ -136,7 +135,7 @@
         { "content": "The Commission recorded an unknown subterranean event and an emergency structural intervention. Both sentences were true. Neither was honest." },
         { "content": "Theron kept the notes. Timinny kept copies of the notes. Edran kept the map, and the map kept the ring." }
       ],
-      "author_notes": "FINAL_LEGACY = secret_witness."
+      "author_notes": "Legacy: the secret witness. Resolved by ending priority, not by a state variable."
     },
     {
       "ending_key": "legacy_disputed_savior",
@@ -154,7 +153,7 @@
       "epilogue_blocks": [
         { "content": "The surviving crew told it in the same order every time: the warning first, then the gate, then the foreman who held it. Told often enough, a story becomes a kind of evidence, though never the kind a commission accepts." }
       ],
-      "author_notes": "FINAL_LEGACY = disputed_savior."
+      "author_notes": "Legacy: the disputed savior. Resolved by ending priority, not by a state variable."
     },
     {
       "ending_key": "legacy_saboteur",
@@ -166,7 +165,7 @@
         { "content": "Crownvein failed after unauthorized interference with Commission property. That was the sentence, and it was filed, and it was never corrected." },
         { "content": "History happens regardless. Records simply take longer." }
       ],
-      "author_notes": "FINAL_LEGACY = saboteur. Fallback ending attached to S15."
+      "author_notes": "Legacy: unauthorized interference. Lowest-priority fallback ending attached to S15."
     }
   ],
 
@@ -200,7 +199,6 @@
         { "type": "set_variable", "key": "THERON_INJURY", "value": "none" },
         { "type": "set_variable", "key": "VARRIK_FATE", "value": "unresolved" },
         { "type": "set_variable", "key": "TIMINNY_FATE", "value": "alive" },
-        { "type": "set_variable", "key": "FINAL_LEGACY", "value": "unresolved" },
         { "type": "set_variable", "key": "WITNESS_AVAILABLE", "value": "false" },
         { "type": "set_variable", "key": "THERON_GUILT", "value": "normal" },
         { "type": "set_variable", "key": "EXPERIMENT_RECORD", "value": "unset" },
@@ -1087,10 +1085,7 @@
             "type": "all",
             "conditions": [
               { "type": "variable_equals", "key": "VARRIK_STANCE", "value": "cooperative" },
-              { "type": "any", "conditions": [
-                { "type": "variable_equals", "key": "CREW_PREPAREDNESS", "value": "high" },
-                { "type": "variable_equals", "key": "RESCUE_STATE", "value": "delegated" }
-              ] }
+              { "type": "variable_equals", "key": "RESCUE_STATE", "value": "delegated" }
             ]
           },
           "effects": [{ "type": "set_variable", "key": "VARRIK_FATE", "value": "alive_injured" }],
@@ -1108,10 +1103,7 @@
             "conditions": [
               { "type": "all", "conditions": [
                 { "type": "variable_equals", "key": "VARRIK_STANCE", "value": "cooperative" },
-                { "type": "any", "conditions": [
-                  { "type": "variable_equals", "key": "CREW_PREPAREDNESS", "value": "high" },
-                  { "type": "variable_equals", "key": "RESCUE_STATE", "value": "delegated" }
-                ] }
+                { "type": "variable_equals", "key": "RESCUE_STATE", "value": "delegated" }
               ] }
             ]
           },
@@ -1184,6 +1176,7 @@
         { "block_type": "system_message", "display_order": 49, "content": "Theron carries a stormscar down his arm and shoulder.", "conditions": { "type": "variable_equals", "key": "THERON_INJURY", "value": "stormscar" } },
         { "block_type": "system_message", "display_order": 50, "content": "Bethella reached shelter and breathes.", "conditions": { "type": "variable_equals", "key": "BETHELLA_STATE", "value": "sheltered" } },
         { "block_type": "system_message", "display_order": 51, "content": "Timinny's treatment was disrupted but he is alive and still arguing.", "conditions": { "type": "variable_equals", "key": "TIMINNY_FATE", "value": "alive" } },
+        { "block_type": "system_message", "display_order": 51, "content": "Timinny was caught in the open streets when the charge climbed the walls, and reached shelter on his own wheels.", "conditions": { "type": "variable_equals", "key": "TIMINNY_STATE", "value": "endangered" } },
         { "block_type": "system_message", "display_order": 52, "content": "Varrik lives, one arm crushed.", "conditions": { "type": "variable_equals", "key": "VARRIK_FATE", "value": "alive_injured" } },
         { "block_type": "system_message", "display_order": 53, "content": "Varrik did not come up.", "conditions": { "type": "variable_equals", "key": "VARRIK_FATE", "value": "dead" } },
         { "block_type": "system_message", "display_order": 54, "content": "The injured miner from the western face recovered.", "conditions": { "type": "variable_equals", "key": "WOUNDED_MINER", "value": "alive" } },
