@@ -84,6 +84,19 @@ export function AppDrawer({ open, onOpenChange, unreadChatCount = 0 }: AppDrawer
     items: sec.items.filter(item => filterNavPaths([item.path]).length > 0),
   })).filter(sec => sec.items.length > 0);
 
+  // Catch-all: any installed + visible asset that has a route but isn't
+  // hardcoded above still shows up, so newly added plugins never go missing.
+  const listedPaths = new Set(rawSections.flatMap(s => s.items.map(i => i.path)));
+  const extras: NavEntry[] = Object.entries(NAV_ASSET_SLUGS)
+    .filter(([path, slug]) => !listedPaths.has(path) && isVisible(slug))
+    .map(([path, slug]) => ({
+      path,
+      label: installedAssets.find(ia => ia.asset?.slug === slug)?.asset?.name ?? slug,
+      icon: LayoutGrid,
+    }));
+  if (extras.length > 0) sections.push({ label: 'More Apps', items: extras });
+
+
   if (isClubAdmin || isPlatformOwner || isAppAdmin) {
     sections.push({
       label: 'Admin',
