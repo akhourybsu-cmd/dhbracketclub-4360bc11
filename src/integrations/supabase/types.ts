@@ -2748,6 +2748,7 @@ export type Database = {
       }
       journey_endings: {
         Row: {
+          artwork: string | null
           author_notes: string | null
           campaign_id: string
           created_at: string
@@ -2762,6 +2763,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          artwork?: string | null
           author_notes?: string | null
           campaign_id: string
           created_at?: string
@@ -2776,6 +2778,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          artwork?: string | null
           author_notes?: string | null
           campaign_id?: string
           created_at?: string
@@ -3253,6 +3256,7 @@ export type Database = {
           entry_conditions: Json | null
           entry_effects: Json
           id: string
+          is_routing_node: boolean
           is_terminal: boolean
           location_key: string | null
           music_track: string | null
@@ -3276,6 +3280,7 @@ export type Database = {
           entry_conditions?: Json | null
           entry_effects?: Json
           id?: string
+          is_routing_node?: boolean
           is_terminal?: boolean
           location_key?: string | null
           music_track?: string | null
@@ -3299,6 +3304,7 @@ export type Database = {
           entry_conditions?: Json | null
           entry_effects?: Json
           id?: string
+          is_routing_node?: boolean
           is_terminal?: boolean
           location_key?: string | null
           music_track?: string | null
@@ -9961,6 +9967,7 @@ export type Database = {
         Args: { _choice_key: string; _run_id: string; _scene_key: string }
         Returns: Json
       }
+      journey_get_ending: { Args: { _run_id: string }; Returns: Json }
       journey_get_runtime_scene: { Args: { _run_id: string }; Returns: Json }
       journey_get_world: { Args: { _run_id: string }; Returns: Json }
       journey_import_campaign: { Args: { _package: Json }; Returns: Json }
