@@ -1,16 +1,21 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Feather, Play, Plus, RotateCcw } from 'lucide-react';
+import { BookOpen, Feather, Play, Plus, RotateCcw } from 'lucide-react';
 import { JourneyLayout, JourneyError, JourneySkeleton } from '@/components/journey/JourneyLayout';
+import { StoryIntroduction } from '@/components/journey/StoryIntroduction';
+import { prologueFor } from '@/lib/journey/prologues';
 import { useJourneyLibrary } from '@/hooks/useJourneyLibrary';
 import type { CampaignRow, HeroRow } from '@/lib/journey/types';
+
 
 /** The campaign hall: continue an existing journey, or begin a new one. */
 export default function JourneyHomePage() {
   const navigate = useNavigate();
   const { campaigns, runs, heroes, loading, error, refresh, createHero, startRun, currentRun } = useJourneyLibrary();
   const [picking, setPicking] = useState<CampaignRow | null>(null);
+  const [intro, setIntro] = useState<CampaignRow | null>(null);
   const [starting, setStarting] = useState(false);
+
 
   const playable = useMemo(
     () => campaigns.filter((c) => c.status === 'published' || c.status === 'testing'),
@@ -102,12 +107,18 @@ export default function JourneyHomePage() {
                             <Play className="h-4 w-4" aria-hidden /> Begin
                           </button>
                         )}
+                        {prologueFor(c.slug) && (
+                          <button className="jy-btn jy-btn-ghost" onClick={() => setIntro(c)}>
+                            <BookOpen className="h-4 w-4" aria-hidden /> Story introduction
+                          </button>
+                        )}
                         {run && (
                           <button className="jy-btn jy-btn-ghost" onClick={() => setPicking(c)}>
                             <RotateCcw className="h-4 w-4" aria-hidden /> New run
                           </button>
                         )}
                       </div>
+
                     </article>
                   );
                 })}
@@ -127,6 +138,21 @@ export default function JourneyHomePage() {
           onPick={(hero) => begin(picking, hero)}
         />
       )}
+
+      {intro && prologueFor(intro.slug) && (
+        <StoryIntroduction
+          prologue={prologueFor(intro.slug)!}
+          onClose={() => setIntro(null)}
+          onLaunch={() => {
+            const c = intro;
+            setIntro(null);
+            const run = activeRuns.find((r) => r.campaign_id === c.id);
+            if (run) navigate(`/journey/play/${run.id}`);
+            else setPicking(c);
+          }}
+        />
+      )}
+
     </JourneyLayout>
   );
 }
