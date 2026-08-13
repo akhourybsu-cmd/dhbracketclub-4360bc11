@@ -155,6 +155,12 @@ export interface SceneDef {
   entry_effects?: Effect[];
   entry_conditions?: Requirement | Requirement[] | null;
   auto_next_scene_key?: string;
+  /**
+   * Invisible routing node. Only these scenes are auto-chained through
+   * without ever being rendered; ordinary scenes with an
+   * `auto_next_scene_key` are shown and advanced by the player.
+   */
+  is_routing_node?: boolean;
   is_terminal?: boolean;
   ending_key?: string;
   display_order?: number;
