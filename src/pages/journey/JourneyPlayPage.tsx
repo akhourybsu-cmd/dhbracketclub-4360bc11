@@ -73,15 +73,15 @@ export default function JourneyPlayPage() {
 
       {scene ? (
         <>
-          <SceneBlocks blocks={blocks} />
+          <SceneBlocks blocks={blocks} onDone={() => setTold(true)} />
 
           {ended ? (
-            <EndingScreen payload={ending} loading={endingLoading} campaignTitle={campaign?.title} />
+            told && <EndingScreen payload={ending} loading={endingLoading} campaignTitle={campaign?.title} />
           ) : (
-            <ChoiceList choices={choices} busy={busy} onChoose={chooseChoice} />
+            told && <div className="jy-fade-in"><ChoiceList choices={choices} busy={busy} onChoose={chooseChoice} /></div>
           )}
 
-          {!ended && choices.length === 0 && scene?.has_auto_next && (
+          {told && !ended && choices.length === 0 && scene?.has_auto_next && (
             <div className="mt-8 text-center">
               <button
                 type="button"
