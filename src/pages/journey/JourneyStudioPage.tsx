@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, CheckCircle2, Download, FlaskConical, Upload } from 'lucide-react';
+import { AlertTriangle, BookOpen, CheckCircle2, Download, FlaskConical, Upload } from 'lucide-react';
 import { JourneyLayout, JourneyError } from '@/components/journey/JourneyLayout';
 import { useJourneyStudio, exportCampaignPackage } from '@/hooks/useJourneyStudio';
 import { useJourneyLibrary } from '@/hooks/useJourneyLibrary';
