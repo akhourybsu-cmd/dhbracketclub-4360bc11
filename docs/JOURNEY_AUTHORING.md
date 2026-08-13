@@ -4,9 +4,16 @@ A campaign is a single JSON package (the **CDF**) pasted into Campaign Studio
 (`/journey/studio` → Import). Nothing in the engine needs to change to accept
 new content — if it validates, it plays.
 
-Import is **destructive per slug**: re-importing the same `campaign.slug`
-replaces all its content. Published releases are snapshotted, so runs already
-in progress keep playing the version they started on.
+### Draft import vs. immutable publishing
+
+Importing writes the **draft** of a campaign and is **destructive per slug**:
+re-importing the same `campaign.slug` replaces all of that campaign's draft
+content. Drafts are freely editable and only playable in Studio test runs.
+
+**Publishing** validates the draft, bumps the version and writes an immutable
+snapshot of every table into a release package. A run is pinned to the version
+it started on, so publishing new content can never rewrite a journey already in
+progress, and editing the draft afterwards has no effect on live runs.
 
 ## Package shape
 
@@ -34,9 +41,11 @@ in progress keep playing the version they started on.
   "variables": [{ "variable_key": "suspicion", "value_type": "integer", "default_value": 0 }],
   "factions":  [{ "faction_key": "wardens", "name": "The Wardens" }],
   "enemies":   [{ "enemy_key": "ash_hound", "name": "Ash Hound", "max_health": 12, "attack": 3, "armor": 0 }],
-  "endings":   [{ "ending_key": "ashes", "name": "Ashes", "priority": 10,
+  "endings":   [{ "ending_key": "ashes", "name": "Ashes", "description": "...",
+                  "artwork": "https://...", "priority": 10,
+                  "spoiler_safe_label": "An ending of fire",
                   "requirements": { "type": "flag_exists", "key": "burned_the_hall" },
-                  "epilogue_blocks": [{ "content": "..." }] }]
+                  "epilogue_blocks": [{ "content": "...", "requirements": null }] }]
 }
 ```
 
@@ -53,8 +62,9 @@ in progress keep playing the version they started on.
   "background_asset": "ashen_road",    // drives atmosphere; tags also work
   "tags": ["night", "forest"],
   "entry_effects": [{ "type": "visit_location", "key": "greyhollow" }],
-  "entry_conditions": null,            // if unmet, engine uses the fallback chain
-  "auto_next_scene_key": null,         // scene with no choices can chain forward
+  "entry_conditions": null,            // see "Entry conditions and fallback"
+  "auto_next_scene_key": null,         // "Continue" destination (see "Automatic transitions")
+  "is_routing_node": false,            // true = invisible; chained through without display
   "is_terminal": false,                // true = run ends here
   "ending_key": null,                  // resolved endings override this
   "display_order": 1,
@@ -87,7 +97,7 @@ Conditional blocks are filtered **server-side** — hidden text never reaches th
 
 ```jsonc
 {
-  "choice_key": "take_the_road",       // unique within the scene
+  "choice_key": "take_the_road",       // unique WITHIN this scene (reuse across scenes is fine)
   "choice_text": "Take the road east.",
   "description": "Faster, but watched.",
   "display_order": 1,
@@ -105,6 +115,33 @@ Conditional blocks are filtered **server-side** — hidden text never reaches th
   ]
 }
 ```
+
+## Automatic transitions
+
+`auto_next_scene_key` is the destination of a scene that has no choices. The
+engine does **not** skip such a scene: it is entered, rendered and persisted
+like any other, and the player moves on with the **Continue** button
+(`journey_advance_scene`). Use it for prose that flows across screens.
+
+Set `"is_routing_node": true` for an **invisible** scene that exists only to
+branch. Routing nodes are never rendered — the engine evaluates their
+`entry_conditions`, applies their `entry_effects` and chains straight through
+to `auto_next_scene_key`. Rules the validator enforces:
+
+- a routing node must have an `auto_next_scene_key`
+- a routing node may not be `is_terminal`
+- blocks and choices on a routing node are dead content (warning)
+
+## Entry conditions and fallback
+
+`entry_conditions` are evaluated **as the scene is entered**. If they are not
+met, the engine does not stop the run — it follows the fallback chain: the
+scene's `auto_next_scene_key`, then the chain onward, until it reaches a scene
+whose conditions pass. Author a routing node with the alternative branch as its
+`auto_next_scene_key` when you want an explicit "if not eligible, go here".
+
+Because a blocked scene is never displayed, keep guarded content on the
+destination scene rather than on the gate itself.
 
 ## Requirements
 
@@ -135,12 +172,30 @@ Add `"notice": "..."` to surface a player-facing line when the effect fires.
 `might` `finesse` `wits` `resolve` all start at 2; health 20/20; level 1; gold 0.
 Override per-campaign in `campaign.config` or via `entry_effects` on the first scene.
 
+## Endings and epilogues
+
+When a run reaches a terminal scene the engine resolves the ending by
+**highest `priority` among endings whose `requirements` pass** against the final
+state; the scene's own `ending_key` is the fallback when nothing qualifies.
+
+The ending screen then shows:
+
+- `name`, `description` and `artwork` of the resolved ending
+- the `epilogue_blocks` whose own `requirements` pass — filtering happens
+  server-side, so passages the player did not earn never reach the client
+- a **spoiler-safe recap**: only the choices the player actually made
+  (`major_decision` ones first), taken from the run's choice history — never
+  paths not taken
+
 ## Validation gates (must pass before publish)
 
 - `starting_scene_key` exists
 - every `next_scene_key` / `auto_next_scene_key` resolves to a real scene
 - no non-terminal scene without choices and without `auto_next_scene_key` (dead end)
-- scene keys and per-scene choice keys are unique
+- scene keys are unique, and choice keys are unique **within each scene**
+- routing nodes have a destination and are not terminal
+- combat blocks name real enemies and real outcome choices
+- scene `ending_key` values resolve to a real ending
 
 ## Authoring tips
 
