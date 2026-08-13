@@ -85,12 +85,16 @@ describe('run state is not readable or writable anonymously', () => {
     expect(data ?? []).toHaveLength(0);
   });
 
-  it('rejects a direct state write to a run', async () => {
-    const { error } = await anon
+  it('never lets a direct state write land on a run', async () => {
+    // An UPDATE filtered by RLS simply matches nothing, so assert that no row
+    // came back as well as accepting an outright policy error.
+    const { data, error } = await anon
       .from('journey_campaign_runs' as any)
       .update({ state: { gold: 999999 } })
-      .eq('id', '00000000-0000-0000-0000-000000000000');
-    expect(error).toBeTruthy();
+      .neq('id', '00000000-0000-0000-0000-000000000000')
+      .select('id');
+    if (error) { expect(error).toBeTruthy(); return; }
+    expect(data ?? []).toHaveLength(0);
   });
 
   it('rejects inserting fabricated choice history', async () => {
