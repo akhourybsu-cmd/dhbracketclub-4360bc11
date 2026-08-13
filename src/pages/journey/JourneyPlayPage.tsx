@@ -19,6 +19,9 @@ export default function JourneyPlayPage() {
   const topRef = useRef<HTMLDivElement>(null);
   const ended = run?.status === 'completed' || Boolean(scene?.is_terminal);
   const { ending, loading: endingLoading } = useJourneyEnding(ended ? runId : undefined, ended);
+  // Choices only appear once the scene has finished being narrated.
+  const [told, setTold] = useState(false);
+  useEffect(() => { setTold(false); }, [scene?.scene_key, blocks]);
 
   // Each new scene starts at the top — mid-scene scroll position carrying
   // over made long chapters feel broken on mobile.
