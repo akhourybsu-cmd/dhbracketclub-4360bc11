@@ -62,7 +62,27 @@ export default function JourneyStudioPage() {
     const pkg = await exportCampaignPackage(c.id);
     setRaw(JSON.stringify(pkg, null, 2));
     setReport(validateCampaign(pkg));
-    setMessage(`Exported ${c.title} into the editor above.`);
+    const im = imageStats(pkg);
+    setMessage(
+      im.total > 0
+        ? `Exported ${c.title} — image links included: ${im.scenes} scene, ${im.portraits} portrait, ${im.inline} inline, ${im.endings} ending, ${im.cover} cover/hero (${im.total} total). Download or copy this JSON to keep them; re-importing the old file would drop them.`
+        : `Exported ${c.title} into the editor above. (No uploaded images found yet.)`,
+    );
+  };
+
+  const downloadRaw = () => {
+    if (!raw.trim()) return;
+    let name = 'campaign.json';
+    try { name = `${(JSON.parse(raw)?.campaign?.slug || 'campaign')}.json`; } catch { /* keep default */ }
+    const blob = new Blob([raw], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
   };
 
   const playtest = async (c: CampaignRow) => {
@@ -104,6 +124,9 @@ export default function JourneyStudioPage() {
             </button>
             <button className="jy-btn jy-btn-primary" onClick={runImport} disabled={!raw.trim() || busy}>
               <Upload className="h-4 w-4" aria-hidden /> {busy ? 'Working…' : 'Import'}
+            </button>
+            <button className="jy-btn jy-btn-ghost" onClick={downloadRaw} disabled={!raw.trim()}>
+              <Download className="h-4 w-4" aria-hidden /> Download JSON
             </button>
             <button
               className="jy-btn jy-btn-ghost"
@@ -212,6 +235,28 @@ export default function JourneyStudioPage() {
       )}
     </JourneyLayout>
   );
+}
+
+/** Count the uploaded image links carried in an exported package, so an author
+ *  can confirm at a glance that Export captured their art. */
+function imageStats(pkg: CampaignPackage) {
+  const isUrl = (v: unknown) => typeof v === 'string' && /^https?:\/\//.test(v.split('#')[0]);
+  let scenes = 0;
+  let inline = 0;
+  let portraits = 0;
+  let endings = 0;
+  let cover = 0;
+  if (isUrl((pkg.campaign as any)?.cover_image)) cover += 1;
+  if (isUrl((pkg.campaign as any)?.hero_image)) cover += 1;
+  for (const s of (pkg.scenes ?? []) as any[]) {
+    if (isUrl(s.background_asset)) scenes += 1;
+    for (const b of (s.blocks ?? []) as any[]) {
+      if (b.block_type === 'image' && isUrl(b.metadata?.src)) inline += 1;
+    }
+  }
+  for (const n of (pkg.npcs ?? []) as any[]) if (isUrl(n.portrait)) portraits += 1;
+  for (const e of (pkg.endings ?? []) as any[]) if (isUrl(e.artwork)) endings += 1;
+  return { scenes, inline, portraits, endings, cover, total: scenes + inline + portraits + endings + cover };
 }
 
 /** One readable line per validation issue, scoped to its scene/choice. */
