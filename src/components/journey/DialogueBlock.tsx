@@ -1,50 +1,33 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { splitLines } from '@/lib/journey/atmosphere';
 import { SpeakerPortrait } from './SpeakerPortrait';
-import { useJourneySettings } from './useJourneySettings';
+import { Typewriter } from './Typewriter';
 
 /**
- * Dialogue delivered line by line, the way a scene is spoken rather than read
- * off a page. Tapping anywhere in the block reveals the rest immediately, so
- * pacing never becomes a wait. Honours the player's motion / animation
- * settings: with animation off, everything appears at once.
+ * Dialogue delivered line by line, typed out the way a scene is spoken rather
+ * than read off a page. `skip` completes the whole speech at once; `onDone`
+ * fires when the last line has finished so the scene can move on.
  */
 export function DialogueBlock({
-  speaker, emotion, portrait, text,
+  speaker, emotion, portrait, text, active = true, skip = false, onDone,
 }: {
   speaker: string;
   emotion?: string | null;
   portrait?: string | null;
   text: string;
+  active?: boolean;
+  skip?: boolean;
+  onDone?: () => void;
 }) {
-  const { dialogueAnimation, reducedMotion } = useJourneySettings();
-  const animate = dialogueAnimation && !reducedMotion;
   const lines = useMemo(() => splitLines(text), [text]);
-  const [shown, setShown] = useState(animate ? 1 : lines.length);
-  const timer = useRef<number>();
+  const [index, setIndex] = useState(0);
 
-  useEffect(() => {
-    setShown(animate ? 1 : lines.length);
-  }, [text, animate, lines.length]);
+  useEffect(() => { setIndex(0); }, [text]);
 
-  useEffect(() => {
-    if (!animate || shown >= lines.length) return;
-    timer.current = window.setTimeout(() => setShown((n) => n + 1), 520);
-    return () => window.clearTimeout(timer.current);
-  }, [animate, shown, lines.length]);
-
-  const complete = shown >= lines.length;
+  const shown = skip ? lines.length - 1 : index;
 
   return (
-    <div
-      className="jy-dialogue jy-fade-in flex gap-3"
-      onClick={() => { if (!complete) setShown(lines.length); }}
-      role={complete ? undefined : 'button'}
-      tabIndex={complete ? undefined : 0}
-      onKeyDown={(e) => {
-        if (!complete && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); setShown(lines.length); }
-      }}
-    >
+    <div className="jy-dialogue jy-fade-in flex gap-3">
       <SpeakerPortrait name={speaker} portrait={portrait} />
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-baseline gap-x-2">
@@ -54,13 +37,20 @@ export function DialogueBlock({
           )}
         </div>
         <div className="jy-prose mt-1 italic">
-          {lines.slice(0, shown).map((line, i) => (
-            <p key={i} className={animate ? 'jy-line-in' : undefined}>{line}</p>
+          {lines.slice(0, shown + 1).map((line, i) => (
+            <p key={i}>
+              <Typewriter
+                text={line}
+                active={active && i === shown}
+                skip={skip || i < shown}
+                onDone={() => {
+                  if (i < lines.length - 1) setIndex((n) => Math.max(n, i + 1));
+                  else onDone?.();
+                }}
+              />
+            </p>
           ))}
         </div>
-        {!complete && (
-          <div className="jy-muted mt-1 text-[0.7rem] tracking-wide">tap to continue</div>
-        )}
       </div>
     </div>
   );
