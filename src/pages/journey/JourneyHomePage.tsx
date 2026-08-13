@@ -13,7 +13,9 @@ export default function JourneyHomePage() {
   const navigate = useNavigate();
   const { campaigns, runs, heroes, loading, error, refresh, createHero, startRun, currentRun } = useJourneyLibrary();
   const [picking, setPicking] = useState<CampaignRow | null>(null);
+  const [intro, setIntro] = useState<CampaignRow | null>(null);
   const [starting, setStarting] = useState(false);
+
 
   const playable = useMemo(
     () => campaigns.filter((c) => c.status === 'published' || c.status === 'testing'),
