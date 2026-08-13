@@ -94,7 +94,7 @@ export default function JourneyPlayPage() {
             </div>
           )}
 
-          {!ended && choices.length === 0 && !scene?.has_auto_next && (
+          {told && !ended && choices.length === 0 && !scene?.has_auto_next && (
             <div className="jy-panel mt-8 p-4 text-center">
               <p className="jy-secondary text-sm">
                 No path leads onward from here yet. This is an authoring gap, not your doing.
