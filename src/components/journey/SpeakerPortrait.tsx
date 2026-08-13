@@ -7,12 +7,13 @@ import { speakerHue, speakerInitials } from '@/lib/journey/atmosphere';
  * campaign has readable multi-voice dialogue with no art pipeline required.
  */
 export function SpeakerPortrait({
-  name, portrait, size = 44,
-}: { name: string; portrait?: string | null; size?: number }) {
+  name, portrait, size = 44, speaking = false,
+}: { name: string; portrait?: string | null; size?: number; speaking?: boolean }) {
   const hue = speakerHue(name || 'unknown');
   return (
     <div
       className="jy-portrait shrink-0"
+      data-speaking={speaking ? 'true' : undefined}
       style={{
         width: size,
         height: size,

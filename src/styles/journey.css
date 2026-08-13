@@ -244,17 +244,28 @@
 }
 .jy-mode main { position: relative; z-index: 1; }
 
-/* Focal scene header — the title band the eye lands on first. */
+/* Focal scene header — the title band the eye lands on first. The gilt rule
+   draws itself in from the left as the scene settles, and the title lifts. */
 .jy-focal {
   position: relative;
   padding: 0.75rem 0 1rem;
+  animation: jyFocalRise 640ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 .jy-focal::after {
   content: '';
   display: block;
   margin-top: 0.9rem;
   height: 1px;
+  transform-origin: left center;
   background: linear-gradient(90deg, hsl(var(--jy-gold) / 0.55), transparent 70%);
+  animation: jyRuleDraw 900ms cubic-bezier(0.22, 1, 0.36, 1) 120ms both;
+}
+@keyframes jyFocalRise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes jyRuleDraw  { from { transform: scaleX(0); opacity: 0; } to { transform: scaleX(1); opacity: 1; } }
+.jy-reduced-motion .jy-focal,
+.jy-reduced-motion .jy-focal::after { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  .jy-focal, .jy-focal::after { animation: none; }
 }
 
 /* Speaker portrait medallion. */
@@ -283,4 +294,131 @@
 @media (prefers-reduced-motion: reduce) {
   .jy-line-in { animation: none; }
   .jy-atmos { transition: none; }
+}
+
+/* ── Living atmosphere (Phase 3) ──────────────────────────────────
+   The scene air keeps breathing after it settles, and a field of ambient
+   motes drifts through it. All of this is decorative, GPU-cheap (transform +
+   opacity only), pointer-inert, and vanishes under reduced motion. */
+
+/* The backdrop glow inhales and exhales — light that is never quite still. */
+.jy-atmos-breathe {
+  transform-origin: 50% 32%;
+  animation: jyBreathe 22s ease-in-out infinite;
+}
+@keyframes jyBreathe {
+  0%, 100% { transform: scale(1);     opacity: 0.9; }
+  50%      { transform: scale(1.045); opacity: 1;   }
+}
+
+/* Ambient mote field. Sits above the glow, below the vignette + text. */
+.jy-motes { position: absolute; inset: 0; overflow: hidden; }
+.jy-mote {
+  position: absolute;
+  border-radius: 9999px;
+  opacity: 0;
+  will-change: transform, opacity;
+}
+/* Mood tints: warm sparks, cool starlight, pale dust. */
+.jy-motes[data-mood='embers'] .jy-mote {
+  background: radial-gradient(circle, hsl(38 78% 68% / 0.95), hsl(24 64% 48% / 0) 70%);
+  animation: jyEmber var(--jy-dur, 12s) ease-in var(--jy-delay, 0s) infinite;
+}
+.jy-motes[data-mood='glints'] .jy-mote {
+  background: radial-gradient(circle, hsl(206 68% 82% / 0.95), hsl(206 44% 60% / 0) 70%);
+  box-shadow: 0 0 6px hsl(206 68% 78% / 0.4);
+  animation: jyGlint var(--jy-dur, 6s) ease-in-out var(--jy-delay, 0s) infinite;
+}
+.jy-motes[data-mood='motes'] .jy-mote {
+  background: radial-gradient(circle, hsl(40 34% 82% / 0.8), hsl(40 22% 60% / 0) 70%);
+  animation: jyDrift var(--jy-dur, 16s) ease-in-out var(--jy-delay, 0s) infinite;
+}
+
+/* Embers rise from the lower air, sway, and burn out near the top. */
+@keyframes jyEmber {
+  0%   { transform: translate3d(0, 8vh, 0) scale(0.7);                     opacity: 0; }
+  12%  {                                                                    opacity: var(--jy-op, 0.4); }
+  80%  {                                                                    opacity: calc(var(--jy-op, 0.4) * 0.5); }
+  100% { transform: translate3d(var(--jy-drift, 0px), -44vh, 0) scale(1);  opacity: 0; }
+}
+/* Glints twinkle in place like distant stars. */
+@keyframes jyGlint {
+  0%, 100% { transform: scale(0.5); opacity: 0; }
+  50%      { transform: scale(1);   opacity: var(--jy-op, 0.4); }
+}
+/* Dust drifts slowly, barely there. */
+@keyframes jyDrift {
+  0%   { transform: translate3d(0, 6px, 0);                          opacity: 0; }
+  25%  {                                                              opacity: var(--jy-op, 0.35); }
+  75%  {                                                              opacity: var(--jy-op, 0.35); }
+  100% { transform: translate3d(var(--jy-drift, 0px), -26px, 0);     opacity: 0; }
+}
+
+/* A speaking character's portrait breathes with a soft aura while their line
+   is being spoken, then settles the moment they finish. */
+.jy-portrait[data-speaking='true'] {
+  animation: jySpeak 1.7s ease-in-out infinite;
+}
+@keyframes jySpeak {
+  0%, 100% {
+    box-shadow: inset 0 0 0 1px hsl(28 14% 4% / 0.6), 0 6px 18px -12px hsl(0 0% 0% / 0.9),
+      0 0 0 0 hsl(var(--jy-portrait-hue, 38) 60% 58% / 0);
+  }
+  50% {
+    box-shadow: inset 0 0 0 1px hsl(28 14% 4% / 0.6), 0 6px 18px -12px hsl(0 0% 0% / 0.9),
+      0 0 15px 2px hsl(var(--jy-portrait-hue, 38) 58% 56% / 0.4);
+  }
+}
+
+/* Choices deal in one at a time, like cards laid on a table. */
+.jy-choice-in {
+  animation: jyChoiceIn 460ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--jy-i, 0) * 70ms);
+}
+@keyframes jyChoiceIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+/* Weighty decisions wear a slow travelling gilt along their edge. */
+.jy-choice-major { position: relative; overflow: hidden; }
+.jy-choice-major::before {
+  content: '';
+  position: absolute;
+  left: -1px; top: 0; bottom: 0;
+  width: 2px;
+  background: linear-gradient(180deg, transparent, hsl(var(--jy-gold)), transparent);
+  background-size: 100% 220%;
+  animation: jyGild 3.6s linear infinite;
+  pointer-events: none;
+}
+@keyframes jyGild { from { background-position: 0 -110%; } to { background-position: 0 110%; } }
+
+/* The ending arrives with a slow radiant bloom rising behind the title. */
+.jy-ending-bloom { position: relative; }
+.jy-ending-bloom::before {
+  content: '';
+  position: absolute;
+  inset: -35% -10% auto -10%;
+  height: 65%;
+  pointer-events: none;
+  background: radial-gradient(60% 100% at 50% 0%, hsl(var(--jy-gold) / 0.2), transparent 72%);
+  animation: jyBloom 2600ms ease both;
+}
+@keyframes jyBloom { from { opacity: 0; } to { opacity: 1; } }
+.jy-rise-stagger > * {
+  animation: jyLine 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--jy-i, 0) * 90ms);
+}
+
+.jy-reduced-motion .jy-atmos-breathe,
+.jy-reduced-motion .jy-mote,
+.jy-reduced-motion .jy-portrait[data-speaking='true'],
+.jy-reduced-motion .jy-choice-in,
+.jy-reduced-motion .jy-choice-major::before,
+.jy-reduced-motion .jy-ending-bloom::before,
+.jy-reduced-motion .jy-rise-stagger > * { animation: none; }
+.jy-reduced-motion .jy-mote { opacity: 0; }
+@media (prefers-reduced-motion: reduce) {
+  .jy-atmos-breathe, .jy-mote, .jy-portrait[data-speaking='true'],
+  .jy-choice-in, .jy-choice-major::before, .jy-ending-bloom::before,
+  .jy-rise-stagger > * { animation: none; }
+  .jy-mote { opacity: 0; }
 }

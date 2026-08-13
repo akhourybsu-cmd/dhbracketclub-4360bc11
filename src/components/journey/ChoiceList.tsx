@@ -16,7 +16,7 @@ export function ChoiceList({
   return (
     <section aria-label="Available choices" className="mt-8 space-y-2.5">
       <h2 className="jy-eyebrow">What do you do?</h2>
-      {choices.map((choice) => {
+      {choices.map((choice, i) => {
         const { available, locked_hint: lockedLabel } = choice;
         const styleClass =
           choice.major_decision ? 'jy-choice-major'
@@ -28,7 +28,9 @@ export function ChoiceList({
           <button
             key={choice.choice_key}
             type="button"
-            className={`jy-choice ${styleClass}`}
+            className={`jy-choice jy-choice-in ${styleClass}`}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            style={{ ['--jy-i' as any]: i }}
             disabled={!available || busy}
             aria-disabled={!available}
             onClick={() => {

@@ -21,14 +21,18 @@ export function DialogueBlock({
 }) {
   const lines = useMemo(() => splitLines(text), [text]);
   const [index, setIndex] = useState(0);
+  const [done, setDone] = useState(false);
 
-  useEffect(() => { setIndex(0); }, [text]);
+  useEffect(() => { setIndex(0); setDone(false); }, [text]);
 
   const shown = skip ? lines.length - 1 : index;
+  // The character is "speaking" — their portrait breathes — from the moment
+  // their turn is active until the last line has finished being spoken.
+  const speaking = active && !skip && !done;
 
   return (
     <div className="jy-dialogue jy-fade-in flex gap-3">
-      <SpeakerPortrait name={speaker} portrait={portrait} />
+      <SpeakerPortrait name={speaker} portrait={portrait} speaking={speaking} />
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-baseline gap-x-2">
           <span className="jy-speaker">{speaker}</span>
@@ -45,7 +49,7 @@ export function DialogueBlock({
                 skip={skip || i < shown}
                 onDone={() => {
                   if (i < lines.length - 1) setIndex((n) => Math.max(n, i + 1));
-                  else onDone?.();
+                  else { setDone(true); onDone?.(); }
                 }}
               />
             </p>

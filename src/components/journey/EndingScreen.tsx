@@ -20,7 +20,7 @@ export function EndingScreen({
   const shown = major.length > 0 ? major : recap.slice(-6);
 
   return (
-    <section className="mt-8" aria-label="Ending">
+    <section className="jy-ending-bloom mt-8" aria-label="Ending">
       <div className="jy-panel-raised overflow-hidden">
         {ending?.artwork && (
           <img
@@ -46,9 +46,10 @@ export function EndingScreen({
       </div>
 
       {epilogue.length > 0 && (
-        <div className="mt-5 space-y-3">
+        <div className="jy-rise-stagger mt-5 space-y-3">
           {epilogue.map((b, i) => (
-            <div key={i} className="jy-panel p-4">
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            <div key={i} className="jy-panel p-4" style={{ ['--jy-i' as any]: i }}>
               <p className="jy-prose whitespace-pre-line text-[0.95rem] leading-relaxed">{b.content}</p>
             </div>
           ))}
@@ -60,9 +61,10 @@ export function EndingScreen({
           <h3 className="jy-eyebrow flex items-center gap-1.5">
             <ScrollText className="h-3 w-3" aria-hidden /> What you chose
           </h3>
-          <ul className="mt-2 space-y-2">
+          <ul className="jy-rise-stagger mt-2 space-y-2">
             {shown.map((r, i) => (
-              <li key={`${r.at}-${i}`} className="jy-panel p-3">
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              <li key={`${r.at}-${i}`} className="jy-panel p-3" style={{ ['--jy-i' as any]: i }}>
                 <div className="flex items-start gap-2">
                   {r.major_decision && (
                     <Star className="mt-0.5 h-3.5 w-3.5 shrink-0" style={{ color: 'hsl(var(--jy-gold))' }} aria-hidden />
