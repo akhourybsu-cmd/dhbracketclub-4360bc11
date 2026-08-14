@@ -8,6 +8,7 @@ import { SceneAtmosphere } from '@/components/journey/SceneAtmosphere';
 import { ChapterInterstitial } from '@/components/journey/ChapterInterstitial';
 import { useJourneySettings } from '@/components/journey/useJourneySettings';
 import { isImageUrl } from '@/lib/journey/art';
+import { loadReadPos, saveReadPos, type ReadPos } from '@/lib/journey/progress';
 import { useJourneyRun } from '@/hooks/useJourneyRun';
 import { useJourneyEnding } from '@/hooks/useJourneyEnding';
 import { EndingScreen } from '@/components/journey/EndingScreen';
@@ -32,6 +33,48 @@ export default function JourneyPlayPage() {
   const [told, setTold] = useState(false);
   useEffect(() => { setTold(false); }, [scene?.scene_key, blocks]);
 
+  // ── Reading-position persistence ──────────────────────────────────────────
+  // Survive the reloads a backgrounded mobile webview forces on us. The run is
+  // already safe (server-side, keyed by runId); here we remember the panel and
+  // scroll so a reload returns to the same spot instead of the top of the scene.
+  const savedRef = useRef<ReadPos | null>(loadReadPos(runId));
+  const posRef = useRef<ReadPos>({ sceneKey: '', panel: 0, scrollY: 0 });
+  const restoring = savedRef.current != null && savedRef.current.sceneKey === scene?.scene_key;
+  const initialPanel = restoring ? savedRef.current!.panel : undefined;
+
+  const persist = (patch: Partial<ReadPos>) => {
+    posRef.current = { ...posRef.current, ...patch };
+    saveReadPos(runId, posRef.current);
+  };
+
+  // On entering a scene, seed the stored position (restored panel or 0).
+  useEffect(() => {
+    if (!scene?.scene_key) return;
+    posRef.current = { sceneKey: scene.scene_key, panel: initialPanel ?? 0, scrollY: window.scrollY };
+    saveReadPos(runId, posRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scene?.scene_key]);
+
+  // Track scroll cheaply; flush hard when the page is about to be torn down.
+  useEffect(() => {
+    let raf = 0;
+    const onScroll = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => { raf = 0; posRef.current.scrollY = window.scrollY; });
+    };
+    const flush = () => { posRef.current.scrollY = window.scrollY; saveReadPos(runId, posRef.current); };
+    const onVis = () => { if (document.visibilityState === 'hidden') flush(); };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('pagehide', flush);
+    document.addEventListener('visibilitychange', onVis);
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('pagehide', flush);
+      document.removeEventListener('visibilitychange', onVis);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [runId]);
+
   // Announce a new chapter with a brief cinematic curtain — once per chapter,
   // never on reduced motion, never before the ending.
   const [chapterCurtain, setChapterCurtain] = useState<string | null>(null);
@@ -44,10 +87,17 @@ export default function JourneyPlayPage() {
     if (!first) setChapterCurtain(chapterTitle);
   }, [chapterTitle, reducedMotion, ended]);
 
-  // Each new scene starts at the top.
+  // A fresh scene starts at the top; a restored one returns to where you were.
   useEffect(() => {
-    topRef.current?.scrollIntoView({ block: 'start' });
-    window.scrollTo({ top: 0 });
+    if (restoring && savedRef.current) {
+      const y = savedRef.current.scrollY;
+      savedRef.current = null; // restore only once
+      requestAnimationFrame(() => requestAnimationFrame(() => window.scrollTo({ top: y })));
+    } else {
+      topRef.current?.scrollIntoView({ block: 'start' });
+      window.scrollTo({ top: 0 });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scene?.scene_key]);
 
   useEffect(() => {
@@ -100,7 +150,13 @@ export default function JourneyPlayPage() {
 
       {scene ? (
         <>
-          <SceneBlocks key={scene.scene_key} blocks={blocks} onDone={() => setTold(true)} />
+          <SceneBlocks
+            key={scene.scene_key}
+            blocks={blocks}
+            initialPanel={initialPanel}
+            onPanel={(p) => persist({ panel: p })}
+            onDone={() => setTold(true)}
+          />
 
           {ended ? (
             told && <EndingScreen payload={ending} loading={endingLoading} campaignTitle={campaign?.title} />

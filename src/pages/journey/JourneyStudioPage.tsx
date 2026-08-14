@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, BookOpen, CheckCircle2, Download, FlaskConical, ImagePlus, Upload } from 'lucide-react';
 import { JourneyLayout, JourneyError } from '@/components/journey/JourneyLayout';
@@ -19,7 +19,13 @@ export default function JourneyStudioPage() {
   const navigate = useNavigate();
   const { campaigns, loading, error, refresh, importPackage, setStatus, deleteCampaign } = useJourneyStudio();
   const { heroes, createHero, startRun } = useJourneyLibrary();
-  const [raw, setRaw] = useState('');
+  const [raw, setRaw] = useState(() => {
+    try { return localStorage.getItem('dh_journey_studio_v1') ?? ''; } catch { return ''; }
+  });
+  // Keep the editor contents across the reloads a backgrounded webview forces.
+  useEffect(() => {
+    try { localStorage.setItem('dh_journey_studio_v1', raw); } catch { /* ignore */ }
+  }, [raw]);
   const [report, setReport] = useState<ReturnType<typeof validateCampaign> | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);

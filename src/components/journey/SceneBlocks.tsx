@@ -26,8 +26,14 @@ function splitPanels(blocks: RuntimeBlock[]): RuntimeBlock[][] {
  * finished, so the scene's choices can follow.
  */
 export function SceneBlocks({
-  blocks, onDone, instant = false,
-}: { blocks: RuntimeBlock[]; onDone?: () => void; instant?: boolean }) {
+  blocks, onDone, instant = false, initialPanel, onPanel,
+}: {
+  blocks: RuntimeBlock[]; onDone?: () => void; instant?: boolean;
+  /** Restore to this panel (revealed) after a reload; undefined = start fresh. */
+  initialPanel?: number;
+  /** Reports the active panel index as the reader advances, for persistence. */
+  onPanel?: (index: number) => void;
+}) {
   const panels = useMemo(() => splitPanels(blocks), [blocks]);
   const [panel, setPanel] = useState(0);
   const [revealed, setRevealed] = useState(0);
@@ -36,7 +42,21 @@ export function SceneBlocks({
   doneRef.current = onDone;
   const panelTopRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { setPanel(0); setRevealed(0); setSkip(false); }, [blocks]);
+  useEffect(() => {
+    // Restoring a reading position (initialPanel provided): jump to that panel
+    // with everything up to it already revealed. Otherwise, narrate from the top.
+    if (initialPanel !== undefined) {
+      const start = Math.min(Math.max(0, initialPanel), Math.max(0, splitPanels(blocks).length - 1));
+      setPanel(start);
+      setRevealed(splitPanels(blocks)[start]?.length ?? 0);
+      setSkip(true);
+    } else {
+      setPanel(0);
+      setRevealed(0);
+      setSkip(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [blocks]);
 
   // A finished scene shown as scrollback: every block at once, no typing, no breaks.
   if (instant) {
@@ -59,7 +79,7 @@ export function SceneBlocks({
   useEffect(() => { if (panelComplete && isLast) doneRef.current?.(); }, [panelComplete, isLast]);
 
   const advancePanel = () => {
-    setPanel((p) => p + 1);
+    setPanel((p) => { const n = p + 1; onPanel?.(n); return n; });
     setRevealed(0);
     setSkip(false);
     requestAnimationFrame(() => panelTopRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' }));
