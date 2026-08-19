@@ -85,7 +85,7 @@ import { buildInitialShift, applyShift, type ShiftState } from '@/lib/runedelve/
 import { buildInitialPairs, pairsTriggeredByChain, consumePairs, type LinkedPairsState } from '@/lib/runedelve/linkedPairs';
 import { buildInitialEclipse, type EclipseSet } from '@/lib/runedelve/eclipseTiles';
 import { secondaryMet, secondaryShort, secondaryLabel, type SecondaryObjective } from '@/lib/runedelve/layeredGoals';
-import { getBossRule, type BossRuleId } from '@/lib/runedelve/bossRules';
+import { getBossRule, filterTargetable, type BossRuleId } from '@/lib/runedelve/bossRules';
 import { useSubmitDailyRun } from '@/hooks/useDailyChallenge';
 import { useReportQuestProgress } from '@/hooks/useQuests';
 import {
@@ -851,7 +851,11 @@ export default function RuneDelvePlayPage() {
     const redCountAfter = type === 'red' ? redChainCount + 1 : redChainCount;
     // Compute relic chain mods (Ember Edge, Crimson Tide, Executioner's Mark,
     // Desperate Surge, Sapphire Flow, Verdant Heart, Bulwark, Quickstep).
-    const targetEnemyForCtx = combat.enemies.find(e => e.hp > 0);
+    // Read the HP ratio from the enemy applyChain will actually hit — the first
+    // TARGETABLE foe (boss rules can hide the final enemy) — so Executioner's
+    // Mark evaluates its <25% check against the real target, not a hidden one.
+    const targetEnemyForCtx = filterTargetable(bossRule, combat.enemies)[0]
+      ?? combat.enemies.find(e => e.hp > 0);
     const enemyHpRatio = targetEnemyForCtx ? targetEnemyForCtx.hp / Math.max(1, targetEnemyForCtx.maxHp) : 1;
     const chainMods = computeChainMods(relics, {
       chainType: type,
@@ -1700,19 +1704,20 @@ export default function RuneDelvePlayPage() {
 
   const handleAbility = () => {
     const relics = activeRelicsSnapshot ?? activeRelics;
-    // Visual ability FX (fires regardless of mana refund — cue is the cast).
-    if (combat.mana >= abilityManaCost) {
+    // First Light: the first N ability casts each run truly cost 0 mana — they
+    // can fire at an empty pool, not just refund afterward. effectiveCost 0
+    // lets useAbility resolve the cast while spending nothing.
+    const isFreeCast = abilityFreeFirstUse(relics, abilityUsedCount);
+    const effectiveCost = isFreeCast ? 0 : abilityManaCost;
+    // Visual ability FX — cue whenever the cast will actually resolve.
+    if (combat.mana >= effectiveCost) {
       const firstAlive = combat.enemies.find(e => e.hp > 0);
       const target = firstAlive ? findEnemyRect(firstAlive.id) : undefined;
       fxQ.trigger({ kind: 'ability', cls: hero.class, target });
       rdSfx(`ability.cast.${hero.class}` as any);
       if (hero.class === 'warrior') triggerCamShake(8);
     }
-    // First Light: first N ability casts skip the mana cost. We restore the
-    // mana after useAbility() consumes it so the cast still resolves normally.
-    const isFreeCast = abilityFreeFirstUse(relics, abilityUsedCount);
-    const manaBefore = combat.mana;
-    const { next, ok } = useAbility(combat, hero.class, bossRule, activeMasteries, level.level_number, abilityManaCost);
+    const { next, ok } = useAbility(combat, hero.class, bossRule, activeMasteries, level.level_number, effectiveCost);
     if (!ok) {
       toast.info('Ability not ready — fill mana orbs first.');
       return;
@@ -1742,10 +1747,10 @@ export default function RuneDelvePlayPage() {
     turnLogs.push({ kind: 'info', text: 'Free action — your turn continues.' });
     toast.success('✨ Ability — free action!', { duration: 1200 });
 
-    // First Light: refund the mana that useAbility() just spent.
-    let finalNext: CombatState = isFreeCast ? { ...next, mana: manaBefore } : next;
+    // First Light: the cast already spent 0 mana (effectiveCost 0) — just flag it.
+    let finalNext: CombatState = next;
     if (isFreeCast) {
-      turnLogs.push({ kind: 'info', text: '🌅 First Light — mana refunded' });
+      turnLogs.push({ kind: 'info', text: '🌅 First Light — free cast (0 mana)' });
       toast.success('🌅 First Light — free!', { duration: 1100 });
     }
     // ── Mastery: Mage T5 Overflow — every 4th mana spent refunds 1.

@@ -87,6 +87,34 @@ const noop: ChainMods = {
   lifestealPctOfDamage: 0, echoMult: 0,
 };
 
+/**
+ * Apply a "+X% to chain effect" multiplier (Mirror Shard / Void Pact) as a
+ * GUARANTEED per-type bonus. Red scales damage directly. Non-red chains used to
+ * route through `effectiveLengthBonus`, which only mattered when it happened to
+ * cross a discrete threshold (mana-5, floor(len/3) shield) — so most blue/gold
+ * procs did nothing. This grants a concrete flat bonus every time instead.
+ */
+function applyUniversalMult(m: ChainMods, type: ChainContext['chainType'], length: number, mult: number): void {
+  const pct = Math.max(0, mult - 1); // 0.30 .. 0.50
+  switch (type) {
+    case 'red':
+      m.bonusDamageMult *= mult;
+      break;
+    case 'blue':
+      // +1 mana orb (mana is coarse; the engine still clamps to MAX_MANA).
+      m.bonusManaFlat += 1;
+      break;
+    case 'green':
+      // Heal a slice of the chain's rough value (6 HP/rune baseline).
+      m.bonusHealFlat += Math.max(1, Math.round(pct * length * 6));
+      break;
+    case 'gold':
+      // At least +1 shield turn, scaling up with the multiplier.
+      m.bonusShieldTurns += Math.max(1, Math.round(pct * 4));
+      break;
+  }
+}
+
 export function computeChainMods(a: ActiveRelics, ctx: ChainContext): ChainMods {
   const m: ChainMods = { ...noop };
 
@@ -128,19 +156,9 @@ export function computeChainMods(a: ActiveRelics, ctx: ChainContext): ChainMods 
     m.effectiveLengthBonus += Math.round(effectValue('quickstep', rankOf(a, 'quickstep')));
   }
   // Mirror Shard — every 2nd chain (1-indexed: 2, 4, 6, ...) gets a bump.
-  // For red chains this is extra damage; for non-red it's extra effect via
-  // length bonus so heal/mana/shield also scale.
   const chainNum = ctx.chainNumberThisRun ?? 0;
   if (has(a, 'mirror_shard') && chainNum > 0 && chainNum % 2 === 0) {
-    const mult = effectValue('mirror_shard', rankOf(a, 'mirror_shard'));
-    if (ctx.chainType === 'red') {
-      m.bonusDamageMult *= mult;
-    } else {
-      // mult is 1.30..1.50 — translate the "+X%" portion into bonus length steps.
-      // e.g. 1.30 → +1 length-equivalent; 1.50 → +2.
-      const extra = Math.max(1, Math.round((mult - 1) * 4));
-      m.effectiveLengthBonus += extra;
-    }
+    applyUniversalMult(m, ctx.chainType, ctx.length, effectValue('mirror_shard', rankOf(a, 'mirror_shard')));
   }
   // Rune Echo — every 4th chain (4, 8, 12, ...) echoes its effect.
   if (has(a, 'rune_echo') && chainNum > 0 && chainNum % 4 === 0) {
@@ -148,14 +166,7 @@ export function computeChainMods(a: ActiveRelics, ctx: ChainContext): ChainMods 
   }
   // Void Pact — universal +X% to chain effect.
   if (has(a, 'void_pact')) {
-    const mult = effectValue('void_pact', rankOf(a, 'void_pact'));
-    if (ctx.chainType === 'red') {
-      m.bonusDamageMult *= mult;
-    } else {
-      // Translate to length steps so heal/mana/shield benefit too.
-      const extra = Math.max(1, Math.round((mult - 1) * 4));
-      m.effectiveLengthBonus += extra;
-    }
+    applyUniversalMult(m, ctx.chainType, ctx.length, effectValue('void_pact', rankOf(a, 'void_pact')));
   }
 
   return m;

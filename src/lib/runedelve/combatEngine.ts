@@ -328,9 +328,11 @@ export function useAbility(
   level = 1,
   manaCost: number = MAX_MANA,
 ): { next: CombatState; ok: boolean } {
-  const cost = Math.max(1, Math.min(MAX_MANA, manaCost));
+  // cost 0 is a legitimate free cast (First Light relic) — it fires at any mana
+  // and spends nothing. Otherwise clamp into the 1..MAX_MANA range.
+  const cost = Math.max(0, Math.min(MAX_MANA, manaCost));
   if (state.mana < cost) return { next: state, ok: false };
-  // Spend exactly `cost` orbs (Mage T4 Deep Reserve casts at 2 instead of 3).
+  // Spend exactly `cost` orbs (Mage T4 Deep Reserve casts at 2; First Light at 0).
   const next: CombatState = { ...state, mana: state.mana - cost, abilityUsed: true, enemies: state.enemies.map(e => ({ ...e })) };
   const targetable = filterTargetable(bossRule, next.enemies);
   const targetableIds = new Set(targetable.map(e => e.id));

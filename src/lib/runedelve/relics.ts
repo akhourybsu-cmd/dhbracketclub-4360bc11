@@ -37,7 +37,7 @@ export const RELIC_CATALOG: RelicDef[] = [
   { id: 'shrine_ward',      name: 'Shrine Ward',       category: 'objective', tier: 1, cost: 130, icon: '🕯️', description: 'Boss & elite damage to you reduced 10% on turn 1.' },
   { id: 'wanderers_compass',name: "Wanderer's Compass",category: 'objective', tier: 1, cost: 150, icon: '🧭', description: '+15% Rune Shards from this run.' },
   // NEW T1
-  { id: 'mirror_shard',     name: 'Mirror Shard',      category: 'offense',   tier: 1, cost: 140, icon: '🪞', description: 'Every 2nd chain each run deals +30% extra damage (red) or echoes its effect by 30% (others).' },
+  { id: 'mirror_shard',     name: 'Mirror Shard',      category: 'offense',   tier: 1, cost: 140, icon: '🪞', description: 'Every 2nd chain deals +30% damage (red) or grants a bonus orb / heal / shield (others).' },
   { id: 'brambleward',      name: 'Brambleward',       category: 'survival',  tier: 1, cost: 130, icon: '🌵', description: 'Shield Thorns reflect +15% more damage. Stacks with Spiked Aegis.' },
 
   // ── Tier 2 — mechanic-aware (chapter 2+) ──────────────────────────────
@@ -218,7 +218,7 @@ export function describeRelicAtRank(relic: RelicDef, rank: number): string {
     case 'momentum':
       return `Rogue's chain bonus threshold becomes 4+ (was 5+). Other classes: chains of 4+ score +${pctBonus(v)}%.`;
     case 'mirror_shard':
-      return `Every 2nd chain each run deals +${pctBonus(v)}% extra damage (red) or echoes its effect by ${pctBonus(v)}% (others).`;
+      return `Every 2nd chain deals +${pctBonus(v)}% damage (red) or grants a bonus orb / heal / shield (others).`;
     case 'void_pact':
       return `Sacrifice 10 max HP. All chains deal +${pctBonus(v)}% effect.`;
 
