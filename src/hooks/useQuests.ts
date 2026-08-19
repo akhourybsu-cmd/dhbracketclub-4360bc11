@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRuneDelveHero } from '@/hooks/useRuneDelveHero';
 import { useEarnShards } from '@/hooks/useRuneShards';
+import { levelFromXp, titleForLevel, type HeroClass } from '@/lib/runedelve/classConfig';
 import {
   dailyPeriodKey,
   weeklyPeriodKey,
@@ -242,15 +243,68 @@ export function useClaimQuest() {
         await earnShards.mutateAsync(def.shard_reward);
       }
 
-      return { shards: def.shard_reward, xp: def.xp_reward, title: def.title, scope: def.scope };
+      // Pay XP reward — this was previously advertised in the UI but NEVER
+      // granted. XP goes to the quest's tied class if it has one, else the
+      // active hero class (mirrors how run XP is awarded). Levels/title are
+      // recomputed from the new XP total. Best-effort: never blocks the claim.
+      let xpAwarded = 0;
+      if (def.xp_reward > 0) {
+        try {
+          const { data: heroRow } = await supabase
+            .from('rune_delve_heroes')
+            .select('*')
+            .eq('user_id', user.id)
+            .maybeSingle();
+          const cls = ((def.hero_class as HeroClass | null | undefined) ?? (heroRow as any)?.class) as HeroClass | undefined;
+          if (heroRow && cls) {
+            const { data: track } = await supabase
+              .from('rune_delve_class_progress')
+              .select('*')
+              .eq('user_id', user.id)
+              .eq('class', cls)
+              .maybeSingle();
+            const prevXp = (track as any)?.xp ?? (heroRow as any).xp ?? 0;
+            const newXp = prevXp + def.xp_reward;
+            const newLevel = levelFromXp(newXp).level;
+            const title = titleForLevel(newLevel, cls)
+              ?? (track as any)?.cosmetic_title ?? (heroRow as any).cosmetic_title ?? null;
+            await supabase
+              .from('rune_delve_class_progress')
+              .upsert(
+                {
+                  user_id: user.id, class: cls,
+                  xp: newXp, level: newLevel, cosmetic_title: title,
+                  lifetime_runs: (track as any)?.lifetime_runs ?? 0,
+                  lifetime_score: (track as any)?.lifetime_score ?? 0,
+                } as never,
+                { onConflict: 'user_id,class' },
+              );
+            // Mirror the active class snapshot onto the hero row only when the
+            // quest's class IS the active class (don't clobber a different
+            // active class's level/title if the player switched).
+            if (cls === (heroRow as any).class) {
+              await supabase
+                .from('rune_delve_heroes')
+                .update({ xp: newXp, level: newLevel, cosmetic_title: title } as never)
+                .eq('user_id', user.id);
+            }
+            xpAwarded = def.xp_reward;
+          }
+        } catch { /* XP grant best-effort — shards already paid */ }
+      }
+
+      return { shards: def.shard_reward, xp: xpAwarded, title: def.title, scope: def.scope };
     },
     onSuccess: (result) => {
-      toast.success(`+${result.shards} 💎 — ${scopeLabel(result.scope)} Reward`, {
+      const xpSuffix = result.xp > 0 ? ` · +${result.xp} XP` : '';
+      toast.success(`+${result.shards} 💎${xpSuffix} — ${scopeLabel(result.scope)} Reward`, {
         description: result.title,
         duration: 4000,
       });
       qc.invalidateQueries({ queryKey: ['rd-active-quests'] });
       qc.invalidateQueries({ queryKey: ['rune-delve-wallet'] });
+      qc.invalidateQueries({ queryKey: ['rune-delve-class-progress'] });
+      qc.invalidateQueries({ queryKey: ['rune-delve-hero'] });
     },
     onError: (e: Error) => {
       toast.error(`Couldn't claim quest: ${e.message}`);

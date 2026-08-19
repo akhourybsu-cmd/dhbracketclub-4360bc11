@@ -3,7 +3,7 @@ import { useState, useMemo } from 'react';
 import { toast } from 'sonner';
 import { useSoundEffect } from '@/hooks/useSoundEffect';
 import { useRuneDelveSfx } from '@/hooks/useRuneDelveSfx';
-import { useRuneWallet, useSpendShards } from '@/hooks/useRuneShards';
+import { useRuneWallet, useSpendShards, useEarnShards } from '@/hooks/useRuneShards';
 import { useRelicCollection, useUnlockRelic, useUpgradeRelic } from '@/hooks/useRelicCollection';
 import { useMyProgress } from '@/hooks/useRuneDelveCampaign';
 import { useRuneDelveHero } from '@/hooks/useRuneDelveHero';
@@ -32,6 +32,7 @@ export default function RuneDelveShopPage() {
   const { data: progress } = useMyProgress();
   const { data: hero } = useRuneDelveHero();
   const spend = useSpendShards();
+  const earn = useEarnShards();
   const unlock = useUnlockRelic();
   const upgrade = useUpgradeRelic();
   const sfx = useSoundEffect();
@@ -68,15 +69,24 @@ export default function RuneDelveShopPage() {
       return;
     }
     setPendingId(relicId);
+    let spent = false;
     try {
       await spend.mutateAsync(r.cost);
+      spent = true;
       await unlock.mutateAsync({ relic_id: relicId, level: hero?.level ?? 1 });
       sfx.play('achievement');
       rdSfx('relic.equip');
       rdSfx('shards.shower');
       toast.success(`✨ Unlocked ${r.name}`, { description: 'Equip it from the Armory' });
     } catch (e: any) {
-      toast.error(e?.message ?? 'Could not unlock relic');
+      // Refund if we already debited but the unlock failed — never take shards
+      // without delivering the relic.
+      if (spent) {
+        try { await earn.mutateAsync(r.cost); } catch { /* refund best-effort */ }
+        toast.error('Purchase failed — your shards were refunded.');
+      } else {
+        toast.error(e?.message ?? 'Could not unlock relic');
+      }
     } finally {
       setPendingId(null);
     }
@@ -100,15 +110,23 @@ export default function RuneDelveShopPage() {
       return;
     }
     setPendingId(upgradeRelic.id);
+    let spent = false;
     try {
       await spend.mutateAsync(cost);
+      spent = true;
       await upgrade.mutateAsync({ relic_id: upgradeRelic.id, expected_rank: curRank });
       sfx.play('success');
       rdSfx('levelup.fanfare');
       toast.success(`⬆️ ${upgradeRelic.name} → R${curRank + 1}`);
       setUpgradeRelic(null);
     } catch (e: any) {
-      toast.error(e?.message ?? 'Could not upgrade relic');
+      // Refund if we debited but the rank bump failed (e.g. expected_rank race).
+      if (spent) {
+        try { await earn.mutateAsync(cost); } catch { /* refund best-effort */ }
+        toast.error('Upgrade failed — your shards were refunded.');
+      } else {
+        toast.error(e?.message ?? 'Could not upgrade relic');
+      }
     } finally {
       setPendingId(null);
     }

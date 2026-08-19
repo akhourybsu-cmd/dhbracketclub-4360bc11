@@ -106,7 +106,7 @@ import {
 import { getActiveMasteries, masteryUnlockedAt } from '@/lib/runedelve/classMastery';
 import {
   getMasteryStartingMana,
-  getMasteryManaCap,
+  getMasteryAbilityManaCost,
   getMasteryChainDamageMult,
   isLastStandActive,
   getMasteryBlueChainHeal,
@@ -246,6 +246,15 @@ export default function RuneDelvePlayPage() {
   // re-render churn — they're read inside event handlers, never in JSX.
   const braceFiredRef = useRef(false);
   const aegisFiredRef = useRef(false);
+  // Actual initial turn budget for THIS run (after Foreseer's Lens / daily /
+  // run-modifier turn deltas). Shrine Ward's turn-1 check compares against this
+  // — comparing against level.turn_limit broke whenever any turn modifier was
+  // active (which is nearly every run). -1 on resume so it never fires post-resume.
+  const initialTurnsRef = useRef(-1);
+  // True once the hero has lost HP at any point this run — powers the honest
+  // "no-damage clear" quest (end-of-run full HP alone doesn't prove it, since
+  // green chains / lifesteal can heal back what was lost).
+  const tookDamageRef = useRef(false);
 
   // Per-run defeat ledger keyed by archetypeId. Submitted to the Bestiary on
   // run-end. Mini-boss / boss kills get tracked under variant ids
@@ -408,6 +417,14 @@ export default function RuneDelvePlayPage() {
     return getActiveMasteries(hero.class, lvl);
   }, [hero, classTracks]);
 
+  // Mana orbs needed to cast the class ability. Mage T4 "Deep Reserve" drops
+  // it 3 → 2. Used by handleAbility (gate + FX + spend accounting) and the
+  // HeroStatusBar (ready-state threshold) so both agree.
+  const abilityManaCost = useMemo(
+    () => getMasteryAbilityManaCost(activeMasteries, MAX_MANA),
+    [activeMasteries],
+  );
+
   // Per-run snapshot key (scoped to user + level so swapping levels or users
   // can never bleed in stale state).
   const runKey = useMemo(() => {
@@ -455,6 +472,10 @@ export default function RuneDelvePlayPage() {
         // that case, which the engine treats as Steady Path.
         setActiveModifier(getModifierById(snap.activeModifierId));
         setModifierOffer(null); // never re-show the picker on a resume
+        // Resumed runs have passed turn 1; sentinel keeps Shrine Ward inert.
+        initialTurnsRef.current = -1;
+        // Can't prove a resumed run was damage-free — disqualify conservatively.
+        tookDamageRef.current = true;
         const turnNow = level.turn_limit - snap.combat.turnsRemaining + 1;
         toast(`↩️ Resumed your run (Turn ${turnNow} of ${level.turn_limit})`, { duration: 2200 });
         return;
@@ -512,12 +533,18 @@ export default function RuneDelvePlayPage() {
     const foggedActive = isDailyMode && dailyHidesForesight(dailyMods);
     if (telegraphActive) {
       enemies = applyInitialIntents(enemies, level.generation_seed, level.level_number);
-      // Foresight: reveal telegraphed intents N turns earlier by ticking
-      // each enemy's intent down at run start. Suppressed under Fogged.
+      // Foresight: extend every heavy-strike fuse by N turns so the player
+      // gets more warning + more time to kill the telegraphing enemy before it
+      // unleashes. Raising `intentMax` too means the longer fuse persists after
+      // each strike resets. (Previously this LOWERED the countdown, which made
+      // heavies land SOONER — a strict downgrade for a 350-shard relic.)
+      // Suppressed under Fogged.
       const earlyTurns = foggedActive ? 0 : getTelegraphReadyEarly(relics);
       if (earlyTurns > 0) {
         enemies = enemies.map(e => (
-          e.intent != null ? { ...e, intent: Math.max(1, e.intent - earlyTurns) } : e
+          e.intent != null
+            ? { ...e, intent: e.intent + earlyTurns, intentMax: (e.intentMax ?? e.intent) + earlyTurns }
+            : e
         ));
       }
     }
@@ -578,6 +605,10 @@ export default function RuneDelvePlayPage() {
       }
     }
     setCombat(initial);
+    // Record the true starting turn budget (post all turn modifiers) so
+    // Shrine Ward's turn-1 detection is robust to Foreseer's Lens / daily /
+    // run-modifier deltas.
+    initialTurnsRef.current = initial.turnsRemaining;
     setActiveRelicsSnapshot(relics);
     setLastStandUsed(0);
     setPhoenixUsed(false);
@@ -616,6 +647,7 @@ export default function RuneDelvePlayPage() {
     }
     braceFiredRef.current = false;
     aegisFiredRef.current = false;
+    tookDamageRef.current = false;
     defeatedArchetypesRef.current = new Map();
     wavesSpawnedRef.current = 0;
     setLog([{ id: nextLogId(), kind: 'info', text: `You enter Level ${level.level_number}. The runes hum.` }]);
@@ -918,6 +950,7 @@ export default function RuneDelvePlayPage() {
         const rawDamage = Math.round(hazardHits * HAZARD_DAMAGE * modEff.hazardMult);
         const damage = Math.min(rawDamage, HAZARD_MAX_DAMAGE_PER_CHAIN * modEff.hazardMult);
         next.hp = Math.max(0, next.hp - damage);
+        if (damage > 0) tookDamageRef.current = true;
         pushLog({
           kind: 'corruption',
           text: `⚠️ Hazard tile · -${damage} HP`,
@@ -1237,8 +1270,11 @@ export default function RuneDelvePlayPage() {
 
     // Apply corruption: HP cost for matching corrupted cells, then strip them.
     // Cleansing Touch: first N corrupt-source clears each run cost no HP.
+    // Bite keys off corruption EXISTING, not the level's band flag — enemy
+    // `corrupt_tile` abilities (Rune Wraith / Whisper Witch / Wraith Lord) can
+    // seed corruption on any level, and those cells must cost HP + clear too.
     let nextCorruption = corruption;
-    if (corruptionActive && corruption.cells.size) {
+    if (corruption.cells.size) {
       const r = resolveChainAgainstCorruption(corruption, chain);
       let hpCost = r.hpCost;
       if (r.sourcesCleared > 0 && has(relics, 'cleansing_touch')) {
@@ -1256,6 +1292,7 @@ export default function RuneDelvePlayPage() {
       }
       if (hpCost > 0) {
         next.hp = Math.max(0, next.hp - hpCost);
+        tookDamageRef.current = true;
         toast.error(`☠️ -${hpCost} HP from corruption`, { duration: 1100 });
         turnLogs.push({ kind: 'corruption', text: 'Corrupted runes burned you', amount: hpCost });
       }
@@ -1285,7 +1322,7 @@ export default function RuneDelvePlayPage() {
     // Shrine Ward (turn 1) and Cracked Crown (boss-rule levels) reduce incoming
     // damage by scaling each enemy's `damage` field in-place before the call,
     // then restoring it after — mirrors the enrager pattern in combatEngine.
-    const isTurnOne = combat.turnsRemaining === level.turn_limit;
+    const isTurnOne = combat.turnsRemaining === initialTurnsRef.current;
     const wardMult = shrineWardTurn1Mult(relics, isTurnOne);
     const crownMult = bossRule ? bossRuleSoften(relics) : 1;
     const incomingMult = wardMult * crownMult;
@@ -1315,9 +1352,12 @@ export default function RuneDelvePlayPage() {
       for (const eff of effects) {
         if (eff.kind === 'spawn_minion') {
           afterEnemies = { ...afterEnemies, enemies: [...afterEnemies.enemies, eff.enemy] };
-        } else if (eff.kind === 'corrupt_tile' && corruptionActive) {
+        } else if (eff.kind === 'corrupt_tile') {
           // Drop one corrupted cell on the first available non-sealed,
           // non-corrupted square (deterministic scan keeps replays stable).
+          // No longer gated on the corruption BAND — the ability fired and
+          // logged, so its board effect must actually land (was a silent
+          // no-op on 16 levels whose enemies carry corrupt_tile off-band).
           const cells = new Set(nextCorruption.cells);
           let placed = false;
           outer: for (let r = 0; r < 5; r++) for (let c = 0; c < 5; c++) {
@@ -1403,6 +1443,7 @@ export default function RuneDelvePlayPage() {
     // Damage taken / mitigated lines.
     const hpLost = Math.max(0, hpBefore - afterEnemies.hp);
     if (hpLost > 0) {
+      tookDamageRef.current = true;
       turnLogs.push({ kind: 'taken', text: 'Enemies retaliated', amount: hpLost });
       setHurtFlashKey(k => k + 1);
       rdSfx('hero.hurt');
@@ -1445,12 +1486,18 @@ export default function RuneDelvePlayPage() {
       rdSfx('ability.ready');
     }
 
+    // Explicit "a save fired this turn" flag — set ONLY when Aegis / Last Stand
+    // / Phoenix actually restores HP from a lethal blow. Cleric T4 reads this
+    // instead of a pre-shield-damage heuristic that mis-fired whenever a shield
+    // absorbed a nominally-lethal hit (and missed real revives).
+    let revivedThisTurn = false;
     // ── Mastery: Cleric T5 Eternal Aegis — once per run, block a fatal hit.
     // Runs BEFORE the relic Last Stand / Phoenix saves so the cheap free
     // mastery save burns first; relics can still bail you out next time.
     if (afterEnemies.hp <= 0 && hasMasteryAegis(activeMasteries) && !aegisFiredRef.current) {
       afterEnemies = { ...afterEnemies, hp: 1 };
       aegisFiredRef.current = true;
+      revivedThisTurn = true;
       toast.success('🛡️ Aegis blocked the killing blow!', { duration: 1800 });
       turnLogs.push({ kind: 'laststand', text: 'Eternal Aegis — fatal hit blocked!' });
     }
@@ -1460,6 +1507,7 @@ export default function RuneDelvePlayPage() {
       if (ls.saved) {
         afterEnemies = { ...afterEnemies, hp: ls.hp };
         setLastStandUsed(c => c + 1);
+        revivedThisTurn = true;
         toast.success('💔 Last Stand! Survived at 1 HP', { duration: 1800 });
         turnLogs.push({ kind: 'laststand', text: 'Last Stand! You survived at 1 HP' });
       }
@@ -1471,6 +1519,7 @@ export default function RuneDelvePlayPage() {
       if (reviveHp != null) {
         afterEnemies = { ...afterEnemies, hp: reviveHp };
         setPhoenixUsed(true);
+        revivedThisTurn = true;
         toast.success(`🔥 Phoenix Heart! Revived at ${reviveHp} HP`, { duration: 2200 });
         turnLogs.push({ kind: 'laststand', text: `Phoenix Heart blazed — revived at ${reviveHp} HP` });
       }
@@ -1499,18 +1548,9 @@ export default function RuneDelvePlayPage() {
       toast.success('🛡️ Brace! 2-turn shield', { duration: 1500 });
       turnLogs.push({ kind: 'shield', text: 'Brace — your guard surged at the brink', amount: 2 });
     }
-    // ── Mastery: Cleric T4 Resurgent Light — if any relic/aegis revive
-    // happened this turn, scorch up to 2 targetable enemies for 25 dmg each.
-    const revivedThisTurn = hpBefore > 0 && (afterEnemies as any).__resurgentChecked !== true && (
-      // hp went to 0 then was restored above (Aegis / Last Stand / Phoenix).
-      // Detect via "hp now positive AND we know a save may have fired".
-      // We approximate by checking hp > 0 alongside the lethal-incoming case.
-      (rawIncoming > 0 && hpBefore - rawIncoming <= 0 && afterEnemies.hp > 0) ||
-      aegisFiredRef.current && afterEnemies.hp === 1
-    );
+    // ── Mastery: Cleric T4 Resurgent Light — if an actual revive fired this
+    // turn (Aegis / Last Stand / Phoenix), scorch up to 2 targetable enemies.
     if (revivedThisTurn && reviveBurstActive(activeMasteries)) {
-      // Mark so a later pass doesn't double-trigger.
-      (afterEnemies as any).__resurgentChecked = true;
       const targets = afterEnemies.enemies.filter(e => e.hp > 0).slice(0, 2);
       if (targets.length > 0) {
         afterEnemies = {
@@ -1661,7 +1701,7 @@ export default function RuneDelvePlayPage() {
   const handleAbility = () => {
     const relics = activeRelicsSnapshot ?? activeRelics;
     // Visual ability FX (fires regardless of mana refund — cue is the cast).
-    if (combat.mana >= MAX_MANA) {
+    if (combat.mana >= abilityManaCost) {
       const firstAlive = combat.enemies.find(e => e.hp > 0);
       const target = firstAlive ? findEnemyRect(firstAlive.id) : undefined;
       fxQ.trigger({ kind: 'ability', cls: hero.class, target });
@@ -1672,7 +1712,7 @@ export default function RuneDelvePlayPage() {
     // mana after useAbility() consumes it so the cast still resolves normally.
     const isFreeCast = abilityFreeFirstUse(relics, abilityUsedCount);
     const manaBefore = combat.mana;
-    const { next, ok } = useAbility(combat, hero.class, bossRule, activeMasteries, level.level_number);
+    const { next, ok } = useAbility(combat, hero.class, bossRule, activeMasteries, level.level_number, abilityManaCost);
     if (!ok) {
       toast.info('Ability not ready — fill mana orbs first.');
       return;
@@ -1711,7 +1751,7 @@ export default function RuneDelvePlayPage() {
     // ── Mastery: Mage T5 Overflow — every 4th mana spent refunds 1.
     // Only counts mana that was actually paid (not free casts).
     if (!isFreeCast) {
-      const newSpent = totalManaSpent + MAX_MANA;
+      const newSpent = totalManaSpent + abilityManaCost;
       setTotalManaSpent(newSpent);
       if (shouldMasteryRefundMana(activeMasteries, newSpent) && finalNext.mana < MAX_MANA) {
         finalNext = { ...finalNext, mana: Math.min(MAX_MANA, finalNext.mana + 1) };
@@ -1827,6 +1867,10 @@ export default function RuneDelvePlayPage() {
     }
     const turnsUsed = level.turn_limit - final.turnsRemaining;
     const relicsForFinal = activeRelicsSnapshot ?? activeRelics;
+    // Optional Layered-Goal bonus (Band 4): met = extra score + shards. It is a
+    // pure reward now, never a clear requirement (see checkObjective).
+    const secondaryMetThisRun = !!(cleared && secondaryObjective
+      && secondaryMet(secondaryObjective, final, level.turn_limit));
     const rawBreakdown = calculateScore({
       totalDamage: final.totalDamage,
       enemiesDefeated: final.enemiesDefeated,
@@ -1835,9 +1879,7 @@ export default function RuneDelvePlayPage() {
       longestChain: final.longestChain,
       cleared,
       rogueBonus: final.rogueBonusTriggered && hero.class === 'rogue',
-      secondaryBonus: cleared && secondaryObjective
-        ? secondaryMet(secondaryObjective, final, level.turn_limit)
-        : false,
+      secondaryBonus: secondaryMetThisRun,
     });
     // Momentum: scale final score when longest chain >= 4.
     const momentumMult = momentumScoreBonusMult(relicsForFinal, final.longestChain);
@@ -1915,6 +1957,13 @@ export default function RuneDelvePlayPage() {
     }
     shardsAwarded += masteryBonusShards;
     shardsAwarded += treasureBonusShards;
+    // Layered-Goal bonus shards — meeting the optional secondary objective now
+    // pays out (it used to be a hidden clear requirement with no extra reward).
+    const secondaryBonusShards = secondaryMetThisRun ? 10 : 0;
+    shardsAwarded += secondaryBonusShards;
+    if (secondaryMetThisRun) {
+      pushLog({ kind: 'info', text: `🎯 Bonus objective met · +250 score · +${secondaryBonusShards} shards` });
+    }
     setEndState({ cleared, reason, score: breakdown.total, isNewBest, shards: shardsAwarded });
     rdSfx(cleared ? 'victory' : 'defeat');
     try {
@@ -1987,9 +2036,14 @@ export default function RuneDelvePlayPage() {
         } : prev);
         if (cleared) await advance.mutateAsync(level.level_number);
       }
-      // Hero progression — XP only on a SERVER-confirmed new best to keep
-      // grinding fair and prevent stale-cache double-counts.
-      if (serverWasNewBest) {
+      // Hero + class progression.
+      //   • Lifetime totals (runs, score) and the daily streak advance on
+      //     EVERY completed run — so `lifetime_runs` counts all runs (not just
+      //     new bests) and `lifetime_score` is a true running total instead of
+      //     re-adding the whole best each improved replay.
+      //   • XP / level / title / mastery only advance on a SERVER-confirmed new
+      //     best — keeps grinding fair and prevents stale-cache double-counts.
+      {
         const today = format(new Date(), 'yyyy-MM-dd');
         const yesterday = format(new Date(Date.now() - 86_400_000), 'yyyy-MM-dd');
         const continued = hero.last_run_date === yesterday;
@@ -2001,10 +2055,13 @@ export default function RuneDelvePlayPage() {
         const activeTrack = classTracks?.find(t => t.class === hero.class);
         const prevClassXp = activeTrack?.xp ?? hero.xp;
         const prevClassLevel = activeTrack?.level ?? hero.level;
-        const newClassXp = prevClassXp + xp;
+        // XP is earned only on a new best; otherwise progression holds steady
+        // while lifetime totals still accrue below.
+        const gainedXp = serverWasNewBest ? xp : 0;
+        const newClassXp = prevClassXp + gainedXp;
         const newClassLevel = levelFromXp(newClassXp).level;
         const equippedClassTitle = titleForLevel(newClassLevel, hero.class) ?? activeTrack?.cosmetic_title ?? null;
-        const titleUnlock = newTitleUnlocked(hero.class, prevClassLevel, newClassLevel);
+        const titleUnlock = serverWasNewBest ? newTitleUnlocked(hero.class, prevClassLevel, newClassLevel) : null;
 
         await updateClass.mutateAsync({
           cls: hero.class,
@@ -2041,7 +2098,7 @@ export default function RuneDelvePlayPage() {
           });
         }
         // ── Class Mastery: celebratory toast when a new tier just unlocked.
-        const newMastery = masteryUnlockedAt(hero.class, prevClassLevel, newClassLevel);
+        const newMastery = serverWasNewBest ? masteryUnlockedAt(hero.class, prevClassLevel, newClassLevel) : null;
         if (newMastery) {
           toast.success(`🌟 Mastery Unlocked — ${newMastery.name}`, {
             description: `${newMastery.summary} · Tier ${newMastery.tier} · ${hero.class} Lv ${newMastery.unlockLevel}`,
@@ -2104,7 +2161,9 @@ export default function RuneDelvePlayPage() {
         const bossKills = Array.from(defeatedArchetypesRef.current.entries())
           .filter(([id]) => rosterById(id)?.role === 'controller')
           .reduce((sum, [, n]) => sum + n, 0);
-        const longestChain = chainsThisFight; // proxy
+        // Use the ACTUAL longest chain length this run (final.longestChain),
+        // not the count of chains made — the quest tracks max chain LENGTH.
+        const longestChain = final.longestChain;
         const heroClass = hero?.class;
         type QEvent = Parameters<typeof reportQuestProgress>[0];
         const events: QEvent[] = [
@@ -2116,7 +2175,9 @@ export default function RuneDelvePlayPage() {
           events.push({ type: 'levels_cleared', amount: 1, heroClass });
           events.push({ type: 'class_run_complete', amount: 1, heroClass });
           events.push({ type: 'high_level_clears', amount: 1, heroClass, meta: { levelNumber: level.level_number } });
-          if (final.hp >= final.maxHp) {
+          // Genuinely damage-free run — the hero never lost HP at any point
+          // (not merely healed back to full by the end).
+          if (!tookDamageRef.current) {
             events.push({ type: 'no_damage_clear', amount: 1, heroClass });
           }
         }
@@ -2261,7 +2322,7 @@ export default function RuneDelvePlayPage() {
         </div>
       )}
       <EnemyDisplay enemies={combat.enemies} flashId={flashId} />
-      <HeroStatusBar state={combat} cls={hero.class} onAbility={handleAbility} />
+      <HeroStatusBar state={combat} cls={hero.class} onAbility={handleAbility} manaCost={abilityManaCost} />
 
       <RuneBoard
         grid={grid}
@@ -2459,8 +2520,10 @@ export default function RuneDelvePlayPage() {
   );
 }
 
-// Objective-aware end check. Layered goals (Band 4) require BOTH primary and
-// secondary to be satisfied for a clear; primary failure is still a fail.
+// Objective-aware end check. Layered goals (Band 4) are a TRUE OPTIONAL BONUS:
+// satisfying the PRIMARY objective clears the level, and the secondary just pays
+// out extra score + shards at finalize (see `secondaryMet` in the reward path).
+// It is intentionally NOT a hidden fail condition — the HUD labels it "Bonus".
 function checkObjective(
   state: CombatState,
   maxTurns: number,
@@ -2468,10 +2531,11 @@ function checkObjective(
   target: number,
   secondary: SecondaryObjective | null,
 ) {
-  const wrap = (r: { over: boolean; cleared: boolean }) => {
-    if (!r.over || !r.cleared || !secondary) return r;
-    return { over: true, cleared: secondaryMet(secondary, state, maxTurns) };
-  };
+  // Identity wrap — the secondary no longer gates the clear. Kept as a seam so
+  // the branch structure below stays readable; `secondary`/`maxTurns` are still
+  // in the signature because callers pass them and finalize reads the bonus.
+  const wrap = (r: { over: boolean; cleared: boolean }) => r;
+  void secondary; void maxTurns;
   const base = isRunOver(state);
   if (type === 'survive') {
     // Defeat is defeat (HP gone). Surviving the full turn budget = clear.

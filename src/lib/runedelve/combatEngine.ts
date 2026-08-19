@@ -326,9 +326,12 @@ export function useAbility(
   bossRule: BossRuleId | null = null,
   activeMasteries: MasteryId[] = [],
   level = 1,
+  manaCost: number = MAX_MANA,
 ): { next: CombatState; ok: boolean } {
-  if (state.mana < MAX_MANA) return { next: state, ok: false };
-  const next: CombatState = { ...state, mana: 0, abilityUsed: true, enemies: state.enemies.map(e => ({ ...e })) };
+  const cost = Math.max(1, Math.min(MAX_MANA, manaCost));
+  if (state.mana < cost) return { next: state, ok: false };
+  // Spend exactly `cost` orbs (Mage T4 Deep Reserve casts at 2 instead of 3).
+  const next: CombatState = { ...state, mana: state.mana - cost, abilityUsed: true, enemies: state.enemies.map(e => ({ ...e })) };
   const targetable = filterTargetable(bossRule, next.enemies);
   const targetableIds = new Set(targetable.map(e => e.id));
   // Mirror the chain-damage depth scalar so abilities scale with the campaign.
@@ -390,6 +393,19 @@ export function useAbility(
     const heal = Math.min(sanctHeal, next.maxHp - next.hp);
     next.hp += heal;
     next.shieldTurns = Math.max(next.shieldTurns, 2);
+    // Rebalance v6 — Sanctuary now also smites: a modest holy AoE so the Cleric
+    // isn't the only class whose ability deals zero damage (that gap left it
+    // unable to burst high-HP boss walls and locked out of the deep campaign).
+    // Depth-scaled like every other ability so it keeps pace with the curve.
+    const smite = Math.round(22 * depthMul);
+    for (const e of next.enemies) {
+      if (e.hp > 0 && targetableIds.has(e.id)) {
+        const applied = Math.min(applyArmorToDamage(e, smite), e.hp);
+        e.hp -= applied;
+        next.totalDamage += applied;
+        if (e.hp <= 0) next.enemiesDefeated += 1;
+      }
+    }
   }
   // Phase Lock — abilities can damage the boss too, so credit threshold ticks.
   next.enemies = applyPhaseLockOnDamage(bossRule, next.enemies);

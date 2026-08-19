@@ -2,7 +2,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { generateLevel, chapterFor, type LevelDefinition } from '@/lib/runedelve/levelGenerator';
-import { bossKindForLevel } from '@/lib/runedelve/bossRules';
 
 /**
  * Self-heal legacy `rune_delve_levels` rows that were persisted before the
@@ -13,36 +12,28 @@ import { bossKindForLevel } from '@/lib/runedelve/bossRules';
  * history); only what the play page reads gets the new fields.
  */
 function hydrateLegacy(row: RuneDelveLevel): RuneDelveLevel {
-  const expectedKind = bossKindForLevel(row.level_number);
-  const storedKind = (row.modifiers as any)?.boss_kind ?? null;
-  const storedWaves = (row.modifiers as any)?.waves;
-  const storedMods = (row.modifiers ?? {}) as Record<string, unknown>;
-  const enemyArr = Array.isArray(row.enemy_config) ? row.enemy_config : [];
-  const needsEnemyConfig = enemyArr.length === 0;
-  const needsModifiers = Object.keys(storedMods).length === 0;
-  const needsBossUpgrade = expectedKind && !storedKind;
-  const needsWaves = !storedWaves;
-  // For ANY boss level, also overlay turn_limit so balance tuning to the
-  // turnLimitFor() formula auto-applies to legacy DB rows persisted with the
-  // pre-rebalance numbers (e.g., L25 was seeded with turn_limit=11 before the
-  // mid-boss +4 bump landed). Generator is deterministic per level number, so
-  // overlaying is safe.
-  const turnLimitDrift = expectedKind != null && row.turn_limit !== undefined;
-  if (!needsBossUpgrade && !needsWaves && !needsEnemyConfig && !needsModifiers && !turnLimitDrift) return row;
+  // The generator is the deterministic source of truth per level number, so we
+  // always overlay the balance-relevant fields (enemy_config, turn_limit,
+  // generator modifiers) in-memory on read. This lets balance patches — HP
+  // caps, boss-slot caps, turn budgets, the Rebalance v6 curve — reach ALL
+  // already-seeded rows (not just boss levels) WITHOUT a DB migration. The
+  // stored row is never mutated, so run FK history is preserved; only what the
+  // play page reads gets refreshed. Objective + generation_seed + status stay
+  // as the row persisted them, and any custom mechanics/secondary an admin
+  // stored are still honored on top of the generator's deterministic output.
   const def = generateLevel(row.level_number);
+  const storedMods = (row.modifiers ?? {}) as Record<string, unknown>;
+  const hasStoredMods = Object.keys(storedMods).length > 0;
   return {
     ...row,
-    // Treat empty enemy_config as "missing" — overlay generator output regardless of boss status.
-    enemy_config: (needsBossUpgrade || needsEnemyConfig) ? def.enemy_config : row.enemy_config,
-    // For boss levels, always trust the generator's turn_limit so balance
-    // patches don't require a DB migration to take effect.
-    turn_limit: expectedKind != null ? def.turn_limit : row.turn_limit,
+    enemy_config: def.enemy_config,
+    turn_limit: def.turn_limit,
     modifiers: {
-      ...storedMods,
+      ...(hasStoredMods ? storedMods : {}),
       ...def.modifiers,
-      // Preserve any custom mechanic/secondary the row already had — the
-      // generator's deterministic output is identical for the same level
-      // number anyway, so this is mostly a safety belt.
+      // Preserve any custom mechanic list the row already carried; the
+      // generator's deterministic output matches for the same level number,
+      // so this is mainly a safety belt for hand-edited rows.
       mechanics: (storedMods as any)?.mechanics ?? def.modifiers.mechanics,
     },
   };

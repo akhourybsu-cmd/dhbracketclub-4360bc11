@@ -58,7 +58,7 @@ export const MASTERY_TIERS: Record<HeroClass, MasteryTier[]> = {
     { id: 'mage_t1_starting_mana',  tier: 1, unlockLevel: 5,  name: 'Spark of Insight', summary: 'Start every run with 1 mana already charged.' },
     { id: 'mage_t2_blue_heal',      tier: 2, unlockLevel: 15, name: 'Arcane Wellspring', summary: 'Blue chains heal +2 HP each.' },
     { id: 'mage_t3_arc_chain',      tier: 3, unlockLevel: 30, name: 'Arc Cascade', summary: 'Arc Burst chains to a 2nd target at 30% damage.' },
-    { id: 'mage_t4_mana_cap',       tier: 4, unlockLevel: 50, name: 'Deep Reserve', summary: 'Mana cap raised to 5 (was 4).' },
+    { id: 'mage_t4_mana_cap',       tier: 4, unlockLevel: 50, name: 'Deep Reserve', summary: 'Your ability costs 2 mana instead of 3.' },
     { id: 'mage_t5_overflow',       tier: 5, unlockLevel: 75, name: 'Overflow', summary: 'Every 4th mana spent refunds 1.' },
   ],
   rogue: [

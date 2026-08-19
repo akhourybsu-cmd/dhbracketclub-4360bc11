@@ -46,7 +46,7 @@ export const RELIC_CATALOG: RelicDef[] = [
   { id: 'last_stand',       name: 'Last Stand',        category: 'survival',  tier: 2, cost: 380, icon: '💔', description: 'Once per run, survive lethal damage at 1 HP.' },
   { id: 'cleansing_touch',  name: 'Cleansing Touch',   category: 'board',     tier: 2, cost: 320, icon: '✨', description: 'First corrupted source cleared each run is free (no HP cost).' },
   { id: 'momentum',         name: 'Momentum',          category: 'tempo',     tier: 2, cost: 280, icon: '⚡', description: "Rogue's chain bonus threshold becomes 4+ (was 5+). Other classes: chains of 4+ score +10%." },
-  { id: 'foresight',        name: 'Foresight',         category: 'objective', tier: 2, cost: 350, icon: '👁️', description: 'Telegraphed enemy intents reveal 1 turn earlier.' },
+  { id: 'foresight',        name: 'Foresight',         category: 'objective', tier: 2, cost: 350, icon: '👁️', description: 'Telegraphed heavy strikes take 1 extra turn to charge.' },
   { id: 'bulwark',          name: 'Bulwark',           category: 'survival',  tier: 2, cost: 320, icon: '🪨', description: 'Gold chains grant +1 shield turn.' },
   { id: 'spiked_aegis',     name: 'Spiked Aegis',      category: 'survival',  tier: 2, cost: 340, icon: '🌵', description: 'Shield reflects more damage back at attackers (+10% / +20% / +35%).' },
   // NEW T2
@@ -150,7 +150,7 @@ export const RANK_EFFECTS: Record<string, RankTable> = {
   cleansing_touch:   [1,    1,    2,    2,    3   ], // free clears
   quickstep:         [1,    2,    2,    3,    3   ], // length bonus on first chain
   momentum:          [1.10, 1.13, 1.16, 1.20, 1.25],
-  foresight:         [1,    1,    2,    2,    3   ], // turns of early reveal
+  foresight:         [1,    1,    2,    2,    3   ], // extra turns to charge heavy strikes
   shrine_ward:       [0.90, 0.88, 0.86, 0.84, 0.82], // damage multiplier (lower = better)
   wanderers_compass: [1.15, 1.18, 1.21, 1.24, 1.27],
   cracked_crown:     [0.85, 0.83, 0.81, 0.79, 0.77], // boss soften (lower = better)
@@ -264,7 +264,7 @@ export function describeRelicAtRank(relic: RelicDef, rank: number): string {
     case 'quickstep':
       return `First chain each run counts as +${Math.round(v)} length.`;
     case 'foresight':
-      return `Telegraphed enemy intents reveal ${turnsLabel(Math.round(v))} earlier.`;
+      return `Telegraphed heavy strikes take ${turnsLabel(Math.round(v))} longer to charge.`;
     case 'shrine_ward':
       return `Boss & elite damage to you reduced ${pctReduction(v)}% on turn 1.`;
     case 'wanderers_compass':

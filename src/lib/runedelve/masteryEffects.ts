@@ -13,9 +13,14 @@ export function getMasteryStartingMana(active: MasteryId[]): number {
   return active.includes('mage_t1_starting_mana') ? 1 : 0;
 }
 
-/** Max mana cap (Mage T4 raises 4 → 5). */
-export function getMasteryManaCap(active: MasteryId[], baseCap: number): number {
-  return active.includes('mage_t4_mana_cap') ? Math.max(baseCap, 5) : baseCap;
+/**
+ * Mana cost to fire the class ability (Mage T4 "Deep Reserve" drops it 3 → 2).
+ * Previously this tier tried to raise a mana CAP that the engine hard-locks at
+ * MAX_MANA = 3, so it was a complete no-op. Repurposed to a genuine efficiency
+ * payoff: the Mage casts at 2 orbs instead of 3.
+ */
+export function getMasteryAbilityManaCost(active: MasteryId[], baseCost: number): number {
+  return active.includes('mage_t4_mana_cap') ? Math.max(1, baseCost - 1) : baseCost;
 }
 
 /** Per-chapter HP bonus (Warrior T2). Caller multiplies by chapter index. */

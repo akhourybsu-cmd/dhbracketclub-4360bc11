@@ -111,21 +111,30 @@ function turnLimitFor(level: number): number {
   // deep-band budget left non-Mage classes mathematically locked out of the
   // kill window even with perfect play. The new baseline gives every class
   // room for one mistake-recovery cycle without trivialising the early game.
+  // Rebalance v6 — the deep bands (51+) ran on a 13-turn base, but by then a
+  // regular level fields 3 enemies at the ~140-HP cap PLUS damage-reducing /
+  // HP-adding abilities (shield_self, heal_ally, summon_minion). That left many
+  // ordinary deep levels tighter than the boss levels that got turn bumps
+  // (simulator: 0-3% worst-class). Lift the deep base to 15 so single-target
+  // classes have a real kill window against ability-laden waves.
   const base = (() => {
     if (level <= 15) return 14;
     if (level <= 25) return 14;
     if (level <= 50) return 14;
-    if (level <= 100) return 13;
-    return 13;
+    if (level <= 100) return 15;
+    return 15;
   })();
   const kind = bossKindForLevel(level);
-  if (kind === 'mini')    return base + 2;
-  if (kind === 'mid')     return base + 4;
-  if (kind === 'chapter') return base + 5;
   // Levels with reinforcement waves (deep band, every 20) need extra turns
   // to handle the extra HP pool — without this they're mathematically unwinnable.
   // Inline check (mirrors hasSecondWave) to avoid TDZ on the function.
   const hasWave = level === 50 || level === 100 || level === 150 || (level >= 60 && level % 20 === 0 && level > 24);
+  // Rebalance v6 — mini-boss levels that ALSO spawn a wave (L60, L120, …) used
+  // to fall into the `mini` early-return and never pick up the wave bonus, so a
+  // full extra wave landed on a +2 budget. Grant BOTH bumps.
+  if (kind === 'mini')    return base + 3 + (hasWave ? 3 : 0);
+  if (kind === 'mid')     return base + 4;
+  if (kind === 'chapter') return base + 5;
   if (hasWave) return base + 3;
   return base;
 }
@@ -152,11 +161,40 @@ const EARLY_HP_CAP = 110;
 // HP budget in the L26-50 brick-wall band.
 const MID_HP_CAP = 130;
 // Late-band cap (L51-100) — same idea but loosened so chapter-2 still bites.
-const LATE_HP_CAP = 150;
+// Rebalance v6: trimmed 150→138 so a triple-mook deep wave stays inside the
+// non-Mage DPS budget (three 150s + a boss overshot every survivable window).
+const LATE_HP_CAP = 138;
 // Deep-band cap (L101-150) — Rebalance v5: prior uncapped scaling pushed
 // triple-Stone-Golem rolls past 220 HP each, gating the deep band even for
-// Mage. Cap keeps boss/elite slots untouched while taming mook variance.
-const DEEP_HP_CAP = 170;
+// Mage. Tames mook variance. (Boss + elite slots now get their OWN caps below,
+// applied after their multipliers — see bossHpCap / eliteHpCap.)
+const DEEP_HP_CAP = 148;
+
+// Elite-slot HP cap — Rebalance v6. `defeat_elite` levels promote one mook with
+// ×1.6 HP, which was ALSO exempt from the band cap (an L150 Elite Wraith Lord
+// hit 498 HP). Cap it near the mini-boss ceiling so elite levels stay beatable.
+function eliteHpCap(level: number): number {
+  const band = level <= 25 ? 0 : level <= 50 ? 1 : level <= 100 ? 2 : 3;
+  return [150, 210, 250, 290][band];
+}
+
+// Boss-slot HP cap — Rebalance v6. The promoted final slot was exempt from
+// every mook cap AND took the full depth `hpMul` (up to 2.15× at L120)
+// multiplied by the boss stat boost (mini 1.6× / chapter 1.95×). That stack
+// produced 450–826 HP single enemies on ordinary mini-boss filler levels,
+// putting L60/70/120 at a measured 0% clear rate for EVERY class except Mage.
+// This ceiling (applied AFTER the boost) keeps bosses chunky and threatening
+// while staying inside the sustained DPS budget of a good non-Mage run.
+// Scales by band and boss tier; validated against the headless simulator.
+function bossHpCap(level: number, kind: BossKind): number {
+  const band = level <= 25 ? 0 : level <= 50 ? 1 : level <= 100 ? 2 : 3;
+  // Mini-bosses are single beefy targets on every-10th filler levels.
+  const miniCeil = [160, 200, 224, 250][band];
+  // Mid / chapter flagships carry a boss rule + (chapter) a wave, so they get
+  // a higher ceiling but still a hard cap.
+  const flagCeil = [200, 260, 300, 350][band];
+  return kind === 'mini' ? miniCeil : flagCeil;
+}
 
 // (HP/damage scaling lives below — single RosterEntry-based implementation.)
 
@@ -255,11 +293,16 @@ function buildEnemy(
   if (isElite) {
     hp = Math.round(hp * 1.6);
     damage = Math.round(damage * 1.2);
+    // Rebalance v6 — cap the elite slot (was uncapped; L150 elites hit ~498 HP).
+    hp = Math.min(hp, eliteHpCap(level));
   }
   if (isFinalBossSlot) {
     const boost = bossStatBoost(bossKind);
     hp = Math.round(hp * boost.hpMul);
     damage = Math.round(damage * boost.dmgMul);
+    // Rebalance v6 — cap the promoted slot so depth-scaling × boss-boost can't
+    // exceed a beatable ceiling. Without this, deep boss levels were 0% clears.
+    hp = Math.min(hp, bossHpCap(level, bossKind));
   }
   const namePrefix = isFinalBossSlot ? bossNamePrefix(bossKind) : isElite ? 'Elite ' : '';
   return {
@@ -346,7 +389,10 @@ export function generateLevel(level: number): LevelDefinition {
       // Mid/regular multi-wave levels: 1-2 reinforcements, never with a 2nd
       // ability-bearing enemy if wave 1 already had one.
       const wave1HasAbility = enemies.some(e => !!e.ability);
-      const reinforceCount = bossKind === 'mid' ? 1 : (rng() < 0.5 ? 1 : 2);
+      // Rebalance v6 — mid AND mini bosses already carry a heavy final slot in
+      // wave 1, so their reinforcement wave is a single mook. Only plain
+      // deep-band wave levels roll the 1-2 spread.
+      const reinforceCount = (bossKind === 'mid' || bossKind === 'mini') ? 1 : (rng() < 0.5 ? 1 : 2);
       for (let i = 0; i < reinforceCount; i++) {
         let t = pickTemplate(level, rng);
         if (wave1HasAbility && t.ability) {

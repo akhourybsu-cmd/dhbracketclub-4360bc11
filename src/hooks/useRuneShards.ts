@@ -43,25 +43,11 @@ export function useEarnShards() {
     mutationFn: async (amount: number): Promise<RuneWallet> => {
       if (!user) throw new Error('Not authenticated');
       if (amount <= 0) throw new Error('Amount must be positive');
-      // Read-modify-write — RLS already scopes to this user.
-      const { data: current } = await supabase
-        .from('rune_delve_wallet')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
-      const start: RuneWallet = current ?? { user_id: user.id, shards: 0, lifetime_shards_earned: 0, slots_unlocked: 2 };
-      const { data, error } = await supabase
-        .from('rune_delve_wallet')
-        .upsert({
-          user_id: user.id,
-          shards: start.shards + amount,
-          lifetime_shards_earned: start.lifetime_shards_earned + amount,
-          slots_unlocked: start.slots_unlocked,
-        }, { onConflict: 'user_id' })
-        .select()
-        .single();
+      // Atomic server-side add (relative arithmetic) — no read-modify-write race.
+      const { data, error } = await (supabase as any).rpc('rune_delve_earn_shards', { p_amount: amount });
       if (error) throw error;
-      return data as RuneWallet;
+      // Postgres functions returning a composite come back as the row object.
+      return (Array.isArray(data) ? data[0] : data) as RuneWallet;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['rune-delve-wallet', user?.id] });
@@ -75,20 +61,18 @@ export function useSpendShards() {
   return useMutation({
     mutationFn: async (amount: number): Promise<RuneWallet> => {
       if (!user) throw new Error('Not authenticated');
-      const { data: current } = await supabase
-        .from('rune_delve_wallet')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
-      if (!current || current.shards < amount) throw new Error('Not enough Rune Shards');
-      const { data, error } = await supabase
-        .from('rune_delve_wallet')
-        .update({ shards: current.shards - amount })
-        .eq('user_id', user.id)
-        .select()
-        .single();
-      if (error) throw error;
-      return data as RuneWallet;
+      if (amount <= 0) throw new Error('Amount must be positive');
+      // Atomic server-side deduct with an overdraw guard — the WHERE clause runs
+      // under the row lock, so two concurrent spends can never both succeed.
+      const { data, error } = await (supabase as any).rpc('rune_delve_spend_shards', { p_amount: amount });
+      if (error) {
+        // Normalize the DB guard message to the player-facing copy callers expect.
+        if (String(error.message ?? '').includes('insufficient_shards')) {
+          throw new Error('Not enough Rune Shards');
+        }
+        throw error;
+      }
+      return (Array.isArray(data) ? data[0] : data) as RuneWallet;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['rune-delve-wallet', user?.id] });

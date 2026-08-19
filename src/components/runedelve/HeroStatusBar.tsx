@@ -8,11 +8,14 @@ interface Props {
   state: CombatState;
   cls: HeroClass;
   onAbility: () => void;
+  /** Mana orbs required to cast (Mage T4 Deep Reserve lowers this to 2). */
+  manaCost?: number;
 }
 
-export function HeroStatusBar({ state, cls, onAbility }: Props) {
+export function HeroStatusBar({ state, cls, onAbility, manaCost = MAX_MANA }: Props) {
   const def = getClass(cls);
-  const ready = state.mana >= MAX_MANA;
+  const cost = Math.max(1, Math.min(MAX_MANA, manaCost));
+  const ready = state.mana >= cost;
   const hpPct = Math.round((state.hp / state.maxHp) * 100);
   return (
     // V2 — fantasy panel wrapper: gilded-stone treatment matches the
