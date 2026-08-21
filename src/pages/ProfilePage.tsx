@@ -27,14 +27,12 @@ import LinkedAccounts from '@/components/profile/LinkedAccounts';
 export default function ProfilePage() {
   const { theme, setTheme } = useTheme();
   const { user, signOut } = useAuth();
-  const { club, isClubAdmin, isPlatformOwner } = useClub();
+  const { club, isClubAdmin, isPlatformOwner, isAppAdmin } = useClub();
   const [displayName, setDisplayName] = useState('');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
-  const [clubPwd, setClubPwd] = useState<string | null>(null);
-  const [showClubPwd, setShowClubPwd] = useState(false);
   const { play, soundEnabled, toggleSound } = useSoundEffect();
   const { isSupported: pushSupported, isSubscribed: pushSubscribed, loading: pushLoading, subscribe: pushSubscribe, unsubscribe: pushUnsubscribe } = usePushNotifications();
   const [stats, setStats] = useState({ polls: 0, rankings: 0, events: 0, messages: 0, drafts: 0, draftPoints: 0, draftWins: 0 });
@@ -266,28 +264,18 @@ export default function ProfilePage() {
               </Link>
             )}
           </div>
-          {isPlatformOwner && (
+          {(isPlatformOwner || isAppAdmin) && (
             <Link to="/admin/clubs" className="mt-3 flex items-center gap-2 text-[11px] font-semibold text-primary/85 hover:text-primary">
-              <ShieldCheck className="w-3.5 h-3.5" /> Platform Owner — Review club requests
+              <ShieldCheck className="w-3.5 h-3.5" /> Review membership requests
             </Link>
           )}
-
-          {/* Club password (visible to admins always; to members only if admin enabled it) */}
-          <ClubPasswordRow
-            clubId={club.id}
-            isAdmin={isClubAdmin}
-            visible={showClubPwd}
-            setVisible={setShowClubPwd}
-            value={clubPwd}
-            setValue={setClubPwd}
-          />
         </div>
       ) : (
         <div className="glass-card p-5 mb-4">
           <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-3">Your Club</h3>
-          <p className="text-[12px] text-muted-foreground mb-3">You're not in a club yet.</p>
+          <p className="text-[12px] text-muted-foreground mb-3">You don't have access yet.</p>
           <Link to="/club/request">
-            <Button size="sm" className="w-full h-10 font-bold rounded-xl btn-press text-[12px]">Request a club</Button>
+            <Button size="sm" className="w-full h-10 font-bold rounded-xl btn-press text-[12px]">Request access</Button>
           </Link>
         </div>
       )}
@@ -517,64 +505,3 @@ export default function ProfilePage() {
   );
 }
 
-function ClubPasswordRow({
-  clubId, isAdmin, visible, setVisible, value, setValue,
-}: {
-  clubId: string;
-  isAdmin: boolean;
-  visible: boolean;
-  setVisible: (v: boolean) => void;
-  value: string | null;
-  setValue: (v: string | null) => void;
-}) {
-  useEffect(() => {
-    let cancelled = false;
-    (supabase as any).rpc('get_club_password', { _club_id: clubId }).then(({ data }: any) => {
-      if (!cancelled) setValue((data as string | null) ?? null);
-    });
-    return () => { cancelled = true; };
-  }, [clubId, setValue]);
-
-  if (value === null) {
-    // Either not set yet, or hidden by admin and viewer is a member
-    if (!isAdmin) return null;
-    return (
-      <div className="mt-3 pt-3 border-t border-border/30">
-        <Link to="/club/settings" className="flex items-center gap-2 text-[11px] font-semibold" style={{ color: 'hsl(var(--gold))' }}>
-          <KeyRound className="w-3.5 h-3.5" /> Set your club password
-        </Link>
-      </div>
-    );
-  }
-
-  const copy = () => {
-    navigator.clipboard.writeText(value);
-    toast.success('Password copied');
-  };
-
-  return (
-    <div className="mt-3 pt-3 border-t border-border/30">
-      <div className="flex items-center justify-between mb-2">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 flex items-center gap-1.5">
-          <KeyRound className="w-3 h-3" /> Club Password
-        </p>
-        <button
-          type="button"
-          onClick={() => setVisible(!visible)}
-          className="text-[11px] text-muted-foreground hover:text-foreground flex items-center gap-1 btn-press"
-        >
-          {visible ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-          {visible ? 'Hide' : 'Show'}
-        </button>
-      </div>
-      <div className="flex items-center gap-2 bg-muted/20 rounded-lg px-3 py-2">
-        <code className="flex-1 font-mono text-sm font-semibold tracking-wide truncate">
-          {visible ? value : '•'.repeat(Math.min(value.length, 12))}
-        </code>
-        <button onClick={copy} className="p-1 rounded-md hover:bg-muted/40 btn-press" aria-label="Copy">
-          <Copy className="w-3.5 h-3.5 text-muted-foreground" />
-        </button>
-      </div>
-    </div>
-  );
-}

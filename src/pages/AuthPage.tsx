@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,13 +7,13 @@ import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { motion, AnimatePresence } from 'framer-motion';
-import { KeyRound, Sparkles, LogIn, Mail } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Mail } from 'lucide-react';
 import dhMonogram from '@/assets/dh-monogram.png';
 import { getAndClearIntendedDestination } from '@/lib/share';
 import { lovable } from '@/integrations/lovable';
 
-type Mode = 'signin' | 'join' | 'request';
+type Mode = 'signin' | 'signup';
 
 export default function AuthPage() {
   const { user } = useAuth();
@@ -22,7 +22,6 @@ export default function AuthPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
-  const [clubPassword, setClubPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
   if (user) {
@@ -43,49 +42,10 @@ export default function AuthPage() {
         return;
       }
 
-      if (mode === 'join') {
-        if (!clubPassword.trim()) {
-          toast.error('Club password required');
-          setLoading(false);
-          return;
-        }
-        const { data: signUpData, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: { display_name: displayName || email.split('@')[0] },
-            emailRedirectTo: window.location.origin,
-          },
-        });
-        if (error) throw error;
-
-        // Only enroll when signup returned a real session. The club password is
-        // never persisted to storage — if email confirmation is required, the
-        // user re-enters it on the onboarding screen after signing in.
-        if (signUpData.session) {
-          const { error: joinErr } = await supabase.rpc('join_club_with_password', {
-            _password: clubPassword.trim(),
-          });
-          setClubPassword('');
-          if (joinErr) {
-            toast.error(joinErr.message || 'Could not join that club. Check the password with your admin.');
-          } else {
-            toast.success("You're in!");
-            navigate('/dashboard');
-          }
-          return;
-        }
-
-        setClubPassword('');
-        toast.success('Account created. Verify your email, sign in, then enter your club password to finish joining.');
-        return;
-      }
-
-
-      // mode === 'request' — pure sign-up. The unified onboarding shell at
-      // /club/request collects the club name + reason after sign-in, so there
-      // are no duplicate fields and no sessionStorage stash to keep in sync.
-      const { error } = await supabase.auth.signUp({
+      // mode === 'signup' — create the account only. New members don't pick a
+      // club: there is exactly one, and access is granted by admin approval.
+      // After signup the app funnels them to /club/request to ask for access.
+      const { data: signUpData, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -94,7 +54,13 @@ export default function AuthPage() {
         },
       });
       if (error) throw error;
-      toast.success("Account created! Check your email to verify, then we'll set up your club.");
+
+      if (signUpData.session) {
+        navigate('/club/request', { replace: true });
+      } else {
+        toast.success('Account created! Verify your email, then sign in to request access.');
+        setMode('signin');
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
@@ -129,89 +95,27 @@ export default function AuthPage() {
             style={{ filter: 'drop-shadow(0 0 16px hsl(var(--primary) / 0.2))' }}
           />
           <p className="text-xs text-muted-foreground font-semibold">
-            {mode === 'signin' && 'Welcome back'}
-            {mode === 'join' && 'Join an existing club'}
-            {mode === 'request' && 'Start your own club'}
+            {mode === 'signin' ? 'Welcome back' : 'Create your account'}
           </p>
         </div>
 
-        {/* Mode selector */}
-        <div className="grid grid-cols-3 gap-1.5 mb-4 p-1 rounded-xl bg-muted/30 border border-border/30">
-          {([
-            { key: 'signin' as Mode, icon: LogIn, label: 'Sign In' },
-            { key: 'join' as Mode, icon: KeyRound, label: 'Join Club' },
-            { key: 'request' as Mode, icon: Sparkles, label: 'Request' },
-          ]).map(({ key, icon: Icon, label }) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setMode(key)}
-              className="relative flex flex-col items-center gap-1 py-2 rounded-lg btn-press transition-colors"
-              style={{
-                background: mode === key ? 'hsl(var(--primary) / 0.14)' : 'transparent',
-                color: mode === key ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
-              }}
-            >
-              <Icon className="w-3.5 h-3.5" />
-              <span className="text-[10px] font-bold uppercase tracking-wider">{label}</span>
-            </button>
-          ))}
-        </div>
-
         <form onSubmit={handleSubmit} className="glass-card p-6 space-y-4">
-          <AnimatePresence mode="wait" initial={false}>
-            {mode === 'join' && (
-              <motion.div
-                key="join-fields"
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.18 }}
-                className="space-y-4 overflow-hidden"
-              >
-                <div>
-                  <label className="form-label">Club Password</label>
-                  <Input
-                    required
-                    value={clubPassword}
-                    onChange={(e) => setClubPassword(e.target.value)}
-                    placeholder="The password your club admin gave you"
-                    className="form-input"
-                    autoComplete="off"
-                  />
-                  <p className="text-[11px] text-muted-foreground/80 mt-1.5 px-0.5">
-                    Ask your club admin for the club password.
-                  </p>
-                </div>
-              </motion.div>
-            )}
-
-            {mode === 'request' && (
-              <motion.div
-                key="request-fields"
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.18 }}
-                className="overflow-hidden"
-              >
-                <p className="text-[11px] text-muted-foreground/80 px-0.5 leading-relaxed">
-                  Create your account first — once you sign in, you'll name your club and submit your request in one quick step. Alex reviews each one manually.
-                </p>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {mode !== 'signin' && (
-            <div>
-              <label className="form-label">Display Name</label>
-              <Input
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="Your name"
-                className="form-input"
-              />
-            </div>
+          {mode === 'signup' && (
+            <>
+              <div>
+                <label className="form-label">Display Name</label>
+                <Input
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  placeholder="Your name"
+                  className="form-input"
+                />
+              </div>
+              <p className="text-[11px] text-muted-foreground/80 px-0.5 leading-relaxed">
+                Create your account, then request access. An admin approves each new
+                member before they can enter.
+              </p>
+            </>
           )}
 
           <div>
@@ -242,13 +146,7 @@ export default function AuthPage() {
           </div>
 
           <Button type="submit" className="w-full h-11 font-bold rounded-xl btn-press" disabled={loading}>
-            {loading
-              ? 'Loading…'
-              : mode === 'signin'
-                ? 'Sign In'
-                : mode === 'join'
-                  ? 'Join Club'
-                  : 'Submit Request'}
+            {loading ? 'Loading…' : mode === 'signin' ? 'Sign In' : 'Create Account'}
           </Button>
         </form>
 
@@ -370,12 +268,8 @@ export default function AuthPage() {
           {mode === 'signin' ? (
             <>
               New here?{' '}
-              <button onClick={() => setMode('join')} className="text-primary hover:underline font-bold">
-                Use a club password
-              </button>{' '}
-              or{' '}
-              <button onClick={() => setMode('request')} className="text-primary hover:underline font-bold">
-                start a club
+              <button onClick={() => setMode('signup')} className="text-primary hover:underline font-bold">
+                Create an account
               </button>
               .
             </>

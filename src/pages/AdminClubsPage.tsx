@@ -6,145 +6,70 @@ import { useClub } from '@/contexts/ClubContext';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Shield, Check, X, Building2, ArrowLeft, Users, Copy, MessageCircle } from 'lucide-react';
+import { Shield, Check, X, ArrowLeft, MessageCircle, UserPlus } from 'lucide-react';
 
 type Request = {
   id: string;
   requested_by: string;
   proposed_name: string;
   reason: string | null;
+  user_note?: string | null;
   status: string;
   created_at: string;
   profile?: { display_name: string };
 };
 
-type ClubRow = {
-  id: string;
-  name: string;
-  slug: string;
-  accent_color: string;
-  status: string;
-  member_count?: number;
-};
-
-function slugify(s: string) {
-  return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '').slice(0, 48) || `club-${Date.now()}`;
-}
-
-function genCode(name: string) {
-  const base = name.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6) || 'CLUB';
-  const suffix = Math.random().toString(36).substring(2, 6).toUpperCase();
-  return `${base}-${suffix}`;
-}
-
+/**
+ * Membership approval queue for the single club. Prospective members sign up
+ * and request access (request_club_access); an admin approves them here, which
+ * adds them to the club via the approve_join_request RPC. There is no club
+ * creation or multi-club management anymore.
+ */
 export default function AdminClubsPage() {
-  const { isPlatformOwner, loading: clubLoading } = useClub();
+  const { isPlatformOwner, isAppAdmin, loading: clubLoading } = useClub();
+  const canReview = isPlatformOwner || isAppAdmin;
   const [requests, setRequests] = useState<Request[]>([]);
-  const [clubs, setClubs] = useState<ClubRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
   const [actingId, setActingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [{ data: reqs }, { data: cbs }] = await Promise.all([
-      (supabase as any)
-        .from('club_requests')
-        .select('id, requested_by, proposed_name, reason, user_note, status, created_at, profile:requested_by(display_name)')
-        .order('created_at', { ascending: false }),
-      (supabase as any)
-        .from('clubs')
-        .select('id, name, slug, accent_color, status')
-        .order('created_at', { ascending: true }),
-    ]);
+    const { data: reqs } = await (supabase as any)
+      .from('club_requests')
+      .select('id, requested_by, proposed_name, reason, user_note, status, created_at, profile:requested_by(display_name)')
+      .order('created_at', { ascending: false });
     if (reqs) setRequests(reqs as Request[]);
-    if (cbs) {
-      // fetch member counts in parallel
-      const ids = (cbs as ClubRow[]).map((c) => c.id);
-      const counts = await Promise.all(
-        ids.map((id) =>
-          (supabase as any).from('club_members').select('id', { count: 'exact', head: true }).eq('club_id', id)
-        )
-      );
-      const enriched = (cbs as ClubRow[]).map((c, i) => ({ ...c, member_count: counts[i].count ?? 0 }));
-      setClubs(enriched);
-    }
     setLoading(false);
   }, []);
 
   useEffect(() => {
-    if (!clubLoading && isPlatformOwner) void load();
-  }, [clubLoading, isPlatformOwner, load]);
+    if (!clubLoading && canReview) void load();
+  }, [clubLoading, canReview, load]);
 
   if (clubLoading) {
     return <div className="min-h-screen flex items-center justify-center"><div className="loading-spinner-ring" /></div>;
   }
-  if (!isPlatformOwner) {
+  if (!canReview) {
     return <Navigate to="/dashboard" replace />;
   }
 
   const approve = async (req: Request) => {
     setActingId(req.id);
-    try {
-      // Create the club
-      const slug = slugify(req.proposed_name);
-      const { data: newClub, error: clubErr } = await (supabase as any)
-        .from('clubs')
-        .insert({
-          name: req.proposed_name,
-          slug,
-          accent_color: '152 72% 46%',
-          owner_admin_id: req.requested_by,
-          status: 'active',
-        })
-        .select()
-        .maybeSingle();
-      if (clubErr) throw clubErr;
-
-      // Make requester the admin (one-club-per-account: insert; if user already in another club this fails)
-      const { error: memErr } = await (supabase as any)
-        .from('club_members')
-        .insert({ club_id: newClub.id, user_id: req.requested_by, role: 'admin' });
-      if (memErr) throw new Error('User is already a member of another club. They must leave it first.');
-
-      // Generate an invite code for the new club
-      await (supabase as any).from('invite_codes').insert({
-        code: genCode(req.proposed_name),
-        is_active: true,
-        club_id: newClub.id,
-      });
-
-      // Mark request as approved
-      await (supabase as any)
-        .from('club_requests')
-        .update({
-          status: 'approved',
-          reviewed_at: new Date().toISOString(),
-          review_notes: reviewNotes[req.id] || null,
-        })
-        .eq('id', req.id);
-
-      toast.success(`${req.proposed_name} approved!`);
-      await load();
-    } catch (err: any) {
-      toast.error(err.message ?? 'Approval failed');
-    } finally {
-      setActingId(null);
-    }
+    const { error } = await (supabase as any).rpc('approve_join_request', { _request_id: req.id });
+    if (error) toast.error(error.message ?? 'Approval failed');
+    else { toast.success(`${req.profile?.display_name ?? 'Member'} approved!`); await load(); }
+    setActingId(null);
   };
 
   const reject = async (req: Request) => {
     setActingId(req.id);
-    const { error } = await (supabase as any)
-      .from('club_requests')
-      .update({
-        status: 'rejected',
-        reviewed_at: new Date().toISOString(),
-        review_notes: reviewNotes[req.id] || null,
-      })
-      .eq('id', req.id);
+    const { error } = await (supabase as any).rpc('deny_join_request', {
+      _request_id: req.id,
+      _note: reviewNotes[req.id] || null,
+    });
     if (error) toast.error(error.message);
-    else { toast.success('Request rejected'); await load(); }
+    else { toast.success('Request denied'); await load(); }
     setActingId(null);
   };
 
@@ -190,9 +115,9 @@ export default function AdminClubsPage() {
           </div>
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.14em]" style={{ color: 'hsl(var(--gold))' }}>
-              Platform Owner
+              Admin
             </p>
-            <h1 className="text-lg font-extrabold leading-tight">Club Management</h1>
+            <h1 className="text-lg font-extrabold leading-tight">Membership Requests</h1>
           </div>
         </div>
 
@@ -203,22 +128,25 @@ export default function AdminClubsPage() {
             {/* Pending requests */}
             <section className="mb-6">
               <h2 className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground/80 mb-2 px-1">
-                Pending Requests {pending.length > 0 && <span className="ml-1 text-gold">({pending.length})</span>}
+                Pending {pending.length > 0 && <span className="ml-1 text-gold">({pending.length})</span>}
               </h2>
               {pending.length === 0 ? (
                 <div className="glass-card p-5 text-center">
-                  <p className="text-sm text-muted-foreground">No pending requests</p>
+                  <p className="text-sm text-muted-foreground">No one waiting to join right now.</p>
                 </div>
               ) : (
                 <div className="space-y-3">
                   {pending.map((req) => (
                     <div key={req.id} className="glass-card p-4 space-y-3">
                       <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="text-base font-bold">{req.proposed_name}</p>
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            requested by {req.profile?.display_name ?? 'unknown'}
-                          </p>
+                        <div className="min-w-0 flex items-center gap-2.5">
+                          <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center text-sm font-bold flex-shrink-0">
+                            {(req.profile?.display_name ?? '?').charAt(0).toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-base font-bold truncate">{req.profile?.display_name ?? 'Unknown'}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">wants to join</p>
+                          </div>
                         </div>
                         <span
                           className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md flex-shrink-0"
@@ -230,19 +158,14 @@ export default function AdminClubsPage() {
                           {req.status === 'needs_info' ? 'Awaiting reply' : 'Pending'}
                         </span>
                       </div>
-                      {req.reason && (
-                        <p className="text-sm leading-relaxed bg-muted/30 rounded-lg p-3 break-words">
-                          {req.reason}
-                        </p>
-                      )}
-                      {(req as any).user_note && (
+                      {req.user_note && (
                         <div className="text-sm leading-relaxed bg-primary/5 border border-primary/15 rounded-lg p-3 break-words">
-                          <p className="text-[10px] uppercase font-bold tracking-wider text-primary mb-1">User reply</p>
-                          {(req as any).user_note}
+                          <p className="text-[10px] uppercase font-bold tracking-wider text-primary mb-1">Their note</p>
+                          {req.user_note}
                         </div>
                       )}
                       <Textarea
-                        placeholder="Notes for requester (used by Reject and Needs Info)"
+                        placeholder="Note to requester (used by Deny and Ask for info)"
                         value={reviewNotes[req.id] ?? ''}
                         onChange={(e) => setReviewNotes((s) => ({ ...s, [req.id]: e.target.value }))}
                         rows={2}
@@ -264,7 +187,7 @@ export default function AdminClubsPage() {
                           onClick={() => reject(req)}
                           disabled={actingId === req.id}
                         >
-                          <X className="w-4 h-4 mr-1.5" /> Reject
+                          <X className="w-4 h-4 mr-1.5" /> Deny
                         </Button>
                         <Button
                           className="btn-press"
@@ -280,55 +203,18 @@ export default function AdminClubsPage() {
               )}
             </section>
 
-            {/* Active clubs */}
-            <section className="mb-6">
-              <h2 className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground/80 mb-2 px-1">
-                All Clubs ({clubs.length})
-              </h2>
-              <div className="space-y-2">
-                {clubs.map((c) => (
-                  <div key={c.id} className="glass-card p-3 flex items-center gap-3">
-                    <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                      style={{
-                        background: `linear-gradient(135deg, hsl(${c.accent_color} / 0.22), hsl(${c.accent_color} / 0.04))`,
-                        border: `1px solid hsl(${c.accent_color} / 0.3)`,
-                      }}
-                    >
-                      <Building2 className="w-5 h-5" style={{ color: `hsl(${c.accent_color})` }} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-bold truncate">{c.name}</p>
-                      <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
-                        <Users className="w-3 h-3" /> {c.member_count} members · {c.slug}
-                      </p>
-                    </div>
-                    <span
-                      className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md"
-                      style={{
-                        background: c.status === 'active' ? 'hsl(var(--primary) / 0.14)' : 'hsl(var(--muted) / 0.4)',
-                        color: c.status === 'active' ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
-                      }}
-                    >
-                      {c.status}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </section>
-
             {/* Reviewed history */}
             {reviewed.length > 0 && (
               <section>
                 <h2 className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground/80 mb-2 px-1">
-                  Recent Reviews
+                  Recent decisions
                 </h2>
                 <div className="space-y-2">
-                  {reviewed.slice(0, 10).map((req) => (
+                  {reviewed.slice(0, 12).map((req) => (
                     <div key={req.id} className="glass-card p-3 flex items-center gap-3 opacity-80">
+                      <UserPlus className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold truncate">{req.proposed_name}</p>
-                        <p className="text-[11px] text-muted-foreground">by {req.profile?.display_name ?? 'unknown'}</p>
+                        <p className="text-sm font-semibold truncate">{req.profile?.display_name ?? 'Unknown'}</p>
                       </div>
                       <span
                         className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md"
@@ -337,7 +223,7 @@ export default function AdminClubsPage() {
                           color: req.status === 'approved' ? 'hsl(var(--primary))' : 'hsl(var(--destructive))',
                         }}
                       >
-                        {req.status}
+                        {req.status === 'approved' ? 'approved' : req.status === 'rejected' ? 'denied' : req.status}
                       </span>
                     </div>
                   ))}

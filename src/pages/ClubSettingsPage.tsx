@@ -46,22 +46,13 @@ export default function ClubSettingsPage() {
   const [name, setName] = useState('');
   const [accent, setAccent] = useState('152 72% 46%');
   const [saving, setSaving] = useState(false);
-  const [codes, setCodes] = useState<InviteCode[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
-  const [clubPassword, setClubPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [passwordVisible, setPasswordVisible] = useState(true);
-  const [savingPassword, setSavingPassword] = useState(false);
 
   const loadAll = useCallback(async () => {
     if (!club) return;
-    const [{ data: c }, { data: m, error: mErr }, { data: pwd }] = await Promise.all([
-      (supabase as any).from('invite_codes').select('id, code, is_active, used_at').eq('club_id', club.id).order('created_at', { ascending: false }),
-      (supabase as any).from('club_members').select('id, user_id, role, joined_at').eq('club_id', club.id).order('joined_at', { ascending: true }),
-      (supabase as any).rpc('get_club_password', { _club_id: club.id }),
-    ]);
+    const { data: m, error: mErr } = await (supabase as any)
+      .from('club_members').select('id, user_id, role, joined_at').eq('club_id', club.id).order('joined_at', { ascending: true });
     if (mErr) console.warn('[ClubSettings] members load error', mErr);
-    if (c) setCodes(c as InviteCode[]);
     if (m && m.length) {
       const ids = (m as any[]).map((x) => x.user_id);
       const { data: profs } = await (supabase as any)
@@ -73,8 +64,6 @@ export default function ClubSettingsPage() {
     } else {
       setMembers([]);
     }
-    setClubPassword((pwd as string | null) ?? '');
-    setPasswordVisible(club.password_visible ?? true);
   }, [club]);
 
   useEffect(() => {
@@ -98,71 +87,6 @@ export default function ClubSettingsPage() {
     if (error) { toast.error(error.message); return; }
     toast.success('Club updated');
     await refresh();
-  };
-
-  const saveClubPassword = async () => {
-    const trimmed = clubPassword.trim();
-    if (trimmed.length < 4) {
-      toast.error('Password must be at least 4 characters');
-      return;
-    }
-    setSavingPassword(true);
-    const { error } = await (supabase as any)
-      .from('clubs')
-      .update({ join_password: trimmed })
-      .eq('id', club.id);
-    setSavingPassword(false);
-    if (error) { toast.error(error.message); return; }
-    toast.success('Club password updated');
-    await refresh();
-  };
-
-  const togglePasswordVisible = async (next: boolean) => {
-    setPasswordVisible(next);
-    const { error } = await (supabase as any)
-      .from('clubs')
-      .update({ password_visible: next })
-      .eq('id', club.id);
-    if (error) {
-      setPasswordVisible(!next);
-      toast.error(error.message);
-      return;
-    }
-    await refresh();
-  };
-
-  const generateRandomPassword = () => {
-    const adjectives = ['amber', 'azure', 'crimson', 'silver', 'jade', 'cobalt', 'ember', 'frost'];
-    const nouns = ['falcon', 'tiger', 'comet', 'horizon', 'summit', 'echo', 'cipher', 'arrow'];
-    const num = Math.floor(Math.random() * 90 + 10);
-    const generated = `${adjectives[Math.floor(Math.random() * adjectives.length)]}-${nouns[Math.floor(Math.random() * nouns.length)]}-${num}`;
-    setClubPassword(generated);
-    setShowPassword(true);
-  };
-
-  const generateCode = async () => {
-    const base = club.name.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6) || 'CLUB';
-    const suffix = Math.random().toString(36).substring(2, 6).toUpperCase();
-    const code = `${base}-${suffix}`;
-    const { error } = await (supabase as any).from('invite_codes').insert({ code, is_active: true, club_id: club.id });
-    if (error) toast.error(error.message);
-    else { toast.success('Invite code created'); await loadAll(); }
-  };
-
-  const toggleCode = async (id: string, isActive: boolean) => {
-    await (supabase as any).from('invite_codes').update({ is_active: !isActive }).eq('id', id);
-    await loadAll();
-  };
-
-  const copyCode = (code: string) => {
-    navigator.clipboard.writeText(code);
-    toast.success(`Copied ${code}`);
-  };
-
-  const copyPassword = () => {
-    if (!clubPassword) return;
-    navigator.clipboard.writeText(clubPassword);
-    toast.success('Password copied');
   };
 
   return (
@@ -220,114 +144,15 @@ export default function ClubSettingsPage() {
           </Button>
         </section>
 
-        {/* Club Password — replaces invite codes for new signups */}
-        <section
-          className="glass-card p-5 mb-4 space-y-4"
-          style={!clubPassword ? { borderColor: 'hsl(var(--gold) / 0.4)', boxShadow: '0 0 0 1px hsl(var(--gold) / 0.18)' } : undefined}
-        >
-          <div className="flex items-center justify-between">
-            <h2 className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground/80 flex items-center gap-1.5">
-              <KeyRound className="w-3 h-3" /> Club Password
-            </h2>
-            {clubPassword && (
-              <button
-                type="button"
-                onClick={() => setShowPassword((s) => !s)}
-                className="text-[11px] font-bold text-muted-foreground hover:text-foreground flex items-center gap-1 btn-press"
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
-              >
-                {showPassword ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-                {showPassword ? 'Hide' : 'Show'}
-              </button>
-            )}
-          </div>
-
-          {!clubPassword && (
-            <p className="text-xs leading-relaxed" style={{ color: 'hsl(var(--gold))' }}>
-              Set a club password before sharing your club. New members will type this to join.
-            </p>
-          )}
-
-          <div className="flex gap-2">
-            <Input
-              type={showPassword ? 'text' : 'password'}
-              value={clubPassword}
-              onChange={(e) => setClubPassword(e.target.value)}
-              placeholder="Choose a memorable phrase"
-              className="form-input flex-1"
-              autoComplete="off"
-            />
-            <button
-              type="button"
-              onClick={generateRandomPassword}
-              className="px-3 rounded-lg bg-muted/30 hover:bg-muted/50 btn-press flex items-center justify-center"
-              aria-label="Generate random password"
-              title="Generate random"
-            >
-              <RefreshCw className="w-4 h-4 text-muted-foreground" />
-            </button>
-            {clubPassword && (
-              <button
-                type="button"
-                onClick={copyPassword}
-                className="px-3 rounded-lg bg-muted/30 hover:bg-muted/50 btn-press flex items-center justify-center"
-                aria-label="Copy password"
-              >
-                <Copy className="w-4 h-4 text-muted-foreground" />
-              </button>
-            )}
-          </div>
-
-          <div className="flex items-center justify-between gap-3 bg-muted/20 rounded-lg p-3">
-            <div className="min-w-0">
-              <p className="text-xs font-semibold">Visible to members</p>
-              <p className="text-[11px] text-muted-foreground/80 mt-0.5 leading-relaxed">
-                When on, members can see the password in their profile.
-              </p>
-            </div>
-            <Switch checked={passwordVisible} onCheckedChange={togglePasswordVisible} />
-          </div>
-
-          <Button onClick={saveClubPassword} disabled={savingPassword} className="w-full h-11 font-bold rounded-xl btn-press">
-            {savingPassword ? 'Saving…' : clubPassword ? 'Update Password' : 'Set Password'}
-          </Button>
-        </section>
-
-        {/* Invite codes */}
-        <section className="glass-card p-5 mb-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground/80">Legacy Invite Codes</h2>
-              <p className="text-[10px] text-muted-foreground/70 mt-0.5">Optional — most members now join via the club password.</p>
-            </div>
-            <button onClick={generateCode} className="text-[11px] font-bold text-primary flex items-center gap-1 btn-press">
-              <Plus className="w-3 h-3" /> New
-            </button>
-          </div>
-          {codes.length === 0 ? (
-            <p className="text-xs text-muted-foreground py-2">No invite codes yet</p>
-          ) : (
-            <div className="space-y-1.5">
-              {codes.map((c) => (
-                <div key={c.id} className="flex items-center gap-2 bg-muted/30 rounded-lg p-2.5">
-                  <code className="flex-1 font-mono text-sm font-bold tracking-widest">{c.code}</code>
-                  <button onClick={() => copyCode(c.code)} className="p-1.5 rounded-md hover:bg-muted/40 btn-press">
-                    <Copy className="w-3.5 h-3.5 text-muted-foreground" />
-                  </button>
-                  <button
-                    onClick={() => toggleCode(c.id, c.is_active)}
-                    className="text-[10px] font-bold px-2 py-1 rounded-md btn-press"
-                    style={{
-                      background: c.is_active ? 'hsl(var(--primary) / 0.14)' : 'hsl(var(--muted) / 0.4)',
-                      color: c.is_active ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
-                    }}
-                  >
-                    {c.is_active ? 'ACTIVE' : 'OFF'}
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
+        {/* Membership — approval-based access to the single club */}
+        <section className="glass-card p-5 mb-4 space-y-2">
+          <h2 className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground/80 flex items-center gap-1.5">
+            <Users className="w-3 h-3" /> Membership
+          </h2>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            This club is invite-only. New people create an account and request access — you approve
+            each one in <Link to="/admin/clubs" className="text-primary font-semibold hover:underline">Membership Requests</Link>.
+          </p>
         </section>
 
         {/* Asset Library — onboarding CTA for new clubs, compact summary for established ones */}

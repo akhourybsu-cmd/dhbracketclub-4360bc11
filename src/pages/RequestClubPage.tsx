@@ -5,19 +5,17 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOnboardingStatus, type ClubRequest } from '@/hooks/useOnboardingStatus';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { JoinClubWithPasswordCard } from '@/components/onboarding/JoinClubWithPasswordCard';
 
 import {
   ScrollText, Clock, Check, X, LogOut, ArrowRight, AlertCircle,
-  Sparkles, Pencil, MessageCircle,
+  Sparkles, MessageCircle,
 } from 'lucide-react';
 
 const STEPS = [
   { key: 'account', label: 'Account created' },
-  { key: 'submitted', label: 'Request submitted' },
+  { key: 'submitted', label: 'Access requested' },
   { key: 'review', label: 'Awaiting approval' },
   { key: 'welcome', label: "You're in" },
 ] as const;
@@ -63,7 +61,7 @@ function ProgressTracker({ active }: { active: number }) {
 function activeStep(status: ClubRequest['status'] | 'no_request' | 'approved'): number {
   if (status === 'approved') return 4;
   if (status === 'no_request') return 1;
-  if (status === 'rejected') return 1; // back to step "submit"
+  if (status === 'rejected') return 1; // back to "request access"
   return 2; // pending or needs_info → awaiting approval
 }
 
@@ -72,69 +70,64 @@ export default function RequestClubPage() {
   const navigate = useNavigate();
   const { state, request, refresh, loading } = useOnboardingStatus();
 
-  const [proposedName, setProposedName] = useState('');
-  const [reason, setReason] = useState('');
-  const [userNote, setUserNote] = useState('');
+  const [note, setNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [editing, setEditing] = useState(false);
+  const [clubName, setClubName] = useState<string>('the club');
 
-  // Hydrate fields when a request is loaded
+  // Fetch the single club's name for friendly copy (prospects can't read the
+  // clubs table directly under RLS — this SECURITY DEFINER reader exposes only
+  // public branding).
   useEffect(() => {
-    if (request) {
-      setProposedName(request.proposed_name);
-      setReason(request.reason ?? '');
-      setUserNote(request.user_note ?? '');
-    }
+    let cancelled = false;
+    (async () => {
+      const { data } = await (supabase as any).rpc('get_primary_club');
+      const row = Array.isArray(data) ? data[0] : data;
+      if (!cancelled && row?.name) setClubName(row.name);
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Hydrate the note field when an existing request loads.
+  useEffect(() => {
+    if (request) setNote(request.user_note ?? '');
   }, [request]);
 
-  const callUpsert = async (next: { name: string; reason: string; note: string }) => {
+  const submitRequest = async () => {
     setSubmitting(true);
-    const { error } = await supabase.rpc('upsert_club_request', {
-      _proposed_name: next.name,
-      _reason: next.reason,
-      _user_note: next.note,
-    });
+    const { error } = await supabase.rpc('request_club_access', { _note: note });
     setSubmitting(false);
     if (error) {
-      toast.error(error.message ?? 'Could not save request');
+      toast.error(error.message ?? 'Could not send request');
       return false;
     }
     await refresh();
     return true;
   };
 
-  const handleSubmitNew = async (e: React.FormEvent) => {
+  const handleRequest = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!proposedName.trim()) {
-      toast.error('Please enter a club name');
-      return;
-    }
-    const ok = await callUpsert({ name: proposedName, reason, note: userNote });
-    if (ok) toast.success('Request submitted! Alex will review it soon.');
+    const ok = await submitRequest();
+    if (ok) toast.success('Request sent! An admin will review it soon.');
   };
 
-  const handleSendUpdate = async () => {
-    const ok = await callUpsert({ name: proposedName, reason, note: userNote });
-    if (ok) {
-      toast.success('Update sent. Your request is back in the queue.');
-      setEditing(false);
-    }
+  const handleSendReply = async () => {
+    const ok = await submitRequest();
+    if (ok) toast.success('Reply sent — your request is back in the queue.');
   };
 
   const handleResubmit = async () => {
-    if (!proposedName.trim()) { toast.error('Please enter a club name'); return; }
-    const ok = await callUpsert({ name: proposedName, reason, note: userNote });
-    if (ok) toast.success('New request submitted!');
+    const ok = await submitRequest();
+    if (ok) toast.success('Request resent!');
   };
 
   const handleCancel = async () => {
-    if (!confirm('Cancel this request? You can submit a new one anytime.')) return;
+    if (!confirm('Cancel this request? You can send a new one anytime.')) return;
     setSubmitting(true);
     const { error } = await supabase.rpc('cancel_club_request');
     setSubmitting(false);
     if (error) { toast.error(error.message); return; }
     toast.success('Request cancelled');
-    setProposedName(''); setReason(''); setUserNote('');
+    setNote('');
     await refresh();
   };
 
@@ -177,17 +170,17 @@ export default function RequestClubPage() {
           </div>
           <h1 className="text-xl font-extrabold tracking-tight">
             {state === 'approved' && "You're in!"}
-            {state === 'pending' && 'Request Submitted'}
+            {state === 'pending' && 'Request Sent'}
             {state === 'needs_info' && 'A bit more info needed'}
             {state === 'rejected' && 'Request Not Approved'}
-            {state === 'no_request' && 'Request Club Access'}
+            {state === 'no_request' && `Request access to ${clubName}`}
           </h1>
           <p className="text-xs text-muted-foreground mt-1.5 max-w-xs mx-auto leading-relaxed">
-            {state === 'approved' && 'Your club is live. Head into the app whenever you’re ready.'}
-            {state === 'pending' && 'Hang tight — Alex reviews each request manually. No need to submit again.'}
-            {state === 'needs_info' && 'Alex left a note. Reply below and we’ll move you back into the queue.'}
-            {state === 'rejected' && 'You can update your request and try again.'}
-            {state === 'no_request' && 'Tell us about your club. Each one gets its own admin, members, and isolated data.'}
+            {state === 'approved' && `Welcome to ${clubName}. Head in whenever you’re ready.`}
+            {state === 'pending' && 'Hang tight — an admin reviews each request personally. No need to send it again.'}
+            {state === 'needs_info' && 'An admin left a note. Reply below and we’ll move you back into the queue.'}
+            {state === 'rejected' && 'You can send another request below.'}
+            {state === 'no_request' && `${clubName} is invite-only. Send a request and an admin will let you in.`}
           </p>
         </div>
 
@@ -196,7 +189,7 @@ export default function RequestClubPage() {
           <ProgressTracker active={step} />
         </div>
 
-        {/* Status-specific surfaces */}
+        {/* Approved */}
         {state === 'approved' && (
           <div className="space-y-3">
             <div className="glass-card p-4 flex items-start gap-3" style={{ borderColor: 'hsl(var(--primary) / 0.3)' }}>
@@ -205,7 +198,7 @@ export default function RequestClubPage() {
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-bold">Welcome aboard</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Your club is set up and ready.</p>
+                <p className="text-xs text-muted-foreground mt-0.5">You've been approved. Enjoy.</p>
               </div>
             </div>
             <Button onClick={() => navigate('/dashboard', { replace: true })} className="w-full h-11 font-bold rounded-xl btn-press gap-2">
@@ -214,6 +207,7 @@ export default function RequestClubPage() {
           </div>
         )}
 
+        {/* Pending / needs-info */}
         {(state === 'pending' || state === 'needs_info') && request && (
           <>
             {state === 'needs_info' && request.review_notes && (
@@ -222,7 +216,7 @@ export default function RequestClubPage() {
                   <MessageCircle className="w-4 h-4" style={{ color: 'hsl(var(--gold))' }} />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[10px] uppercase font-bold tracking-wider" style={{ color: 'hsl(var(--gold))' }}>Note from Alex</p>
+                  <p className="text-[10px] uppercase font-bold tracking-wider" style={{ color: 'hsl(var(--gold))' }}>Note from the admin</p>
                   <p className="text-sm mt-1 leading-relaxed">{request.review_notes}</p>
                 </div>
               </div>
@@ -232,10 +226,7 @@ export default function RequestClubPage() {
               <div className="flex items-center justify-between">
                 <span
                   className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md inline-flex items-center gap-1"
-                  style={{
-                    background: state === 'pending' ? 'hsl(var(--gold) / 0.16)' : 'hsl(var(--gold) / 0.16)',
-                    color: 'hsl(var(--gold))',
-                  }}
+                  style={{ background: 'hsl(var(--gold) / 0.16)', color: 'hsl(var(--gold))' }}
                 >
                   <Clock className="w-3 h-3" />
                   {state === 'pending' ? 'Pending' : 'Needs info'}
@@ -245,76 +236,41 @@ export default function RequestClubPage() {
                 </span>
               </div>
 
-              {!editing ? (
-                <>
+              {state === 'needs_info' ? (
+                <div className="space-y-3">
                   <div>
-                    <p className="form-label">Club name</p>
-                    <p className="text-base font-bold">{request.proposed_name}</p>
+                    <label className="form-label">Your reply</label>
+                    <Textarea
+                      value={note}
+                      onChange={(e) => setNote(e.target.value)}
+                      rows={3}
+                      maxLength={500}
+                      placeholder="Answer the question above…"
+                      className="form-input resize-none"
+                    />
                   </div>
-                  {request.reason && (
-                    <div>
-                      <p className="form-label">Why this club</p>
-                      <p className="text-sm leading-relaxed bg-muted/30 rounded-lg p-3 break-words">{request.reason}</p>
-                    </div>
-                  )}
+                  <Button onClick={handleSendReply} disabled={submitting} className="w-full btn-press">
+                    {submitting ? 'Sending…' : 'Send reply'}
+                  </Button>
+                </div>
+              ) : (
+                <>
                   {request.user_note && (
                     <div>
-                      <p className="form-label">Your latest note</p>
+                      <p className="form-label">Your note</p>
                       <p className="text-sm leading-relaxed bg-muted/30 rounded-lg p-3 break-words">{request.user_note}</p>
                     </div>
                   )}
+                  <Button variant="outline" onClick={handleCancel} disabled={submitting} className="w-full btn-press">
+                    Cancel request
+                  </Button>
                 </>
-              ) : (
-                <div className="space-y-3">
-                  <div>
-                    <label className="form-label">Club name</label>
-                    <Input value={proposedName} onChange={(e) => setProposedName(e.target.value)} maxLength={48} className="form-input" />
-                  </div>
-                  <div>
-                    <label className="form-label">Why this club</label>
-                    <Textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3} maxLength={500} className="form-input resize-none" />
-                  </div>
-                  {state === 'needs_info' && (
-                    <div>
-                      <label className="form-label">Your reply to Alex</label>
-                      <Textarea
-                        value={userNote}
-                        onChange={(e) => setUserNote(e.target.value)}
-                        rows={3}
-                        maxLength={500}
-                        placeholder="Answer the question above…"
-                        className="form-input resize-none"
-                      />
-                    </div>
-                  )}
-                </div>
               )}
-
-              <div className="grid grid-cols-2 gap-2 pt-1">
-                {!editing ? (
-                  <>
-                    <Button variant="outline" onClick={() => setEditing(true)} className="btn-press gap-1.5">
-                      <Pencil className="w-3.5 h-3.5" /> Edit
-                    </Button>
-                    <Button variant="outline" onClick={handleCancel} disabled={submitting} className="btn-press">
-                      Cancel request
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <Button variant="outline" onClick={() => setEditing(false)} className="btn-press">
-                      Discard
-                    </Button>
-                    <Button onClick={handleSendUpdate} disabled={submitting} className="btn-press">
-                      {submitting ? 'Saving…' : state === 'needs_info' ? 'Send update' : 'Save changes'}
-                    </Button>
-                  </>
-                )}
-              </div>
             </div>
           </>
         )}
 
+        {/* Rejected */}
         {state === 'rejected' && request && (
           <>
             <div className="glass-card p-4 flex items-start gap-3" style={{ borderColor: 'hsl(var(--destructive) / 0.3)' }}>
@@ -334,58 +290,35 @@ export default function RequestClubPage() {
             <form onSubmit={(e) => { e.preventDefault(); void handleResubmit(); }} className="glass-card p-5 space-y-4">
               <p className="text-[11px] text-muted-foreground/80 px-0.5 leading-relaxed flex items-start gap-1.5">
                 <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
-                Update your details and resubmit — this will replace your previous request.
+                Add anything that might help and send another request.
               </p>
               <div>
-                <label className="form-label">Club name</label>
-                <Input required value={proposedName} onChange={(e) => setProposedName(e.target.value)} maxLength={48} className="form-input" />
-              </div>
-              <div>
-                <label className="form-label">Why this club (optional)</label>
-                <Textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3} maxLength={500} className="form-input resize-none" />
+                <label className="form-label">Note to the admin (optional)</label>
+                <Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} maxLength={500} className="form-input resize-none" />
               </div>
               <Button type="submit" className="w-full h-11 font-bold rounded-xl btn-press" disabled={submitting}>
-                {submitting ? 'Submitting…' : 'Resubmit request'}
+                {submitting ? 'Sending…' : 'Send request again'}
               </Button>
             </form>
           </>
         )}
-        {state !== 'approved' && (
-          <JoinClubWithPasswordCard
-            onJoined={async () => {
-              await refresh();
-              navigate('/dashboard', { replace: true });
-            }}
-          />
-        )}
 
-
+        {/* No request yet */}
         {state === 'no_request' && (
-          <form onSubmit={handleSubmitNew} className="glass-card p-5 space-y-4">
+          <form onSubmit={handleRequest} className="glass-card p-5 space-y-4">
             <div>
-              <label className="form-label">Proposed Club Name</label>
-              <Input
-                required
-                value={proposedName}
-                onChange={(e) => setProposedName(e.target.value)}
-                placeholder="e.g. Smith Family"
-                maxLength={48}
-                className="form-input"
-              />
-            </div>
-            <div>
-              <label className="form-label">Why this club? (optional)</label>
+              <label className="form-label">Note to the admin (optional)</label>
               <Textarea
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                placeholder="Briefly tell Alex who's joining and what you'll use it for."
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="Who are you? Add anything that helps the admin recognize you."
                 maxLength={500}
                 rows={4}
                 className="form-input resize-none"
               />
             </div>
             <Button type="submit" className="w-full h-11 font-bold rounded-xl btn-press" disabled={submitting}>
-              {submitting ? 'Submitting…' : 'Submit Request'}
+              {submitting ? 'Sending…' : 'Request access'}
             </Button>
           </form>
         )}
