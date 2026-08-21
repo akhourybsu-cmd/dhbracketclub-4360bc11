@@ -12,6 +12,7 @@ import { Building2, ArrowLeft, Copy, Plus, Users, Crown, KeyRound, Eye, EyeOff, 
 import { CelebrationSettingsPanel } from '@/components/celebrations/CelebrationSettingsPanel';
 import { MessageReportsPanel } from '@/components/chat/MessageReportsPanel';
 import { NarrativeApprovalsPanel } from '@/components/narrative/NarrativeApprovalsPanel';
+import { ClubAISettingsPanel } from '@/components/clubAI/ClubAISettingsPanel';
 
 type InviteCode = {
   id: string;
@@ -425,6 +426,9 @@ export default function ClubSettingsPage() {
             isAdmin={isClubAdmin}
           />
         </div>
+
+        {/* AI features master switch + usage report */}
+        <ClubAISettingsPanel isAdmin={isClubAdmin} />
 
         {/* Members */}
         <section className="glass-card p-5 space-y-3">

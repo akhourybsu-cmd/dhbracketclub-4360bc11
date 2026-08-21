@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { aiGate, logAiUsage } from "../_shared/aiUsage.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -117,7 +118,8 @@ async function classifyDraft(
   apiKey: string,
   topic: string,
   description: string | null,
-  pickTexts: string[]
+  pickTexts: string[],
+  logCtx?: { userId?: string | null; clubId?: string | null }
 ): Promise<{ category: Category; confidence: number }> {
   const prompt = `Classify this draft/competition topic into exactly one category.
 
@@ -162,6 +164,10 @@ Return ONLY the category and your confidence (0.0-1.0).`;
 
   if (!response.ok) return { category: "generic", confidence: 0.3 };
   const data = await response.json();
+  await logAiUsage(
+    { functionName: "enrich-draft-picks", model: "google/gemini-2.5-flash-lite", userId: logCtx?.userId, clubId: logCtx?.clubId, feature: "classify" },
+    data.usage,
+  );
   const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
   if (!toolCall) return { category: "generic", confidence: 0.3 };
   return JSON.parse(toolCall.function.arguments);
@@ -172,7 +178,8 @@ async function aiEnrichItems(
   apiKey: string,
   category: Category,
   topic: string,
-  itemNames: string[]
+  itemNames: string[],
+  logCtx?: { userId?: string | null; clubId?: string | null }
 ): Promise<Record<string, EnrichmentResult>> {
   const categoryHints: Record<string, string> = {
     movie: "For movies, include: year, director, genre.",
@@ -256,6 +263,10 @@ ${itemNames.map((n, i) => `${i + 1}. "${n}"`).join("\n")}`;
 
   if (!response.ok) return {};
   const data = await response.json();
+  await logAiUsage(
+    { functionName: "enrich-draft-picks", model: "google/gemini-2.5-flash", userId: logCtx?.userId, clubId: logCtx?.clubId, feature: "enrich" },
+    data.usage,
+  );
   const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
   if (!toolCall) return {};
 
@@ -964,6 +975,15 @@ serve(async (req) => {
       });
     }
 
+    // ── Per-club AI master switch ──
+    const gate = await aiGate(userClient);
+    if (!gate.enabled) {
+      return new Response(JSON.stringify({ error: "AI features are turned off for this club." }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const logCtx = { userId: user.id, clubId: gate.clubId };
+
     // ── Rate limit (AI fan-out is expensive) ──
     const { data: quota } = await userClient.rpc("consume_ai_quota", {
       _function_name: "enrich-draft-picks",
@@ -1040,7 +1060,8 @@ serve(async (req) => {
         LOVABLE_API_KEY,
         draft.topic,
         draft.competitions?.description,
-        allPickTexts
+        allPickTexts,
+        logCtx
       );
       console.log("Draft classification:", classification);
       category = classification.category;
@@ -1052,7 +1073,7 @@ serve(async (req) => {
     }
 
     // 5. AI-enrich all picks in batch
-    const aiResults = await aiEnrichItems(LOVABLE_API_KEY, category, draft.topic, pickTexts);
+    const aiResults = await aiEnrichItems(LOVABLE_API_KEY, category, draft.topic, pickTexts, logCtx);
 
     // 6. Source-specific enrichment per pick
     const enrichments = await Promise.all(

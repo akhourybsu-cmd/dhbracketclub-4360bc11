@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { aiGate, logAiUsage } from "../_shared/aiUsage.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -259,6 +260,13 @@ ${participantSummaries}
 Use the rate_draft_results tool to return your structured analysis.`;
 
     // ── Per-user AI rate limit (expensive multi-pick analysis) ──
+    const gate = await aiGate(userClient);
+    if (!gate.enabled) {
+      return new Response(JSON.stringify({ error: "AI features are turned off for this club." }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { data: quota } = await userClient.rpc("consume_ai_quota", {
       _function_name: "rate-draft", _max_requests: 5, _window_minutes: 60,
     });
@@ -374,6 +382,10 @@ Use the rate_draft_results tool to return your structured analysis.`;
       }
 
       aiData = await aiResponse.json();
+      await logAiUsage(
+        { functionName: "rate-draft", model: "google/gemini-2.5-pro", userId, clubId: gate.clubId },
+        aiData.usage,
+      );
       const assistantMessage = aiData.choices?.[0]?.message;
       const toolCalls = assistantMessage?.tool_calls;
 

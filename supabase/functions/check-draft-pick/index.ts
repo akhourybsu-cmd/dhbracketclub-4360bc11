@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { aiGate, logAiUsage } from "../_shared/aiUsage.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -138,6 +139,14 @@ Rules:
 - For relevance: only flag picks that are clearly unrelated to the topic. Repeating an archetype or being similar to an already-picked item is NOT a reason to flag — only exact-duplicate items are duplicates.
 - If the pick is a true duplicate of something already picked, flag it as a duplicate.`;
 
+    // ── Per-club AI master switch ──
+    const gate = await aiGate(userClient);
+    if (!gate.enabled) {
+      return new Response(JSON.stringify({ error: "AI features are turned off for this club." }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // ── Per-user AI rate limit ──
     const { data: quota } = await userClient.rpc("consume_ai_quota", {
       _function_name: "check-draft-pick", _max_requests: 30, _window_minutes: 60,
@@ -210,6 +219,10 @@ Rules:
     }
 
     const data = await response.json();
+    await logAiUsage(
+      { functionName: "check-draft-pick", model: "google/gemini-2.5-flash-lite", userId: user.id, clubId: gate.clubId },
+      data.usage,
+    );
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall) {
       return new Response(JSON.stringify({ suggestion: null }), {

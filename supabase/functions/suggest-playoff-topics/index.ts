@@ -1,6 +1,7 @@
 // Returns 3 fresh AI-generated draft topic options for a playoff matchup.
 // Filters against prior season topics + already-used playoff topics for variety.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { aiGate, logAiUsage } from "../_shared/aiUsage.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -45,6 +46,13 @@ Deno.serve(async (req) => {
     }
 
     // ── Per-user AI rate limit (lightweight cost cap) ──
+    const gate = await aiGate(userClient);
+    if (!gate.enabled) {
+      return new Response(JSON.stringify({ error: "AI features are turned off for this club." }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { data: quota } = await userClient.rpc("consume_ai_quota", {
       _function_name: "suggest-playoff-topics", _max_requests: 10, _window_minutes: 60,
     });
@@ -129,6 +137,10 @@ No prose, no markdown, just the JSON.`;
     }
 
     const aiData = await aiRes.json();
+    await logAiUsage(
+      { functionName: "suggest-playoff-topics", model: "google/gemini-2.5-flash", userId: authedUser.id, clubId: gate.clubId },
+      aiData.usage,
+    );
     const content = aiData.choices?.[0]?.message?.content || "{}";
     let parsed: { topics?: string[] };
     try { parsed = JSON.parse(content); } catch { parsed = {}; }

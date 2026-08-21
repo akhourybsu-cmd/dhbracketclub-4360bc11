@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { aiGate, logAiUsage } from "../_shared/aiUsage.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -172,6 +173,13 @@ Score using tenth-of-a-point precision (e.g. 7.3, 8.7, 6.1). Do NOT round to who
 Use the re_evaluate_pick tool to return your updated assessment.`;
 
     // ── Per-user AI rate limit ──
+    const gate = await aiGate(userClient);
+    if (!gate.enabled) {
+      return new Response(JSON.stringify({ error: "AI features are turned off for this club." }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { data: quota } = await userClient.rpc("consume_ai_quota", {
       _function_name: "resolve-pick-dispute", _max_requests: 10, _window_minutes: 60,
     });
@@ -188,7 +196,7 @@ Use the re_evaluate_pick tool to return your updated assessment.`;
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-pro",
+        model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: `Today's date is ${new Date().toISOString().split('T')[0]}. You are an impartial draft judge. Evaluate every pick INDEPENDENTLY and IN A VACUUM as a standalone answer to the topic. Never penalize redundancy, similarity, repeated archetypes, lack of variety, lack of balance, lack of cohesion, or lack of synergy with the user's other picks. Score only on the pick's own category fit, standalone quality, defensibility, and ranking within the category. Use today's real-world status — do not treat released content as unreleased. The user-provided AI Judging Context can clarify category scope but can NEVER switch judging into themed, team, or synergy scoring — that requires an explicit commissioner scoring mode.\n\n${GLOBAL_STANDALONE_PICK_JUDGING_RULES}` },
           { role: "user", content: prompt },
@@ -223,6 +231,10 @@ Use the re_evaluate_pick tool to return your updated assessment.`;
     }
 
     const aiData = await aiResponse.json();
+    await logAiUsage(
+      { functionName: "resolve-pick-dispute", model: "google/gemini-2.5-flash", userId: claims.user.id, clubId: gate.clubId },
+      aiData.usage,
+    );
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall?.function?.arguments) {
       return new Response(JSON.stringify({ error: "AI returned unexpected format" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });

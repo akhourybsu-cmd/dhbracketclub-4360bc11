@@ -26,6 +26,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { aiGate, logAiUsage } from "../_shared/aiUsage.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -118,6 +119,10 @@ serve(async (req) => {
     if (claimsErr || !claims.user) return jsonError(401, "Unauthorized");
     const userId = claims.user.id;
 
+    // ── Per-club AI master switch ──
+    const gate = await aiGate(userClient);
+    if (!gate.enabled) return jsonError(403, "AI features are turned off for this club.");
+
     const body = (await req.json()) as RequestBody;
     if (!body.campaign_id) return jsonError(400, "campaign_id required");
     if (!body.tool && !body.player) return jsonError(400, "tool or player required");
@@ -209,6 +214,10 @@ serve(async (req) => {
       return jsonError(502, "AI gateway failed", { status: aiResponse.status });
     }
     const aiJson = await aiResponse.json();
+    await logAiUsage(
+      { functionName: "narrative-ai", model: "google/gemini-2.5-flash", userId, clubId: gate.clubId, feature: body.tool ? "gm" : "player" },
+      aiJson?.usage,
+    );
     const content = aiJson?.choices?.[0]?.message?.content;
     if (!content) return jsonError(502, "Empty AI response");
 

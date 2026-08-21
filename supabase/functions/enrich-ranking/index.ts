@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { aiGate, logAiUsage } from "../_shared/aiUsage.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -35,7 +36,8 @@ async function classifyRanking(
   apiKey: string,
   topic: string,
   description: string | null,
-  itemNames: string[]
+  itemNames: string[],
+  logCtx?: { userId?: string | null; clubId?: string | null }
 ): Promise<ClassificationResult> {
   const prompt = `Classify this ranking list into exactly one category.
 
@@ -94,6 +96,10 @@ Return ONLY the category and your confidence (0.0-1.0).`;
 
   if (!response.ok) throw new Error(`Classification failed: ${response.status}`);
   const data = await response.json();
+  await logAiUsage(
+    { functionName: "enrich-ranking", model: "google/gemini-2.5-flash-lite", userId: logCtx?.userId, clubId: logCtx?.clubId, feature: "classify" },
+    data.usage,
+  );
   const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
   if (!toolCall) return { category: "generic", confidence: 0.3 };
   return JSON.parse(toolCall.function.arguments);
@@ -104,7 +110,8 @@ async function aiEnrichItems(
   apiKey: string,
   category: Category,
   topic: string,
-  itemNames: string[]
+  itemNames: string[],
+  logCtx?: { userId?: string | null; clubId?: string | null }
 ): Promise<Record<string, EnrichmentResult>> {
   const categoryHints: Record<string, string> = {
     movie: "For movies, include: year, director, genre. normalized_name should be the canonical movie title.",
@@ -176,6 +183,10 @@ ${itemNames.map((n, i) => `${i + 1}. "${n}"`).join("\n")}`;
 
   if (!response.ok) throw new Error(`AI enrichment failed: ${response.status}`);
   const data = await response.json();
+  await logAiUsage(
+    { functionName: "enrich-ranking", model: "google/gemini-2.5-flash", userId: logCtx?.userId, clubId: logCtx?.clubId, feature: "enrich" },
+    data.usage,
+  );
   const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
   if (!toolCall) return {};
 
@@ -725,6 +736,15 @@ serve(async (req) => {
       });
     }
 
+    // ── Per-club AI master switch ──
+    const gate = await aiGate(userClient);
+    if (!gate.enabled) {
+      return new Response(JSON.stringify({ error: "AI features are turned off for this club." }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const logCtx = { userId: user.id, clubId: gate.clubId };
+
     // ── Rate limit (AI fan-out is expensive) ──
     const { data: quota } = await userClient.rpc("consume_ai_quota", {
       _function_name: "enrich-ranking",
@@ -768,7 +788,8 @@ serve(async (req) => {
       LOVABLE_API_KEY,
       ranking.topic,
       ranking.competitions?.description,
-      itemNames
+      itemNames,
+      logCtx
     );
     console.log("Classification:", classification);
 
@@ -783,7 +804,8 @@ serve(async (req) => {
       LOVABLE_API_KEY,
       classification.category as Category,
       ranking.topic,
-      itemNames
+      itemNames,
+      logCtx
     );
 
     // 4. Source-specific enrichment per item

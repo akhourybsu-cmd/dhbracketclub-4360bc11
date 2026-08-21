@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { usePickSuggestion } from '@/hooks/usePickSuggestion';
+import { useClubAI } from '@/hooks/useClubAI';
 import { cn } from '@/lib/utils';
 import { useDraftUpdates } from '@/hooks/useRealtimeSubscription';
 import { useItemEnrichments, useEnrichDraftPicks } from '@/hooks/useItemEnrichments';
@@ -150,7 +151,8 @@ export default function DraftDetailPage() {
   const { enriching, enrichDraftPicks } = useEnrichDraftPicks();
 
   const existingPickTexts = picks.map(p => p.pick_text);
-  const { suggestion, checking: suggestionChecking, localDuplicate, debouncedCheck, clearSuggestion } = usePickSuggestion(
+  const { aiEnabled } = useClubAI();
+  const { suggestion, localDuplicate, setText, runCheck, needsCheck, clearSuggestion } = usePickSuggestion(
     draft?.topic || '',
     draft?.category || null,
     existingPickTexts,
@@ -471,12 +473,20 @@ export default function DraftDetailPage() {
       return;
     }
 
-    // AI suggestion is advisory — never block submission on a pending or completed check.
+    // AI-on-submit: fire the advisory spell-check/relevance check AT MOST ONCE
+    // per pick (never per keystroke). If it surfaces something actionable and we
+    // haven't shown it for this exact text yet, hold submission so the user can
+    // review; submitting the same text again proceeds. Skipped entirely when the
+    // club has AI turned off, so no wasted round-trip.
+    if (aiEnabled && needsCheck(pickText)) {
+      const result = await runCheck(pickText);
+      if (result && (result.corrected_text || result.is_irrelevant || result.is_duplicate)) {
+        return; // banner is now shown via `suggestion`; user reviews, then re-submits
+      }
+    }
+
     // Cancel any in-flight check so its result doesn't flicker after we submit.
     clearSuggestion();
-
-
-
 
     setSubmitting(true);
     try {
@@ -504,6 +514,10 @@ export default function DraftDetailPage() {
         // Auto-generate report immediately
         setAutoTriggered(true);
         generateResults();
+        // Enrich ALL picks in one batched call now that the draft is complete —
+        // replaces the previous per-pick enrichment that fired an AI call on
+        // every single pick. No-ops server-side if the club has AI turned off.
+        enrichDraftPicks(draftId).then(() => fetchEnrichments()).catch(() => {});
         // Kick off playoff advancement immediately if this is a playoff draft (idempotent)
         if (isPlayoffDraft && season?.id) {
           advancePlayoffs(season.id).catch(err => console.error('advancePlayoffs failed:', err));
@@ -545,18 +559,10 @@ export default function DraftDetailPage() {
 
       fetchData();
 
-      // Fire-and-forget enrichment for the new pick
-      if (newPick?.id) {
-        setEnrichingPickIds(prev => new Set(prev).add(newPick.id));
-        enrichDraftPicks(draftId, [newPick.id]).then(() => {
-          setEnrichingPickIds(prev => {
-            const next = new Set(prev);
-            next.delete(newPick.id);
-            return next;
-          });
-          fetchEnrichments();
-        });
-      }
+      // Per-pick AI enrichment removed to cut Lovable-AI-gateway spend: it used
+      // to fire one enrichment call for every single pick. Enrichment now runs
+      // once as a batch when the draft completes (above), and admins can refresh
+      // on demand via the "re-enrich" control (handleReEnrich).
     } catch (err: any) {
       toast.error(err.message || 'Failed to pick');
     } finally {
@@ -1381,7 +1387,7 @@ export default function DraftDetailPage() {
                   value={pickText}
                   onChange={e => {
                     setPickText(e.target.value);
-                    debouncedCheck(e.target.value);
+                    setText(e.target.value);
                   }}
                   placeholder="Enter your pick…"
                   maxLength={100}
@@ -1417,9 +1423,10 @@ export default function DraftDetailPage() {
                         <Sparkles className="w-3.5 h-3.5 text-primary flex-shrink-0" />
                         <span className="text-foreground/80 flex-1">
                           Did you mean <button 
-                            onClick={() => { 
-                              setPickText(suggestion.corrected_text!); 
-                              clearSuggestion(); 
+                            onClick={() => {
+                              setPickText(suggestion.corrected_text!);
+                              setText(suggestion.corrected_text!);
+                              clearSuggestion();
                             }}
                             className="font-bold text-primary hover:underline"
                           >

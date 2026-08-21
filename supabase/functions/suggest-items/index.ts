@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { aiGate, logAiUsage } from "../_shared/aiUsage.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -60,6 +61,14 @@ serve(async (req) => {
       });
     }
 
+    // ── Per-club AI master switch ──
+    const gate = await aiGate(userClient);
+    if (!gate.enabled) {
+      return new Response(JSON.stringify({ error: "AI features are turned off for this club." }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // ── Per-user AI rate limit (lightweight cost cap) ──
     const { data: quota } = await userClient.rpc("consume_ai_quota", {
       _function_name: "suggest-items", _max_requests: 20, _window_minutes: 60,
@@ -84,7 +93,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-pro",
+        model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: `Suggest ${typeLabel} for: "${title}"` },
@@ -134,6 +143,10 @@ serve(async (req) => {
     }
 
     const data = await response.json();
+    await logAiUsage(
+      { functionName: "suggest-items", model: "google/gemini-2.5-flash", userId: user.id, clubId: gate.clubId },
+      data.usage,
+    );
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall) throw new Error("No tool call in AI response");
 

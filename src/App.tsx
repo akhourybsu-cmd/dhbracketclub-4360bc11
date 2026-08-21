@@ -100,6 +100,7 @@ const NarrativeCampaignDetailPage = lazyWithRetry(() => import("./pages/Narrativ
 const RequestClubPage = lazyWithRetry(() => import("./pages/RequestClubPage"));
 const AdminClubsPage = lazyWithRetry(() => import("./pages/AdminClubsPage"));
 const ClubSettingsPage = lazyWithRetry(() => import("./pages/ClubSettingsPage"));
+const AiUsageReportPage = lazyWithRetry(() => import("./pages/AiUsageReportPage"));
 const AdminDashboardPage = lazyWithRetry(() => import("./pages/AdminDashboardPage"));
 const AdminUsersPage = lazyWithRetry(() => import("./pages/AdminUsersPage"));
 const AdminCompetitionsPage = lazyWithRetry(() => import("./pages/AdminCompetitionsPage"));
@@ -322,6 +323,7 @@ function AnimatedRoutes() {
         <Route path="/club/settings" element={<ProtectedPage><ClubAdminRoute><ClubSettingsPage /></ClubAdminRoute></ProtectedPage>} />
         <Route path="/clubs/:clubId/settings" element={<ProtectedPage><ClubAdminRoute><ClubSettingsPage /></ClubAdminRoute></ProtectedPage>} />
         <Route path="/club/assets" element={<ProtectedPage><ClubAdminRoute><ClubAssetsPage /></ClubAdminRoute></ProtectedPage>} />
+        <Route path="/club/ai-usage" element={<ProtectedPage><ClubAdminRoute><AiUsageReportPage /></ClubAdminRoute></ProtectedPage>} />
 
         {/* Admin Portal — global platform controls (gated to is_app_admin / platform owner) */}
         <Route path="/admin" element={<ProtectedPage><AdminRoute><AdminDashboardPage /></AdminRoute></ProtectedPage>} />
